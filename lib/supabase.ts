@@ -1,14 +1,23 @@
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let supabaseInstance: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase env variables are missing. Client might fail in runtime.');
-}
+export const getSupabase = (): SupabaseClient => {
+    if (!supabaseInstance) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createBrowserClient(
-    supabaseUrl || '',
-    supabaseAnonKey || ''
-);
+        supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    }
+    return supabaseInstance;
+};
+
+// Lazy proxy for backward compatibility
+export const supabase = new Proxy({} as SupabaseClient, {
+    get(_, prop) {
+        const instance = getSupabase();
+        return instance[prop as keyof SupabaseClient];
+    }
+});
 

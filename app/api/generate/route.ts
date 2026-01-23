@@ -3,6 +3,8 @@ import { createServerClient, type CookieOptions } from '@supabase/auth-helpers-n
 import { cookies } from 'next/headers';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const cookieStore = await cookies();
