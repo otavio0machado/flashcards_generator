@@ -67,6 +67,7 @@ export const deckService = {
             canGenerate: currentUsage < limit,
             currentUsage,
             limit,
+            planTier: plan,
             planName: PLAN_LIMITS[plan].name
         };
     },

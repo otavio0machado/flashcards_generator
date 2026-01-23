@@ -53,7 +53,7 @@ export default function GeneratorClient() {
             setUser(session.user);
             // Aqui você buscaria o plano real do perfil
             deckService.checkUserLimit(session.user.id).then(res => {
-                setCurrentPlan(res.planName.toLowerCase() as PlanKey);
+                setCurrentPlan(res.planTier);
             }).catch(console.error);
         });
     }, [router]);
