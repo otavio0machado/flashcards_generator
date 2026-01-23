@@ -29,14 +29,17 @@ export default function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                     <Zap className="h-8 w-8 text-brand" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Desbloqueie o poder dos PDFs com o Plano Pro</h2>
+                <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Desbloqueie mais poder com os Planos Pro e Ultimate</h2>
                 <p className="text-center text-foreground/60 font-medium mb-8 leading-relaxed">
-                    O plano gratuito permite apenas texto manual. Assine o Pro para fazer upload de arquivos e gerar até 50 decks por dia.
+                    O plano gratuito tem limites de 3 gerações diárias e 5 cards. Assine o Pro ou Ultimate para fazer upload de PDFs/DOCX, salvar seu histórico e gerar até 30 cards por vez.
                 </p>
 
                 <div className="space-y-4">
                     <button
-                        onClick={() => router.push('/#pricing')}
+                        onClick={() => {
+                            onClose();
+                            router.push('/#pricing');
+                        }}
                         className="w-full bg-brand text-white py-4 font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
                     >
                         Ver Planos e Preços

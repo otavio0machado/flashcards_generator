@@ -40,15 +40,19 @@ def detect_project_type(project_path: Path) -> dict:
             scripts = pkg.get("scripts", {})
             deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
             
+            # Use .cmd on Windows
+            npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
+            npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
+            
             # Check for lint script
             if "lint" in scripts:
-                result["linters"].append({"name": "npm lint", "cmd": ["npm", "run", "lint"]})
+                result["linters"].append({"name": "npm lint", "cmd": [npm_cmd, "run", "lint"]})
             elif "eslint" in deps:
-                result["linters"].append({"name": "eslint", "cmd": ["npx", "eslint", "."]})
+                result["linters"].append({"name": "eslint", "cmd": [npx_cmd, "eslint", "."]})
             
             # Check for TypeScript
             if "typescript" in deps or (project_path / "tsconfig.json").exists():
-                result["linters"].append({"name": "tsc", "cmd": ["npx", "tsc", "--noEmit"]})
+                result["linters"].append({"name": "tsc", "cmd": [npx_cmd, "tsc", "--noEmit"]})
                 
         except:
             pass

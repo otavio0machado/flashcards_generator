@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw, Award } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Card {
     id: string;
@@ -17,7 +16,6 @@ interface FlashcardPlayerProps {
 export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
-    const [animDirection, setAnimDirection] = useState(0);
 
     const currentCard = cards[currentIndex];
     const progress = ((currentIndex + 1) / cards.length) * 100;
@@ -25,7 +23,6 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
     const handleNext = () => {
         if (currentIndex < cards.length - 1) {
             setIsFlipped(false);
-            setAnimDirection(1);
             setTimeout(() => setCurrentIndex(prev => prev + 1), 150);
         }
     };
@@ -33,7 +30,6 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
     const handlePrev = () => {
         if (currentIndex > 0) {
             setIsFlipped(false);
-            setAnimDirection(-1);
             setTimeout(() => setCurrentIndex(prev => prev - 1), 150);
         }
     };

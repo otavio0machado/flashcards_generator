@@ -41,6 +41,7 @@ export default function GeneratorClient() {
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [cardCount, setCardCount] = useState(5);
 
     const limits = PLAN_LIMITS[currentPlan];
 
@@ -52,9 +53,10 @@ export default function GeneratorClient() {
                 return;
             }
             setUser(session.user);
-            // Aqui você buscaria o plano real do perfil
             deckService.checkUserLimit(session.user.id).then(res => {
                 setCurrentPlan(res.planTier);
+                // Ajustar cardCount inicial baseado no plano
+                setCardCount(PLAN_LIMITS[res.planTier].maxCardsPerGen);
             }).catch(console.error);
         });
     }, [router]);
@@ -80,7 +82,8 @@ export default function GeneratorClient() {
                 body: JSON.stringify({
                     text: inputText,
                     plan: currentPlan,
-                    language: 'pt-BR'
+                    language: 'pt-BR',
+                    cardCount: cardCount
                 })
             });
 
@@ -103,8 +106,8 @@ export default function GeneratorClient() {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
             }
             setInputText('');
-        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            setError(err.message || 'Erro ao gerar cards');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
         } finally {
             setIsGenerating(false);
         }
@@ -112,6 +115,11 @@ export default function GeneratorClient() {
 
     const handleSaveLibrary = async () => {
         if (cards.length === 0 || !user || isSaving) return;
+
+        if (!limits.historySaved) {
+            setShowUpgradeModal(true);
+            return;
+        }
 
         setIsSaving(true);
         try {
@@ -143,39 +151,47 @@ export default function GeneratorClient() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.type !== 'application/pdf') {
-            setToast({ message: 'Por favor, envie apenas arquivos PDF.', type: 'error' });
+        if (file.type !== 'application/pdf' && file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            setToast({ message: 'Por favor, envie arquivos PDF ou DOCX.', type: 'error' });
             return;
         }
 
         setIsGenerating(true);
         try {
-            // Importação dinâmica para evitar erros de SSR e peso no bundle inicial
-            const pdfjs = await import('pdfjs-dist');
-
-            // Configurar worker do CDN
-            pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-
             let fullText = '';
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .map((item: any) => item.str)
-                    .join(' ');
-                fullText += pageText + '\n\n';
+            if (file.type === 'application/pdf') {
+                const pdfjs = await import('pdfjs-dist');
+                pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items
+                        .map((item) => (item as { str: string }).str)
+                        .join(' ');
+                    fullText += pageText + '\n\n';
+                }
+            } else {
+                // Suporte DOCX com Mammoth
+                const mammoth = await import('mammoth');
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                fullText = result.value;
             }
 
-            setInputText(fullText);
-            setToast({ message: 'Texto do PDF extraído com sucesso!', type: 'success' });
-        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            console.error('Erro ao ler PDF:', err);
-            setToast({ message: 'Erro ao processar o arquivo PDF.', type: 'error' });
+            if (fullText.trim()) {
+                setInputText(fullText);
+                setToast({ message: 'Conteúdo extraído com sucesso!', type: 'success' });
+            } else {
+                setToast({ message: 'Não foi possível extrair texto do arquivo.', type: 'error' });
+            }
+        } catch (err) {
+            console.error('Erro ao ler arquivo:', err);
+            setToast({ message: 'Erro ao processar o arquivo.', type: 'error' });
         } finally {
             setIsGenerating(false);
             if (fileInputRef.current) {
@@ -250,7 +266,9 @@ export default function GeneratorClient() {
                             accept="application/pdf"
                             className="hidden"
                         />
+                        <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
                         <textarea
+                            id="content-input"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder="Cole seu texto, resumo ou notas aqui..."
@@ -283,9 +301,9 @@ export default function GeneratorClient() {
 
                     <div className="grid grid-cols-2 gap-4 mt-6">
                         <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
+                            <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
                             <div className="relative text-foreground">
-                                <select className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
+                                <select id="difficulty-select" className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
                                     <option>Iniciante</option>
                                     <option>Intermediário</option>
                                     <option>Avançado</option>
@@ -294,15 +312,36 @@ export default function GeneratorClient() {
                             </div>
                         </div>
                         <div>
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Idioma do Deck</label>
+                            <label htmlFor="card-count" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Qtd. de Cards {limits.customCardCount ? '' : '(Limite)'}</label>
                             <div className="relative text-foreground">
-                                <select className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
-                                    <option>Português</option>
-                                    <option>Inglês</option>
-                                    <option>Espanhol</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                {limits.customCardCount ? (
+                                    <input
+                                        id="card-count"
+                                        type="number"
+                                        min={1}
+                                        max={limits.maxCardsPerGen}
+                                        value={cardCount}
+                                        onChange={(e) => setCardCount(Math.max(1, Math.min(limits.maxCardsPerGen, parseInt(e.target.value) || 1)))}
+                                        className="w-full bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
+                                    />
+                                ) : (
+                                    <div className="w-full bg-gray-100 border border-border px-3 py-2 rounded-sm text-sm font-bold text-foreground/40 flex items-center justify-between">
+                                        <span>{limits.maxCardsPerGen} cards</span>
+                                        <button onClick={() => setShowUpgradeModal(true)} className="text-[10px] text-brand underline hover:text-brand/80">Upgrade</button>
+                                    </div>
+                                )}
                             </div>
+                        </div>
+                    </div>
+                    <div className="mt-4">
+                        <label htmlFor="language-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Idioma do Deck</label>
+                        <div className="relative text-foreground">
+                            <select id="language-select" className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
+                                <option>Português</option>
+                                <option>Inglês</option>
+                                <option>Espanhol</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                         </div>
                     </div>
 
@@ -334,13 +373,17 @@ export default function GeneratorClient() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2 flex-1">
                         {cards.length > 0 ? (
-                            <input
-                                type="text"
-                                value={deckTitle}
-                                onChange={(e) => setDeckTitle(e.target.value)}
-                                className="text-xl font-bold tracking-tight text-foreground bg-transparent border-b border-dashed border-gray-300 focus:border-brand outline-none w-full max-w-sm placeholder:text-gray-400 pb-1"
-                                placeholder="Nome do seu baralho..."
-                            />
+                            <>
+                                <label htmlFor="deck-title-input" className="sr-only">Nome do Baralho</label>
+                                <input
+                                    id="deck-title-input"
+                                    type="text"
+                                    value={deckTitle}
+                                    onChange={(e) => setDeckTitle(e.target.value)}
+                                    className="text-xl font-bold tracking-tight text-foreground bg-transparent border-b border-dashed border-gray-300 focus:border-brand outline-none w-full max-w-sm placeholder:text-gray-400 pb-1"
+                                    placeholder="Nome do seu baralho..."
+                                />
+                            </>
                         ) : (
                             <h2 className="text-xl font-bold tracking-tight text-foreground">
                                 Preview dos Cards

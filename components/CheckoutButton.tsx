@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 
 interface CheckoutButtonProps {
@@ -56,7 +57,9 @@ export default function CheckoutButton({ priceId, planName, className, children 
     };
 
     return (
-        <button
+        <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleCheckout}
             disabled={loading}
             className={className}
@@ -69,6 +72,6 @@ export default function CheckoutButton({ priceId, planName, className, children 
             ) : (
                 children
             )}
-        </button>
+        </motion.button>
     );
 }

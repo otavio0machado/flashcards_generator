@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 @theme {
   --color-brand: #FF4F00;
   --color-brand-foreground: #FFFFFF;
@@ -25,6 +29,7 @@ body {
   font-family: var(--font-geist-sans), Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Swiss Style Typography Adjustments */

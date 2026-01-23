@@ -1,16 +1,25 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
 import {
     ArrowLeft,
-    BookOpen,
     Monitor,
     Smartphone,
     Zap,
-    ExternalLink,
     Info,
     ChevronRight,
     Import,
     Check
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: "Guia de Importação - Flashcards Generator",
+    description: "Aprenda como importar seus flashcards gerados por IA no Anki, Quizlet e outras ferramentas.",
+    openGraph: {
+        title: "Guia de Importação - Flashcards Generator",
+        description: "Aprenda como importar seus flashcards gerados por IA no Anki, Quizlet e outras ferramentas.",
+        type: "article",
+    }
+};
 
 export default function GuiaPage() {
     return (

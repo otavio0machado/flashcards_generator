@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase-server';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -22,14 +21,29 @@ export async function POST(req: Request) {
         .eq('id', user.id)
         .single();
 
-    if (!profile?.stripe_customer_id) {
-        return new NextResponse('No Stripe customer found', { status: 400 });
+    let stripeCustomerId = profile?.stripe_customer_id;
+
+    if (!stripeCustomerId) {
+        // Create a new customer if one doesn't exist
+        const customer = await stripe.customers.create({
+            email: user.email,
+            metadata: {
+                userId: user.id,
+            },
+        });
+
+        stripeCustomerId = customer.id;
+
+        await supabaseAdmin
+            .from('profiles')
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq('id', user.id);
     }
 
     const origin = req.headers.get('origin') || 'http://localhost:3000';
 
     const session = await stripe.billingPortal.sessions.create({
-        customer: profile.stripe_customer_id,
+        customer: stripeCustomerId!,
         return_url: `${origin}/app`,
     });
 

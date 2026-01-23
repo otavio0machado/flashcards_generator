@@ -14,6 +14,7 @@ export default function SettingsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingPortal, setLoadingPortal] = useState(false);
 
     useEffect(() => {
         const getProfile = async () => {
@@ -42,6 +43,32 @@ export default function SettingsPage() {
         await supabase.auth.signOut();
         router.push('/');
         router.refresh();
+    };
+
+    const handleManageSubscription = async () => {
+        try {
+            setLoadingPortal(true);
+            const response = await fetch('/api/stripe/portal', {
+                method: 'POST',
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.url) {
+                window.location.href = data.url;
+            } else {
+                console.error('Failed to get portal URL:', data);
+                const errorMsg = data.error === 'No Stripe customer found'
+                    ? 'Você não possui uma assinatura vinculada ao Stripe. Se seu plano foi ativado manualmente, entre em contato com o suporte.'
+                    : 'Erro ao carregar o portal de assinatura. Verifique se você possui uma assinatura ativa.';
+                alert(errorMsg);
+            }
+        } catch (error) {
+            console.error('Portal Error:', error);
+            alert('Ocorreu um erro ao tentar acessar o portal.');
+        } finally {
+            setLoadingPortal(false);
+        }
     };
 
     if (loading) {
@@ -118,8 +145,8 @@ export default function SettingsPage() {
                     )}
 
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="bg-purple-50 p-3 rounded-full">
-                            <CreditCard className="h-6 w-6 text-purple-600" />
+                        <div className="bg-emerald-50 p-3 rounded-full">
+                            <CreditCard className="h-6 w-6 text-emerald-600" />
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-foreground">Plano Atual</h2>
@@ -151,8 +178,13 @@ export default function SettingsPage() {
                             Fazer Upgrade para PRO
                         </Link>
                     ) : (
-                        <button disabled className="w-full bg-gray-100 text-foreground/40 py-3 rounded-sm font-bold text-sm cursor-not-allowed">
-                            Plano Gerenciado Externamente
+                        <button
+                            onClick={handleManageSubscription}
+                            disabled={loadingPortal}
+                            className="w-full bg-brand text-white py-3 rounded-sm font-bold text-sm hover:bg-brand/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {loadingPortal && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Gerenciar Assinatura
                         </button>
                     )}
                 </div>

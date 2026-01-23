@@ -2,26 +2,54 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-import { Sparkles, ArrowRight, User, Mail, Lock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
-import SocialLogins from '@/components/SocialLogins';
+import { ArrowRight, User, Mail, Lock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function SignupPage() {
-    const router = useRouter();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [confirmEmail, setConfirmEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
+    const validatePassword = (pass: string) => {
+        const minLength = pass.length >= 8;
+        const hasUpper = /[A-Z]/.test(pass);
+        const hasLower = /[a-z]/.test(pass);
+        const hasNumber = /[0-9]/.test(pass);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+        return minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+    };
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signUp({
+        // Validation
+        if (email !== confirmEmail) {
+            setError('Os e-mails não coincidem.');
+            setLoading(false);
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            setError('A senha deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, uma minúscula, um número e um caractere especial.');
+            setLoading(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('As senhas não coincidem.');
+            setLoading(false);
+            return;
+        }
+
+        const { error: signupError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -31,8 +59,8 @@ export default function SignupPage() {
             },
         });
 
-        if (error) {
-            setError(error.message);
+        if (signupError) {
+            setError(signupError.message);
             setLoading(false);
         } else {
             setSuccess(true);
@@ -65,11 +93,13 @@ export default function SignupPage() {
                 {/* Header */}
                 <div className="text-center mb-10">
                     <Link href="/" className="inline-flex items-center mb-6 group">
-                        <div className="relative h-12 w-auto transform group-hover:scale-105 transition-transform">
-                            <img
+                        <div className="relative h-12 w-48 transform group-hover:scale-105 transition-transform">
+                            <Image
                                 src="/logo.png"
                                 alt="Flashcards Generator"
-                                className="h-full w-auto object-contain"
+                                fill
+                                className="object-contain"
+                                priority
                             />
                         </div>
                     </Link>
@@ -124,8 +154,26 @@ export default function SignupPage() {
                         </div>
 
                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40" htmlFor="confirmEmail">
+                                Confirmar E-mail
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/20" />
+                                <input
+                                    id="confirmEmail"
+                                    type="email"
+                                    placeholder="Confirme seu e-mail"
+                                    value={confirmEmail}
+                                    onChange={(e) => setConfirmEmail(e.target.value)}
+                                    className="w-full bg-gray-50 border border-border px-10 py-3 rounded-sm text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none transition-all font-medium"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40" htmlFor="password">
-                                Senha (mínimo 6 caracteres)
+                                Senha (8+ caracteres, A-z, 0-9, !@#)
                             </label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/20" />
@@ -137,7 +185,24 @@ export default function SignupPage() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-gray-50 border border-border px-10 py-3 rounded-sm text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none transition-all font-medium"
                                     required
-                                    minLength={6}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40" htmlFor="confirmPassword">
+                                Confirmar Senha
+                            </label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/20" />
+                                <input
+                                    id="confirmPassword"
+                                    type="password"
+                                    placeholder="Confirme sua senha"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full bg-gray-50 border border-border px-10 py-3 rounded-sm text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none transition-all font-medium"
+                                    required
                                 />
                             </div>
                         </div>
@@ -150,19 +215,8 @@ export default function SignupPage() {
                         </button>
                     </form>
 
-                    <div className="mt-8 relative pt-4 text-center">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                            <div className="w-full border-t border-border"></div>
-                        </div>
-                        <span className="relative bg-white px-4 text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-                            Ou cadastre-se com
-                        </span>
-                    </div>
-
-                    <SocialLogins onError={(msg) => setError(msg)} />
-
                     <p className="mt-6 text-[11px] text-center text-foreground/40 font-medium leading-relaxed">
-                        Ao se cadastrar, você concorda com nossos <Link href="#" className="underline">Termos de Uso</Link> e <Link href="#" className="underline">Política de Privacidade</Link>.
+                        Ao se cadastrar, você concorda com nossos <Link href="/terms" className="underline">Termos de Uso</Link> e <Link href="/privacy" className="underline">Política de Privacidade</Link>.
                     </p>
                 </div>
 

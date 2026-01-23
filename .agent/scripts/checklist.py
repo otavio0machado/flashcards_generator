@@ -180,6 +180,12 @@ Examples:
     if not project_path.exists():
         print_error(f"Project path does not exist: {project_path}")
         sys.exit(1)
+
+    # Ensure UTF-8 output for emojis on Windows
+    if sys.platform == 'win32':
+        import io
+        if isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout.reconfigure(encoding='utf-8')
     
     print_header("🚀 ANTIGRAVITY KIT - MASTER CHECKLIST")
     print(f"Project: {project_path}")

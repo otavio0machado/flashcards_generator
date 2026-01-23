@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Sparkles, ArrowRight, Github, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
-import SocialLogins from '@/components/SocialLogins';
+import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -39,11 +39,13 @@ export default function LoginPage() {
                 {/* Header */}
                 <div className="text-center mb-10">
                     <Link href="/" className="inline-flex items-center mb-6 group">
-                        <div className="relative h-12 w-auto transform group-hover:scale-105 transition-transform">
-                            <img
+                        <div className="relative h-12 w-48 transform group-hover:scale-105 transition-transform">
+                            <Image
                                 src="/logo.png"
                                 alt="Flashcards Generator"
-                                className="h-full w-auto object-contain"
+                                fill
+                                className="object-contain"
+                                priority
                             />
                         </div>
                     </Link>
@@ -109,17 +111,6 @@ export default function LoginPage() {
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Entrar na Conta'}
                         </button>
                     </form>
-
-                    <div className="mt-8 relative pt-4 text-center">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                            <div className="w-full border-t border-border"></div>
-                        </div>
-                        <span className="relative bg-white px-4 text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-                            Ou continue com
-                        </span>
-                    </div>
-
-                    <SocialLogins onError={(msg) => setError(msg)} />
                 </div>
 
                 <p className="mt-8 text-center text-sm font-medium text-foreground/40">

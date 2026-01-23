@@ -4,6 +4,11 @@ import GeneratorClient from './generator-client';
 export const metadata: Metadata = {
     title: "Gerador de Flashcards IA - Área de Criação",
     description: "Cole seu conteúdo e gere flashcards instantaneamente. Exporte para Anki ou Quizlet.",
+    openGraph: {
+        title: "Gerador de Flashcards IA",
+        description: "Crie flashcards instantaneamente com nossa Inteligência Artificial.",
+        type: "website",
+    }
 };
 
 export default function AppPage() {

@@ -61,7 +61,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     if (!deck) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center pt-20 px-4">
-                <h1 className="text-2xl font-bold mb-4">Baralho não encontrado</h1>
+                <h2 className="text-2xl font-bold mb-4">Baralho não encontrado</h2>
                 <Link href="/decks" className="text-brand font-bold hover:underline">
                     Voltar para a Biblioteca
                 </Link>

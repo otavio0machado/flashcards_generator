@@ -32,12 +32,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Não autorizado. Por favor, faça login.' }, { status: 401 });
         }
 
-        const { text, language } = await req.json();
-
-        if (!text) {
-            return NextResponse.json({ error: 'Texto é obrigatório' }, { status: 400 });
-        }
-
         // 2. Buscar Perfil e Plano do Usuário
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -52,6 +46,13 @@ export async function POST(req: Request) {
         const planKey = (profile.plan_tier || 'free') as PlanKey;
         const limits = PLAN_LIMITS[planKey];
 
+        // Se o usuário for ultimate, ele pode ter enviado um cardCount específico
+        const { text, language, cardCount } = await req.json();
+
+        if (!text) {
+            return NextResponse.json({ error: 'Texto é obrigatório' }, { status: 400 });
+        }
+
         // 3. Verificar Limite de Caracteres
         if (text.length > limits.maxChars) {
             return NextResponse.json({
@@ -60,7 +61,6 @@ export async function POST(req: Request) {
         }
 
         // 4. Verificar Limite Diário
-        // Resetamos o contador se for um novo dia (lógica espelhada da função SQL)
         const today = new Date().toISOString().split('T')[0];
         const isNewDay = profile.last_reset_date !== today;
         const currentUsage = isNewDay ? 0 : profile.daily_generations;
@@ -71,16 +71,27 @@ export async function POST(req: Request) {
             }, { status: 403 });
         }
 
+        // Definir quantidade de cards
+        let requestedCardCount = limits.maxCardsPerGen;
+        if (limits.customCardCount && cardCount) {
+            requestedCardCount = Math.min(cardCount, limits.maxCardsPerGen);
+        }
+
         // 5. Integração com IA (Gemini 2.5 Flash)
+        const optimizationPrompt = limits.aiOptimized
+            ? "Crie cards mais profundos, focando em conceitos-chave e aplicações práticas, evitando perguntas muito superficiais."
+            : "Crie cards simples e diretos.";
+
         const prompt = `
             Você é um especialista em educação e memorização espaçada (SRS).
             Analise o texto fornecido e crie flashcards otimizados para o Anki.
             
             REGRAS:
-            1. Crie entre 5 a 15 flashcards dependendo da densidade do texto.
+            1. Crie EXATAMENTE ${requestedCardCount} flashcards.
             2. Cada flashcard deve ter uma pergunta clara e uma resposta concisa.
             3. O idioma da resposta deve ser obrigatoriamente: ${language || 'Português'}.
-            4. Retorne APENAS um JSON puro no seguinte formato, sem formatação markdown (como \`\`\`json):
+            4. ${optimizationPrompt}
+            5. Retorne APENAS um JSON puro no seguinte formato:
                [{"question": "string", "answer": "string"}]
 
             TEXTO:

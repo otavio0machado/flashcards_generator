@@ -17,12 +17,12 @@ export async function POST(req: Request) {
 
         try {
             event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-        } catch (err: any) {
-            console.error(`Webhook Signature Verification Failed: ${err.message}`);
-            return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+        } catch (err) {
+            console.error(`Webhook Signature Verification Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            return NextResponse.json({ error: `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}` }, { status: 400 });
         }
 
-        const session = event.data.object as any;
+        const session = event.data.object as Stripe.Checkout.Session & { subscription?: string };
 
         switch (event.type) {
             case 'checkout.session.completed':
