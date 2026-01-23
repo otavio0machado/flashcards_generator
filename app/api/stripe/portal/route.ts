@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     const supabase = await createClient();
 
