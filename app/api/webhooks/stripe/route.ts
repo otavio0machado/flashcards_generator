@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin'; // You'll need to create this admin client
-import { headers } from 'next/headers';
 
 // This would normally be your Stripe Secret Key and Webhook Secret
 // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
@@ -39,7 +38,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ received: true });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Webhook handler failed:', error);
         return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
     }

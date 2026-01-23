@@ -23,7 +23,7 @@ export default function ResetPasswordPage() {
 
             if (error) throw error;
             setSuccess(true);
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message || 'Erro ao enviar email de recuperação.');
         } finally {
             setLoading(false);

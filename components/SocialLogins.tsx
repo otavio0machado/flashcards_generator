@@ -18,7 +18,7 @@ export default function SocialLogins({ onError }: SocialLoginsProps) {
                 },
             });
             if (error) throw error;
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             onError(error.message || 'Erro ao entrar com provedor social.');
         }
     };

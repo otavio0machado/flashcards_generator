@@ -9,32 +9,34 @@ import Link from 'next/link';
 
 export default function SettingsPage() {
     const router = useRouter();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [user, setUser] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const getProfile = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/auth/login');
+                return;
+            }
+
+            setUser(session.user);
+
+            const { data } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            setProfile(data);
+            setLoading(false);
+        };
+
         getProfile();
-    }, []);
-
-    const getProfile = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push('/auth/login');
-            return;
-        }
-
-        setUser(session.user);
-
-        const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-        setProfile(data);
-        setLoading(false);
-    };
+    }, [router]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();

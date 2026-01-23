@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { PAYMENT_LINKS } from '@/constants/config';
+import { STRIPE_PRICES } from '@/constants/config';
+import CheckoutButton from '@/components/CheckoutButton';
 import {
   ArrowRight,
   FileText,
@@ -204,9 +205,13 @@ export default function Home() {
                 <PricingItem text="Histórico Salvo" />
                 <PricingItem text="IA Otimizada" highlight />
               </ul>
-              <Link href={PAYMENT_LINKS.pro} className="w-full py-4 bg-brand text-white text-center font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20">
+              <CheckoutButton
+                priceId={STRIPE_PRICES.pro}
+                planName="pro"
+                className="w-full py-4 bg-brand text-white text-center font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
+              >
                 Assinar Pro
-              </Link>
+              </CheckoutButton>
             </div>
 
             {/* Ultimate Plan */}
@@ -227,9 +232,13 @@ export default function Home() {
                 <PricingItem text="Cards com Imagens" dark />
                 <PricingItem text="Suporte Prioritário" dark />
               </ul>
-              <Link href={PAYMENT_LINKS.ultimate} className="w-full py-3 bg-white text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all">
+              <CheckoutButton
+                priceId={STRIPE_PRICES.ultimate}
+                planName="ultimate"
+                className="w-full py-3 bg-white text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all"
+              >
                 Ir para o Elite
-              </Link>
+              </CheckoutButton>
             </div>
           </div>
         </div>

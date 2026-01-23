@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
-import { User, LogOut } from 'lucide-react';
+import { User as UserIcon, LogOut } from 'lucide-react';
+import { User } from '@supabase/supabase-js';
 
 export default function Navbar() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     // Get initial session
@@ -38,10 +39,13 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center group">
               <div className="relative h-9 w-auto transform group-hover:scale-105 transition-transform">
-                <img
+                <Image
                   src="/logo.png"
                   alt="Flashcards Generator"
+                  width={150}
+                  height={36}
                   className="h-full w-auto object-contain"
+                  priority
                 />
               </div>
             </Link>
@@ -53,6 +57,9 @@ export default function Navbar() {
             </Link>
             <Link href="/guia" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Como Usar
+            </Link>
+            <Link href="/#pricing" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
+              Planos
             </Link>
             {user && (
               <Link href="/decks" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
@@ -66,7 +73,7 @@ export default function Navbar() {
             {user ? (
               <div className="flex items-center gap-4 border-l border-border pl-8">
                 <Link href="/settings" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border hover:bg-gray-100 transition-all cursor-pointer">
-                  <User className="h-4 w-4 text-foreground/40" />
+                  <UserIcon className="h-4 w-4 text-foreground/40" />
                   <span className="text-xs font-bold text-foreground/60">{user.email?.split('@')[0]}</span>
                 </Link>
                 <button

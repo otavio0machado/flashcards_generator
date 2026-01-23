@@ -1,4 +1,4 @@
-export const PAYMENT_LINKS = {
-    pro: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_PRO || 'https://buy.stripe.com/test_...', // Replace with real link
-    ultimate: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_ULTIMATE || 'https://buy.stripe.com/test_...',
+export const STRIPE_PRICES = {
+    pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO || 'price_fake_pro',
+    ultimate: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ULTIMATE || 'price_fake_ultimate',
 };

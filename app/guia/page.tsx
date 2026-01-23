@@ -63,7 +63,7 @@ export default function GuiaPage() {
                                 <div className="flex gap-4">
                                     <span className="bg-brand text-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold">1</span>
                                     <p className="font-medium text-foreground/70">
-                                        No gerador do Flashcards Generator, clique em <span className="text-brand font-bold">"Exportar Anki (.txt)"</span>.
+                                        No gerador do Flashcards Generator, clique em <span className="text-brand font-bold">&quot;Exportar Anki (.txt)&quot;</span>.
                                     </p>
                                 </div>
                                 <div className="flex gap-4">
@@ -99,7 +99,7 @@ export default function GuiaPage() {
                                 <div>
                                     <h4 className="font-bold text-brand mb-1">Dica de Configuração</h4>
                                     <p className="text-sm font-medium text-brand/80 leading-relaxed">
-                                        Ao importar, certifique-se de que a opção "Campos separados por:" esteja definida como <span className="font-bold underline">Tabulação</span>. Nossa IA já formata o arquivo dessa maneira para garantir que a frente e o verso fiquem corretos.
+                                        Ao importar, certifique-se de que a opção &quot;Campos separados por:&quot; esteja definida como <span className="font-bold underline">Tabulação</span>. Nossa IA já formata o arquivo dessa maneira para garantir que a frente e o verso fiquem corretos.
                                     </p>
                                 </div>
                             </div>
@@ -158,7 +158,7 @@ export default function GuiaPage() {
                             <li className="flex items-start gap-4 p-4 hover:bg-white rounded-sm transition-colors group">
                                 <div className="bg-gray-100 group-hover:bg-brand/10 w-8 h-8 rounded-sm flex items-center justify-center shrink-0 font-bold text-xs transition-colors group-hover:text-brand">1</div>
                                 <div>
-                                    <p className="font-bold">Crie uma nova "Lista de Estudos" no Quizlet.</p>
+                                    <p className="font-bold">Crie uma nova &quot;Lista de Estudos&quot; no Quizlet.</p>
                                 </div>
                             </li>
                             <li className="flex items-start gap-4 p-4 hover:bg-white rounded-sm transition-colors group">

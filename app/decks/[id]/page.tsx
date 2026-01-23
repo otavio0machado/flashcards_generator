@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
+import ExportModal from '@/components/ExportModal';
 
 interface Card {
     id: string;
@@ -24,38 +25,30 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     const [deck, setDeck] = useState<Deck | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'overview' | 'study'>('overview');
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     useEffect(() => {
+        const fetchDeck = async (id: string) => {
+            const { data, error } = await supabase
+                .from('decks')
+                .select('*, cards(*)')
+                .eq('id', id)
+                .single();
+
+            if (error) {
+                console.error(error);
+            } else {
+                setDeck(data);
+            }
+            setLoading(false);
+        };
+
         if (resolvedParams.id) {
             fetchDeck(resolvedParams.id);
         }
     }, [resolvedParams.id]);
 
-    const fetchDeck = async (id: string) => {
-        const { data, error } = await supabase
-            .from('decks')
-            .select('*, cards(*)')
-            .eq('id', id)
-            .single();
 
-        if (error) {
-            console.error(error);
-        } else {
-            setDeck(data);
-        }
-        setLoading(false);
-    };
-
-    const exportToAnki = () => {
-        if (!deck) return;
-        const content = deck.cards.map(c => `${c.front}\t${c.back}`).join('\n');
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${deck.title.toLowerCase().replace(/\s+/g, '-')}-anki.txt`;
-        link.click();
-    };
 
     if (loading) {
         return (
@@ -108,11 +101,11 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
                 <div className="flex gap-3">
                     <button
-                        onClick={exportToAnki}
+                        onClick={() => setIsExportModalOpen(true)}
                         className="bg-white border border-border px-6 py-3 rounded-sm font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm"
                     >
                         <FileDown className="h-4 w-4 text-brand" />
-                        Exportar Anki
+                        Exportar
                     </button>
                     <button
                         onClick={() => setMode(mode === 'overview' ? 'study' : 'overview')}
@@ -160,6 +153,12 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             ) : (
                 <FlashcardPlayer cards={deck.cards} />
             )}
+
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                deck={deck}
+            />
         </div>
     );
 }

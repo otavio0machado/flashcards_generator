@@ -7,15 +7,12 @@ import {
     Trash2,
     Download,
     Sparkles,
-    Settings2,
-    Edit3,
-    Check,
     Loader2,
-    Save,
     FileDown,
     ChevronDown,
     FileUp,
     AlertCircle,
+    Check,
     Library
 } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
@@ -23,6 +20,7 @@ import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
 import UpgradeModal from '@/components/UpgradeModal';
+import { User } from '@supabase/supabase-js';
 
 interface Flashcard {
     id: string;
@@ -33,12 +31,13 @@ interface Flashcard {
 export default function GeneratorClient() {
     const router = useRouter();
     const [inputText, setInputText] = useState('');
+    const [deckTitle, setDeckTitle] = useState('');
     const [cards, setCards] = useState<Flashcard[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<PlanKey>('free');
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -89,7 +88,7 @@ export default function GeneratorClient() {
 
             if (data.error) throw new Error(data.error);
 
-            const newCardsFormatted = data.cards.map((c: any) => ({
+            const newCardsFormatted = data.cards.map((c: { question: string, answer: string }) => ({
                 id: Math.random().toString(36).substr(2, 9),
                 question: c.question,
                 answer: c.answer
@@ -100,8 +99,11 @@ export default function GeneratorClient() {
             // Incrementar uso no Supabase
             await deckService.incrementUsage(user.id);
 
+            if (!deckTitle) {
+                setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
+            }
             setInputText('');
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message || 'Erro ao gerar cards');
         } finally {
             setIsGenerating(false);
@@ -113,7 +115,7 @@ export default function GeneratorClient() {
 
         setIsSaving(true);
         try {
-            const title = `Deck ${new Date().toLocaleDateString()}`;
+            const title = deckTitle || `Deck ${new Date().toLocaleDateString()}`;
             const formattedCards = cards.map(c => ({ front: c.question, back: c.answer }));
             await deckService.saveDeck(user.id, title, formattedCards);
             setSaveSuccess(true);
@@ -163,6 +165,7 @@ export default function GeneratorClient() {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = textContent.items
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((item: any) => item.str)
                     .join(' ');
                 fullText += pageText + '\n\n';
@@ -170,7 +173,7 @@ export default function GeneratorClient() {
 
             setInputText(fullText);
             setToast({ message: 'Texto do PDF extraído com sucesso!', type: 'success' });
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Erro ao ler PDF:', err);
             setToast({ message: 'Erro ao processar o arquivo PDF.', type: 'error' });
         } finally {
@@ -329,11 +332,21 @@ export default function GeneratorClient() {
             {/* Coluna Direita: Preview dos Cards */}
             <div className="lg:col-span-7 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold tracking-tight text-foreground">
-                            Preview dos Cards
-                            {cards.length > 0 && <span className="ml-2 text-brand">({cards.length})</span>}
-                        </h2>
+                    <div className="flex items-center gap-2 flex-1">
+                        {cards.length > 0 ? (
+                            <input
+                                type="text"
+                                value={deckTitle}
+                                onChange={(e) => setDeckTitle(e.target.value)}
+                                className="text-xl font-bold tracking-tight text-foreground bg-transparent border-b border-dashed border-gray-300 focus:border-brand outline-none w-full max-w-sm placeholder:text-gray-400 pb-1"
+                                placeholder="Nome do seu baralho..."
+                            />
+                        ) : (
+                            <h2 className="text-xl font-bold tracking-tight text-foreground">
+                                Preview dos Cards
+                            </h2>
+                        )}
+                        {cards.length > 0 && <span className="text-brand font-bold text-lg">({cards.length})</span>}
                     </div>
 
                     {cards.length > 0 && (

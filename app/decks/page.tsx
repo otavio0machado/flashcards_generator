@@ -5,32 +5,36 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Library, Folder, Calendar, ArrowRight, Loader2, Plus, Download, Trash2 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 
 export default function DecksPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [decks, setDecks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [deckToExport, setDeckToExport] = useState<any | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
+        const fetchDecks = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const { data, error } = await supabase
+                .from('decks')
+                .select('*, cards(count)')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) console.error(error);
+            else setDecks(data || []);
+            setLoading(false);
+        };
+
         fetchDecks();
     }, []);
-
-    const fetchDecks = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const { data, error } = await supabase
-            .from('decks')
-            .select('*, cards(count)')
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false });
-
-        if (error) console.error(error);
-        else setDecks(data || []);
-        setLoading(false);
-    };
 
     const handleDeleteClick = (id: string) => {
         setDeckToDelete(id);
@@ -113,7 +117,10 @@ export default function DecksPage() {
                             </div>
 
                             <div className="flex gap-2">
-                                <button className="flex-1 bg-white border border-border py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setDeckToExport(deck)}
+                                    className="flex-1 bg-white border border-border py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                >
                                     <Download className="h-3.5 w-3.5" />
                                     Exportar
                                 </button>
@@ -139,6 +146,12 @@ export default function DecksPage() {
                 confirmText="Excluir Agora"
                 cancelText="Manter Baralho"
                 variant="danger"
+            />
+
+            <ExportModal
+                isOpen={!!deckToExport}
+                onClose={() => setDeckToExport(null)}
+                deck={deckToExport}
             />
 
             {toast && (
