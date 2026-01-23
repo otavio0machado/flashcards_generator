@@ -4,10 +4,14 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Library, Folder, Calendar, ArrowRight, Loader2, Plus, Download, Trash2 } from 'lucide-react';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import Toast, { ToastType } from '@/components/Toast';
 
 export default function DecksPage() {
     const [decks, setDecks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         fetchDecks();
@@ -28,12 +32,21 @@ export default function DecksPage() {
         setLoading(false);
     };
 
-    const deleteDeck = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este baralho?')) return;
+    const handleDeleteClick = (id: string) => {
+        setDeckToDelete(id);
+    };
 
-        const { error } = await supabase.from('decks').delete().eq('id', id);
-        if (error) alert('Erro ao excluir');
-        else setDecks(decks.filter(d => d.id !== id));
+    const confirmDelete = async () => {
+        if (!deckToDelete) return;
+
+        const { error } = await supabase.from('decks').delete().eq('id', deckToDelete);
+        if (error) {
+            setToast({ message: 'Erro ao excluir o baralho', type: 'error' });
+        } else {
+            setDecks(decks.filter(d => d.id !== deckToDelete));
+            setToast({ message: 'Baralho removido com sucesso!', type: 'success' });
+        }
+        setDeckToDelete(null);
     };
 
     return (
@@ -78,7 +91,7 @@ export default function DecksPage() {
                                     <Folder className="h-5 w-5 text-brand" />
                                 </div>
                                 <button
-                                    onClick={() => deleteDeck(deck.id)}
+                                    onClick={() => handleDeleteClick(deck.id)}
                                     className="text-foreground/20 hover:text-red-500 transition-colors p-1"
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -115,6 +128,25 @@ export default function DecksPage() {
                         </div>
                     ))}
                 </div>
+            )}
+
+            <ConfirmationModal
+                isOpen={!!deckToDelete}
+                onClose={() => setDeckToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Excluir Baralho"
+                description="Tem certeza que deseja excluir este baralho? Todos os cartões associados serão removidos permanentemente."
+                confirmText="Excluir Agora"
+                cancelText="Manter Baralho"
+                variant="danger"
+            />
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
             )}
         </div>
     );

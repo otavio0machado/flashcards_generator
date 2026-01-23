@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight,
   FileText,
@@ -157,12 +158,12 @@ export default function Home() {
       {/* Pricing Section */}
       <section id="pricing" className="py-24 bg-white border-y border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-32">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Planos e Preços</h2>
             <p className="text-lg text-foreground/60 font-medium">Escolha o plano ideal para sua rotina de estudos.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-10">
             {/* Free Plan */}
             <div className="bg-white border border-border p-8 rounded-sm shadow-sm flex flex-col h-full hover:border-foreground/20 transition-all">
               <div className="mb-8">
@@ -244,7 +245,7 @@ export default function Home() {
           <div className="space-y-4">
             <FaqItem
               question="É gratuito?"
-              answer="Sim! O Flashcards AI oferece um plano gratuito para você começar a criar seus primeiros decks agora mesmo."
+              answer="Sim! O Flashcards Generator oferece um plano gratuito para você começar a criar seus primeiros decks agora mesmo."
             />
             <FaqItem
               question="Funciona com arquivos PDF?"
@@ -282,12 +283,16 @@ export default function Home() {
       <footer className="bg-white border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="bg-brand p-1.5 rounded-sm">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tighter text-foreground">
-                Flashcards<span className="text-brand">AI</span>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="Icon"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
+              <span className="text-lg font-black tracking-tighter text-foreground whitespace-nowrap">
+                Flashcards <span className="text-brand">Generator</span>
               </span>
             </div>
 
@@ -299,7 +304,7 @@ export default function Home() {
             </div>
 
             <div className="text-sm text-foreground/40 font-medium font-mono uppercase tracking-widest">
-              © 2026 Flashcards AI.
+              © 2026 Flashcards Generator.
             </div>
           </div>
         </div>

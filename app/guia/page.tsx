@@ -63,7 +63,7 @@ export default function GuiaPage() {
                                 <div className="flex gap-4">
                                     <span className="bg-brand text-white w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold">1</span>
                                     <p className="font-medium text-foreground/70">
-                                        No gerador do Flashcards AI, clique em <span className="text-brand font-bold">"Exportar Anki (.txt)"</span>.
+                                        No gerador do Flashcards Generator, clique em <span className="text-brand font-bold">"Exportar Anki (.txt)"</span>.
                                     </p>
                                 </div>
                                 <div className="flex gap-4">
@@ -198,7 +198,7 @@ export default function GuiaPage() {
                         "step": [
                             {
                                 "@type": "HowToStep",
-                                "text": "Exportar deck formatado do Flashcards AI"
+                                "text": "Exportar deck formatado do Flashcards Generator"
                             },
                             {
                                 "@type": "HowToStep",

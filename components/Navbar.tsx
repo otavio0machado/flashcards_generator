@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Sparkles, User, LogOut } from 'lucide-react';
+import Image from 'next/image';
+import { User, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   const router = useRouter();
@@ -35,12 +36,19 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="bg-brand p-1.5 rounded-sm">
-                <Sparkles className="h-5 w-5 text-white" />
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative h-10 w-10 overflow-hidden transform group-hover:scale-110 transition-transform">
+                <Image
+                  src="/logo.png"
+                  alt="Icon"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <span className="text-xl font-bold tracking-tighter text-foreground">
-                Flashcards<span className="text-brand">AI</span>
+              <span className="text-xl font-black tracking-tighter text-foreground whitespace-nowrap">
+                Flashcards <span className="text-brand">Generator</span>
               </span>
             </Link>
           </div>

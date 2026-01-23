@@ -58,8 +58,8 @@ export async function middleware(req: NextRequest) {
         data: { session },
     } = await supabase.auth.getSession();
 
-    // Se o usuário está tentando acessar o /app e não está logado
-    if (req.nextUrl.pathname.startsWith('/app') && !session) {
+    // Se o usuário está tentando acessar o /app ou /decks e não está logado
+    if ((req.nextUrl.pathname.startsWith('/app') || req.nextUrl.pathname.startsWith('/decks')) && !session) {
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
@@ -72,6 +72,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/app/:path*', '/auth/:path*'],
+    matcher: ['/app/:path*', '/auth/:path*', '/decks/:path*'],
 };
 

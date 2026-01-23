@@ -19,6 +19,7 @@ import {
     Library,
     Check
 } from 'lucide-react';
+import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
@@ -40,6 +41,7 @@ export default function GeneratorClient() {
     const [user, setUser] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     const limits = PLAN_LIMITS[currentPlan];
 
@@ -115,10 +117,11 @@ export default function GeneratorClient() {
             const formattedCards = cards.map(c => ({ front: c.question, back: c.answer }));
             await deckService.saveDeck(user.id, title, formattedCards);
             setSaveSuccess(true);
+            setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             console.error(err);
-            alert('Erro ao salvar baralho');
+            setToast({ message: 'Erro ao salvar baralho', type: 'error' });
         } finally {
             setIsSaving(false);
         }
@@ -190,7 +193,10 @@ export default function GeneratorClient() {
                         </p>
 
                         <div className="space-y-4">
-                            <button className="w-full bg-brand text-white py-4 font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20">
+                            <button
+                                onClick={() => router.push('/#pricing')}
+                                className="w-full bg-brand text-white py-4 font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
+                            >
                                 Ver Planos e Preços
                             </button>
                             <button
@@ -393,6 +399,14 @@ export default function GeneratorClient() {
                     </div>
                 )}
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

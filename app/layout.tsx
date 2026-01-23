@@ -14,16 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flashcards Generator IA - Crie Cards para Anki em Segundos",
+  title: "Flashcards Generator - Crie Cards para Anki em Segundos",
   description: "Gere flashcards para Anki e Quizlet em segundos com nossa IA. Cole seu texto e pare de perder horas resumindo. Memorização rápida e eficiente.",
   keywords: ["Criar flashcards online", "Gerador Anki IA", "Estudar rápido", "Flashcards com inteligência artificial"],
   openGraph: {
-    title: "Flashcards Generator IA - Estude com Eficiência",
+    title: "Flashcards Generator - Estude com Eficiência",
     description: "Crie decks de flashcards instantaneamente a partir de qualquer texto.",
     type: "website",
     locale: "pt_BR",
-    url: "https://flashcards-ai.com",
-    siteName: "Flashcards Generator IA",
+    url: "https://flashcards-generator.com",
+    siteName: "Flashcards Generator",
   },
 };
 
