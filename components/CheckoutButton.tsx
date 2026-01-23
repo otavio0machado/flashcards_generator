@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface CheckoutButtonProps {
     priceId: string;
@@ -42,16 +40,12 @@ export default function CheckoutButton({ priceId, planName, className, children 
                 throw new Error('Network response was not ok');
             }
 
-            const { sessionId } = await response.json();
-            const stripe = await stripePromise;
+            const { url } = await response.json();
 
-            if (!stripe) throw new Error('Stripe failed to load');
-
-            const { error } = await stripe.redirectToCheckout({ sessionId });
-
-            if (error) {
-                console.error('Stripe error:', error);
-                toast.error(error.message);
+            if (url) {
+                window.location.href = url;
+            } else {
+                throw new Error('No checkout URL received');
             }
         } catch (error) {
             console.error('Checkout error:', error);
