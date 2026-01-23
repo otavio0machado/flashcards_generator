@@ -36,20 +36,14 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative h-10 w-10 overflow-hidden transform group-hover:scale-110 transition-transform">
-                <Image
+            <Link href="/" className="flex items-center group">
+              <div className="relative h-9 w-auto transform group-hover:scale-105 transition-transform">
+                <img
                   src="/logo.png"
-                  alt="Icon"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                  priority
+                  alt="Flashcards Generator"
+                  className="h-full w-auto object-contain"
                 />
               </div>
-              <span className="text-xl font-black tracking-tighter text-foreground whitespace-nowrap">
-                Flashcards <span className="text-brand">Generator</span>
-              </span>
             </Link>
           </div>
 
@@ -71,10 +65,10 @@ export default function Navbar() {
 
             {user ? (
               <div className="flex items-center gap-4 border-l border-border pl-8">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border">
+                <Link href="/settings" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border hover:bg-gray-100 transition-all cursor-pointer">
                   <User className="h-4 w-4 text-foreground/40" />
                   <span className="text-xs font-bold text-foreground/60">{user.email?.split('@')[0]}</span>
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-foreground/40 hover:text-red-500 transition-colors"

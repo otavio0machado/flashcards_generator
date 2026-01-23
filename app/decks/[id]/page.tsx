@@ -3,7 +3,8 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, FileDown, Download, ExternalLink, Calendar, Layers } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers } from 'lucide-react';
+import FlashcardPlayer from '@/components/FlashcardPlayer';
 
 interface Card {
     id: string;
@@ -22,6 +23,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     const resolvedParams = use(params);
     const [deck, setDeck] = useState<Deck | null>(null);
     const [loading, setLoading] = useState(true);
+    const [mode, setMode] = useState<'overview' | 'study'>('overview');
 
     useEffect(() => {
         if (resolvedParams.id) {
@@ -112,36 +114,52 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <FileDown className="h-4 w-4 text-brand" />
                         Exportar Anki
                     </button>
-                    <Link
-                        href="/app"
-                        className="bg-brand text-white px-6 py-3 rounded-sm font-bold text-sm hover:bg-brand/90 transition-all flex items-center gap-2 shadow-lg shadow-brand/20"
+                    <button
+                        onClick={() => setMode(mode === 'overview' ? 'study' : 'overview')}
+                        className={`px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${mode === 'study'
+                            ? 'bg-gray-100 text-foreground hover:bg-gray-200'
+                            : 'bg-brand text-white hover:bg-brand/90 shadow-brand/20'
+                            }`}
                     >
-                        Estudar agora
-                        <ExternalLink className="h-4 w-4" />
-                    </Link>
+                        {mode === 'overview' ? (
+                            <>
+                                Estudar agora
+                                <ExternalLink className="h-4 w-4" />
+                            </>
+                        ) : (
+                            <>
+                                <Layers className="h-4 w-4" />
+                                Ver Lista
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
-                {deck.cards.map((card, index) => (
-                    <div key={card.id} className="bg-white border border-border rounded-sm overflow-hidden shadow-sm hover:border-brand/40 transition-all group">
-                        <div className="grid grid-cols-1 md:grid-cols-2">
-                            <div className="p-8 border-b md:border-b-0 md:border-r border-border relative">
-                                <span className="absolute top-4 left-4 text-[9px] font-black text-brand/20 uppercase tracking-widest">Frente #{index + 1}</span>
-                                <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
-                                    {card.front}
+            {mode === 'overview' ? (
+                <div className="grid grid-cols-1 gap-6">
+                    {deck.cards.map((card, index) => (
+                        <div key={card.id} className="bg-white border border-border rounded-sm overflow-hidden shadow-sm hover:border-brand/40 transition-all group">
+                            <div className="grid grid-cols-1 md:grid-cols-2">
+                                <div className="p-8 border-b md:border-b-0 md:border-r border-border relative">
+                                    <span className="absolute top-4 left-4 text-[9px] font-black text-brand/20 uppercase tracking-widest">Frente #{index + 1}</span>
+                                    <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
+                                        {card.front}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="p-8 bg-gray-50/50 relative">
-                                <span className="absolute top-4 left-4 text-[9px] font-black text-foreground/10 uppercase tracking-widest">Verso / Resposta</span>
-                                <div className="mt-4 text-lg font-medium text-foreground/60 leading-relaxed">
-                                    {card.back}
+                                <div className="p-8 bg-gray-50/50 relative">
+                                    <span className="absolute top-4 left-4 text-[9px] font-black text-foreground/10 uppercase tracking-widest">Verso / Resposta</span>
+                                    <div className="mt-4 text-lg font-medium text-foreground/60 leading-relaxed">
+                                        {card.back}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            ) : (
+                <FlashcardPlayer cards={deck.cards} />
+            )}
         </div>
     );
 }

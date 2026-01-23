@@ -9,20 +9,20 @@ import {
     Sparkles,
     Settings2,
     Edit3,
+    Check,
+    Loader2,
     Save,
-    X,
     FileDown,
     ChevronDown,
     FileUp,
     AlertCircle,
-    Zap,
-    Library,
-    Check
+    Library
 } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
+import UpgradeModal from '@/components/UpgradeModal';
 
 interface Flashcard {
     id: string;
@@ -127,12 +127,58 @@ export default function GeneratorClient() {
         }
     };
 
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     const handleFileUpload = () => {
         if (!limits.allowFile) {
             setShowUpgradeModal(true);
             return;
         }
-        // Seria a lógica de upload real
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== 'application/pdf') {
+            setToast({ message: 'Por favor, envie apenas arquivos PDF.', type: 'error' });
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            // Importação dinâmica para evitar erros de SSR e peso no bundle inicial
+            const pdfjs = await import('pdfjs-dist');
+
+            // Configurar worker do CDN
+            pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items
+                    .map((item: any) => item.str)
+                    .join(' ');
+                fullText += pageText + '\n\n';
+            }
+
+            setInputText(fullText);
+            setToast({ message: 'Texto do PDF extraído com sucesso!', type: 'success' });
+        } catch (err: any) {
+            console.error('Erro ao ler PDF:', err);
+            setToast({ message: 'Erro ao processar o arquivo PDF.', type: 'error' });
+        } finally {
+            setIsGenerating(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
     };
 
     const deleteCard = (id: string) => {
@@ -172,43 +218,11 @@ export default function GeneratorClient() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-20">
 
             {/* Upgrade Modal */}
-            {showUpgradeModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowUpgradeModal(false)}></div>
-                    <div className="bg-white border-2 border-brand w-full max-w-md p-8 rounded-sm relative z-10 shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <button
-                            onClick={() => setShowUpgradeModal(false)}
-                            className="absolute top-4 right-4 text-foreground/20 hover:text-foreground transition-colors"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <div className="bg-brand/10 w-16 h-16 rounded-full flex items-center justify-center mb-6 mx-auto">
-                            <Zap className="h-8 w-8 text-brand" />
-                        </div>
-
-                        <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Desbloqueie o poder dos PDFs com o Plano Pro</h2>
-                        <p className="text-center text-foreground/60 font-medium mb-8 leading-relaxed">
-                            O plano gratuito permite apenas texto manual. Assine o Pro para fazer upload de arquivos e gerar até 50 decks por dia.
-                        </p>
-
-                        <div className="space-y-4">
-                            <button
-                                onClick={() => router.push('/#pricing')}
-                                className="w-full bg-brand text-white py-4 font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
-                            >
-                                Ver Planos e Preços
-                            </button>
-                            <button
-                                onClick={() => setShowUpgradeModal(false)}
-                                className="w-full text-foreground/40 font-bold py-2 text-sm"
-                            >
-                                Continuar no Plano Grátis
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Upgrade Modal */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+            />
 
             {/* Coluna Esquerda: Input e Configs */}
             <div className="lg:col-span-5 space-y-6">
@@ -226,6 +240,13 @@ export default function GeneratorClient() {
                     </div>
 
                     <div className="relative">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="application/pdf"
+                            className="hidden"
+                        />
                         <textarea
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
@@ -320,7 +341,7 @@ export default function GeneratorClient() {
                             <button
                                 onClick={handleSaveLibrary}
                                 disabled={isSaving || saveSuccess}
-                                className={`flex items-center gap-2 border px-4 py-2 rounded-sm text-xs font-bold transition-all ${saveSuccess ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-border hover:bg-gray-50 text-foreground'
+                                className={`flex items-center gap-2 border px-4 py-2 rounded-sm text-xs font-bold transition-all ${saveSuccess ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-border hover:bg-gray-50 hover:border-brand/40 text-foreground shadow-sm hover:shadow-md'
                                     }`}
                             >
                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : saveSuccess ? <Check className="h-4 w-4" /> : <Library className="h-4 w-4 text-brand" />}
@@ -328,14 +349,14 @@ export default function GeneratorClient() {
                             </button>
                             <button
                                 onClick={exportToAnki}
-                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all text-foreground"
+                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
                             >
                                 <FileDown className="h-4 w-4 text-brand" />
                                 Anki (.txt)
                             </button>
                             <button
                                 onClick={exportToCsv}
-                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all"
+                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
                             >
                                 <Download className="h-4 w-4 text-brand" />
                                 CSV
@@ -368,21 +389,21 @@ export default function GeneratorClient() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-brand">Pergunta #{index + 1}</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-brand">Pergunta #{index + 1}</label>
                                         <textarea
                                             value={card.question}
                                             onChange={(e) => updateCard(card.id, 'question', e.target.value)}
-                                            className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-bold resize-none leading-relaxed text-foreground"
-                                            rows={2}
+                                            className="w-full bg-transparent border border-transparent hover:border-border/50 focus:border-border focus:bg-white p-2 -ml-2 rounded-sm focus:ring-0 text-sm font-bold resize-none leading-relaxed text-foreground transition-all"
+                                            rows={3}
                                         />
                                     </div>
                                     <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6 text-foreground">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Resposta</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Resposta</label>
                                         <textarea
                                             value={card.answer}
                                             onChange={(e) => updateCard(card.id, 'answer', e.target.value)}
-                                            className="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-medium text-foreground/60 resize-none leading-relaxed text-foreground"
-                                            rows={2}
+                                            className="w-full bg-transparent border border-transparent hover:border-border/50 focus:border-border focus:bg-white p-2 -ml-2 rounded-sm focus:ring-0 text-sm font-medium text-foreground/80 resize-none leading-relaxed text-foreground transition-all"
+                                            rows={3}
                                         />
                                     </div>
                                 </div>
@@ -411,22 +432,4 @@ export default function GeneratorClient() {
     );
 }
 
-function Loader2(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`animate-spin ${props.className}`}
-        >
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-        </svg>
-    );
-}
+

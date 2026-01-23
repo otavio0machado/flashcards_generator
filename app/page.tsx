@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { PAYMENT_LINKS } from '@/constants/config';
 import {
   ArrowRight,
   FileText,
@@ -8,8 +9,6 @@ import {
   CheckCircle2,
   Zap,
   Globe,
-  Layout,
-  HelpCircle,
   Plus,
   Check
 } from 'lucide-react';
@@ -205,7 +204,7 @@ export default function Home() {
                 <PricingItem text="Histórico Salvo" />
                 <PricingItem text="IA Otimizada" highlight />
               </ul>
-              <Link href="/app" className="w-full py-4 bg-brand text-white text-center font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20">
+              <Link href={PAYMENT_LINKS.pro} className="w-full py-4 bg-brand text-white text-center font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20">
                 Assinar Pro
               </Link>
             </div>
@@ -228,7 +227,7 @@ export default function Home() {
                 <PricingItem text="Cards com Imagens" dark />
                 <PricingItem text="Suporte Prioritário" dark />
               </ul>
-              <Link href="/app" className="w-full py-3 bg-white text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all">
+              <Link href={PAYMENT_LINKS.ultimate} className="w-full py-3 bg-white text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all">
                 Ir para o Elite
               </Link>
             </div>
@@ -283,17 +282,14 @@ export default function Home() {
       <footer className="bg-white border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               <Image
                 src="/logo.png"
-                alt="Icon"
-                width={32}
+                alt="Flashcards Generator Logo"
+                width={150}
                 height={32}
-                className="object-contain"
+                className="h-8 w-auto object-contain"
               />
-              <span className="text-lg font-black tracking-tighter text-foreground whitespace-nowrap">
-                Flashcards <span className="text-brand">Generator</span>
-              </span>
             </div>
 
             <div className="flex gap-8 text-sm font-medium text-foreground/40">
@@ -344,25 +340,4 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-function Sparkles(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M19 17v4" />
-      <path d="M3 5h4" />
-      <path d="M17 19h4" />
-    </svg>
-  );
-}
+

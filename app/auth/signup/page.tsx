@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sparkles, ArrowRight, User, Mail, Lock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import SocialLogins from '@/components/SocialLogins';
 
 export default function SignupPage() {
     const router = useRouter();
@@ -63,13 +64,14 @@ export default function SignupPage() {
             <div className="w-full max-w-[400px]">
                 {/* Header */}
                 <div className="text-center mb-10">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
-                        <div className="bg-brand p-1.5 rounded-sm group-hover:scale-110 transition-transform">
-                            <Sparkles className="h-5 w-5 text-white" />
+                    <Link href="/" className="inline-flex items-center mb-6 group">
+                        <div className="relative h-12 w-auto transform group-hover:scale-105 transition-transform">
+                            <img
+                                src="/logo.png"
+                                alt="Flashcards Generator"
+                                className="h-full w-auto object-contain"
+                            />
                         </div>
-                        <span className="text-2xl font-bold tracking-tighter text-foreground">
-                            Flashcards<span className="text-brand">AI</span>
-                        </span>
                     </Link>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Comece a estudar melhor</h1>
                     <p className="text-foreground/60 font-medium text-sm">Crie sua conta gratuita em poucos segundos.</p>
@@ -147,6 +149,17 @@ export default function SignupPage() {
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar Minha Conta'}
                         </button>
                     </form>
+
+                    <div className="mt-8 relative pt-4 text-center">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-border"></div>
+                        </div>
+                        <span className="relative bg-white px-4 text-[10px] font-bold uppercase tracking-widest text-foreground/30">
+                            Ou cadastre-se com
+                        </span>
+                    </div>
+
+                    <SocialLogins onError={(msg) => setError(msg)} />
 
                     <p className="mt-6 text-[11px] text-center text-foreground/40 font-medium leading-relaxed">
                         Ao se cadastrar, você concorda com nossos <Link href="#" className="underline">Termos de Uso</Link> e <Link href="#" className="underline">Política de Privacidade</Link>.

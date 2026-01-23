@@ -69,7 +69,7 @@ export async function POST(req: Request) {
             }, { status: 403 });
         }
 
-        // 5. Integração com IA (Gemini 1.5 Flash)
+        // 5. Integração com IA (Gemini 2.5 Flash)
         const prompt = `
             Você é um especialista em educação e memorização espaçada (SRS).
             Analise o texto fornecido e crie flashcards otimizados para o Anki.
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
             ${text}
         `;
 
-        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
