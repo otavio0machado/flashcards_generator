@@ -161,7 +161,7 @@ export default function GeneratorClient() {
 
             if (file.type === 'application/pdf') {
                 const pdfjs = await import('pdfjs-dist');
-                pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+                pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -262,7 +262,7 @@ export default function GeneratorClient() {
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
-                            accept="application/pdf"
+                            accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                             className="hidden"
                         />
                         <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
