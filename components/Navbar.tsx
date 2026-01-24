@@ -72,6 +72,9 @@ export default function Navbar() {
                 Minha Biblioteca
               </Link>
             )}
+            <Link href="/guia" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
+              Tutorial
+            </Link>
             <Link href="/app" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Gerador (App)
             </Link>
