@@ -22,6 +22,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Price ID é obrigatório' }, { status: 400 });
         }
 
+        // Validate priceId format (must start with 'price_')
+        if (!priceId.startsWith('price_')) {
+            console.error('Invalid priceId:', priceId);
+            return NextResponse.json(
+                { error: 'Price ID inválido. Configure NEXT_PUBLIC_STRIPE_PRICE_ID_PRO e NEXT_PUBLIC_STRIPE_PRICE_ID_ULTIMATE no Vercel.' },
+                { status: 400 }
+            );
+        }
+
         const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('stripe_customer_id')
@@ -72,10 +81,19 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ url: session.url });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Checkout error:', error);
+
+        // Return more specific error for debugging
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isStripeError = error && typeof error === 'object' && 'type' in error;
+
         return NextResponse.json(
-            { error: 'Erro ao criar sessão de checkout' },
+            {
+                error: 'Erro ao criar sessão de checkout',
+                details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+                stripeError: isStripeError ? (error as { type: string }).type : undefined
+            },
             { status: 500 }
         );
     }
