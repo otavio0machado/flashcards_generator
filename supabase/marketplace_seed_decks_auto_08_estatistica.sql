@@ -1,0 +1,271 @@
+-- Auto-generated marketplace decks seed (template-based).
+-- Generated at: 2026-01-24 08:13:15 UTC
+
+DO $$
+DECLARE
+  v_user_id UUID;
+  v_deck_id UUID;
+  v_cat_id UUID;
+BEGIN
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Usuario nao encontrado'; END IF;
+
+  -- Estatistica
+  SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/estatistica';
+  IF v_cat_id IS NULL THEN RAISE EXCEPTION 'Categoria nao encontrada: ensino-medio/matematica/estatistica'; END IF;
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Fundamentos e Conceitos (Auto)', 'Deck automatico de Estatistica com foco em fundamentos e conceitos.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'O que e conjuntos numericos em Estatistica?', 'Conceito basico de conjuntos numericos aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'O que e operacoes com conjuntos em Estatistica?', 'Conceito basico de operacoes com conjuntos aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'O que e intervalos em Estatistica?', 'Conceito basico de intervalos aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'O que e modulo em Estatistica?', 'Conceito basico de modulo aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'O que e expressoes algebricas em Estatistica?', 'Conceito basico de expressoes algebricas aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'O que e equacoes lineares em Estatistica?', 'Conceito basico de equacoes lineares aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'O que e sistemas lineares em Estatistica?', 'Conceito basico de sistemas lineares aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'O que e equacoes quadraticas em Estatistica?', 'Conceito basico de equacoes quadraticas aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'O que e inequacoes em Estatistica?', 'Conceito basico de inequacoes aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'O que e funcoes afins em Estatistica?', 'Conceito basico de funcoes afins aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'O que e funcoes quadraticas em Estatistica?', 'Conceito basico de funcoes quadraticas aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'O que e funcoes modulares em Estatistica?', 'Conceito basico de funcoes modulares aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'O que e funcoes exponenciais em Estatistica?', 'Conceito basico de funcoes exponenciais aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'O que e funcoes logaritmicas em Estatistica?', 'Conceito basico de funcoes logaritmicas aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'O que e grafico de funcoes em Estatistica?', 'Conceito basico de grafico de funcoes aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'O que e zeros de funcao em Estatistica?', 'Conceito basico de zeros de funcao aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'O que e crescimento e decrescimento em Estatistica?', 'Conceito basico de crescimento e decrescimento aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'O que e progressao aritmetica em Estatistica?', 'Conceito basico de progressao aritmetica aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'O que e progressao geometrica em Estatistica?', 'Conceito basico de progressao geometrica aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'O que e juros simples em Estatistica?', 'Conceito basico de juros simples aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'O que e juros compostos em Estatistica?', 'Conceito basico de juros compostos aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'O que e porcentagem em Estatistica?', 'Conceito basico de porcentagem aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'O que e raizes e potencias em Estatistica?', 'Conceito basico de raizes e potencias aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'O que e fatoracao em Estatistica?', 'Conceito basico de fatoracao aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'O que e polinomios em Estatistica?', 'Conceito basico de polinomios aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'O que e identidades notaveis em Estatistica?', 'Conceito basico de identidades notaveis aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'O que e logaritmos em Estatistica?', 'Conceito basico de logaritmos aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'O que e equacoes exponenciais em Estatistica?', 'Conceito basico de equacoes exponenciais aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'O que e equacoes logaritmicas em Estatistica?', 'Conceito basico de equacoes logaritmicas aplicado a Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'O que e analise de sinal em Estatistica?', 'Conceito basico de analise de sinal aplicado a Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Definicoes e Terminologia (Auto)', 'Deck automatico de Estatistica com foco em definicoes e terminologia.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Defina conjuntos numericos no contexto de Estatistica.', 'Definicao objetiva de conjuntos numericos para Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Defina operacoes com conjuntos no contexto de Estatistica.', 'Definicao objetiva de operacoes com conjuntos para Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Defina intervalos no contexto de Estatistica.', 'Definicao objetiva de intervalos para Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Defina modulo no contexto de Estatistica.', 'Definicao objetiva de modulo para Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Defina expressoes algebricas no contexto de Estatistica.', 'Definicao objetiva de expressoes algebricas para Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Defina equacoes lineares no contexto de Estatistica.', 'Definicao objetiva de equacoes lineares para Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Defina sistemas lineares no contexto de Estatistica.', 'Definicao objetiva de sistemas lineares para Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Defina equacoes quadraticas no contexto de Estatistica.', 'Definicao objetiva de equacoes quadraticas para Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Defina inequacoes no contexto de Estatistica.', 'Definicao objetiva de inequacoes para Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Defina funcoes afins no contexto de Estatistica.', 'Definicao objetiva de funcoes afins para Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Defina funcoes quadraticas no contexto de Estatistica.', 'Definicao objetiva de funcoes quadraticas para Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Defina funcoes modulares no contexto de Estatistica.', 'Definicao objetiva de funcoes modulares para Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Defina funcoes exponenciais no contexto de Estatistica.', 'Definicao objetiva de funcoes exponenciais para Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Defina funcoes logaritmicas no contexto de Estatistica.', 'Definicao objetiva de funcoes logaritmicas para Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Defina grafico de funcoes no contexto de Estatistica.', 'Definicao objetiva de grafico de funcoes para Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Defina zeros de funcao no contexto de Estatistica.', 'Definicao objetiva de zeros de funcao para Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Defina crescimento e decrescimento no contexto de Estatistica.', 'Definicao objetiva de crescimento e decrescimento para Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Defina progressao aritmetica no contexto de Estatistica.', 'Definicao objetiva de progressao aritmetica para Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Defina progressao geometrica no contexto de Estatistica.', 'Definicao objetiva de progressao geometrica para Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Defina juros simples no contexto de Estatistica.', 'Definicao objetiva de juros simples para Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Defina juros compostos no contexto de Estatistica.', 'Definicao objetiva de juros compostos para Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Defina porcentagem no contexto de Estatistica.', 'Definicao objetiva de porcentagem para Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Defina raizes e potencias no contexto de Estatistica.', 'Definicao objetiva de raizes e potencias para Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Defina fatoracao no contexto de Estatistica.', 'Definicao objetiva de fatoracao para Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Defina polinomios no contexto de Estatistica.', 'Definicao objetiva de polinomios para Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Defina identidades notaveis no contexto de Estatistica.', 'Definicao objetiva de identidades notaveis para Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Defina logaritmos no contexto de Estatistica.', 'Definicao objetiva de logaritmos para Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Defina equacoes exponenciais no contexto de Estatistica.', 'Definicao objetiva de equacoes exponenciais para Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Defina equacoes logaritmicas no contexto de Estatistica.', 'Definicao objetiva de equacoes logaritmicas para Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Defina analise de sinal no contexto de Estatistica.', 'Definicao objetiva de analise de sinal para Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Processos e Aplicacoes (Auto)', 'Deck automatico de Estatistica com foco em processos e aplicacoes.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Como conjuntos numericos se aplica em Estatistica?', 'Resumo do processo de conjuntos numericos e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Como operacoes com conjuntos se aplica em Estatistica?', 'Resumo do processo de operacoes com conjuntos e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Como intervalos se aplica em Estatistica?', 'Resumo do processo de intervalos e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Como modulo se aplica em Estatistica?', 'Resumo do processo de modulo e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Como expressoes algebricas se aplica em Estatistica?', 'Resumo do processo de expressoes algebricas e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Como equacoes lineares se aplica em Estatistica?', 'Resumo do processo de equacoes lineares e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Como sistemas lineares se aplica em Estatistica?', 'Resumo do processo de sistemas lineares e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Como equacoes quadraticas se aplica em Estatistica?', 'Resumo do processo de equacoes quadraticas e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Como inequacoes se aplica em Estatistica?', 'Resumo do processo de inequacoes e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Como funcoes afins se aplica em Estatistica?', 'Resumo do processo de funcoes afins e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Como funcoes quadraticas se aplica em Estatistica?', 'Resumo do processo de funcoes quadraticas e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Como funcoes modulares se aplica em Estatistica?', 'Resumo do processo de funcoes modulares e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Como funcoes exponenciais se aplica em Estatistica?', 'Resumo do processo de funcoes exponenciais e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Como funcoes logaritmicas se aplica em Estatistica?', 'Resumo do processo de funcoes logaritmicas e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Como grafico de funcoes se aplica em Estatistica?', 'Resumo do processo de grafico de funcoes e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Como zeros de funcao se aplica em Estatistica?', 'Resumo do processo de zeros de funcao e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Como crescimento e decrescimento se aplica em Estatistica?', 'Resumo do processo de crescimento e decrescimento e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Como progressao aritmetica se aplica em Estatistica?', 'Resumo do processo de progressao aritmetica e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Como progressao geometrica se aplica em Estatistica?', 'Resumo do processo de progressao geometrica e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Como juros simples se aplica em Estatistica?', 'Resumo do processo de juros simples e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Como juros compostos se aplica em Estatistica?', 'Resumo do processo de juros compostos e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Como porcentagem se aplica em Estatistica?', 'Resumo do processo de porcentagem e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Como raizes e potencias se aplica em Estatistica?', 'Resumo do processo de raizes e potencias e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Como fatoracao se aplica em Estatistica?', 'Resumo do processo de fatoracao e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Como polinomios se aplica em Estatistica?', 'Resumo do processo de polinomios e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Como identidades notaveis se aplica em Estatistica?', 'Resumo do processo de identidades notaveis e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Como logaritmos se aplica em Estatistica?', 'Resumo do processo de logaritmos e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Como equacoes exponenciais se aplica em Estatistica?', 'Resumo do processo de equacoes exponenciais e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Como equacoes logaritmicas se aplica em Estatistica?', 'Resumo do processo de equacoes logaritmicas e sua aplicacao em Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Como analise de sinal se aplica em Estatistica?', 'Resumo do processo de analise de sinal e sua aplicacao em Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Regras e Principios (Auto)', 'Deck automatico de Estatistica com foco em regras e principios.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Qual a regra ou principio-chave de conjuntos numericos em Estatistica?', 'Principio central de conjuntos numericos usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Qual a regra ou principio-chave de operacoes com conjuntos em Estatistica?', 'Principio central de operacoes com conjuntos usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Qual a regra ou principio-chave de intervalos em Estatistica?', 'Principio central de intervalos usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Qual a regra ou principio-chave de modulo em Estatistica?', 'Principio central de modulo usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Qual a regra ou principio-chave de expressoes algebricas em Estatistica?', 'Principio central de expressoes algebricas usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Qual a regra ou principio-chave de equacoes lineares em Estatistica?', 'Principio central de equacoes lineares usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Qual a regra ou principio-chave de sistemas lineares em Estatistica?', 'Principio central de sistemas lineares usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Qual a regra ou principio-chave de equacoes quadraticas em Estatistica?', 'Principio central de equacoes quadraticas usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Qual a regra ou principio-chave de inequacoes em Estatistica?', 'Principio central de inequacoes usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Qual a regra ou principio-chave de funcoes afins em Estatistica?', 'Principio central de funcoes afins usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Qual a regra ou principio-chave de funcoes quadraticas em Estatistica?', 'Principio central de funcoes quadraticas usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Qual a regra ou principio-chave de funcoes modulares em Estatistica?', 'Principio central de funcoes modulares usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Qual a regra ou principio-chave de funcoes exponenciais em Estatistica?', 'Principio central de funcoes exponenciais usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Qual a regra ou principio-chave de funcoes logaritmicas em Estatistica?', 'Principio central de funcoes logaritmicas usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Qual a regra ou principio-chave de grafico de funcoes em Estatistica?', 'Principio central de grafico de funcoes usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Qual a regra ou principio-chave de zeros de funcao em Estatistica?', 'Principio central de zeros de funcao usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Qual a regra ou principio-chave de crescimento e decrescimento em Estatistica?', 'Principio central de crescimento e decrescimento usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Qual a regra ou principio-chave de progressao aritmetica em Estatistica?', 'Principio central de progressao aritmetica usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Qual a regra ou principio-chave de progressao geometrica em Estatistica?', 'Principio central de progressao geometrica usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Qual a regra ou principio-chave de juros simples em Estatistica?', 'Principio central de juros simples usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Qual a regra ou principio-chave de juros compostos em Estatistica?', 'Principio central de juros compostos usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Qual a regra ou principio-chave de porcentagem em Estatistica?', 'Principio central de porcentagem usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Qual a regra ou principio-chave de raizes e potencias em Estatistica?', 'Principio central de raizes e potencias usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Qual a regra ou principio-chave de fatoracao em Estatistica?', 'Principio central de fatoracao usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Qual a regra ou principio-chave de polinomios em Estatistica?', 'Principio central de polinomios usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Qual a regra ou principio-chave de identidades notaveis em Estatistica?', 'Principio central de identidades notaveis usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Qual a regra ou principio-chave de logaritmos em Estatistica?', 'Principio central de logaritmos usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Qual a regra ou principio-chave de equacoes exponenciais em Estatistica?', 'Principio central de equacoes exponenciais usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Qual a regra ou principio-chave de equacoes logaritmicas em Estatistica?', 'Principio central de equacoes logaritmicas usado em Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Qual a regra ou principio-chave de analise de sinal em Estatistica?', 'Principio central de analise de sinal usado em Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Resolucao de Problemas (Auto)', 'Deck automatico de Estatistica com foco em resolucao de problemas.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Qual o passo a passo basico para trabalhar conjuntos numericos em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de conjuntos numericos e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Qual o passo a passo basico para trabalhar operacoes com conjuntos em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de operacoes com conjuntos e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Qual o passo a passo basico para trabalhar intervalos em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de intervalos e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Qual o passo a passo basico para trabalhar modulo em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de modulo e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Qual o passo a passo basico para trabalhar expressoes algebricas em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de expressoes algebricas e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Qual o passo a passo basico para trabalhar equacoes lineares em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de equacoes lineares e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Qual o passo a passo basico para trabalhar sistemas lineares em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de sistemas lineares e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Qual o passo a passo basico para trabalhar equacoes quadraticas em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de equacoes quadraticas e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Qual o passo a passo basico para trabalhar inequacoes em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de inequacoes e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Qual o passo a passo basico para trabalhar funcoes afins em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de funcoes afins e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Qual o passo a passo basico para trabalhar funcoes quadraticas em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de funcoes quadraticas e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Qual o passo a passo basico para trabalhar funcoes modulares em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de funcoes modulares e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Qual o passo a passo basico para trabalhar funcoes exponenciais em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de funcoes exponenciais e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Qual o passo a passo basico para trabalhar funcoes logaritmicas em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de funcoes logaritmicas e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Qual o passo a passo basico para trabalhar grafico de funcoes em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de grafico de funcoes e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Qual o passo a passo basico para trabalhar zeros de funcao em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de zeros de funcao e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Qual o passo a passo basico para trabalhar crescimento e decrescimento em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de crescimento e decrescimento e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Qual o passo a passo basico para trabalhar progressao aritmetica em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de progressao aritmetica e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Qual o passo a passo basico para trabalhar progressao geometrica em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de progressao geometrica e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Qual o passo a passo basico para trabalhar juros simples em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de juros simples e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Qual o passo a passo basico para trabalhar juros compostos em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de juros compostos e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Qual o passo a passo basico para trabalhar porcentagem em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de porcentagem e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Qual o passo a passo basico para trabalhar raizes e potencias em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de raizes e potencias e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Qual o passo a passo basico para trabalhar fatoracao em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de fatoracao e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Qual o passo a passo basico para trabalhar polinomios em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de polinomios e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Qual o passo a passo basico para trabalhar identidades notaveis em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de identidades notaveis e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Qual o passo a passo basico para trabalhar logaritmos em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de logaritmos e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Qual o passo a passo basico para trabalhar equacoes exponenciais em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de equacoes exponenciais e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Qual o passo a passo basico para trabalhar equacoes logaritmicas em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de equacoes logaritmicas e concluir no contexto de Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Qual o passo a passo basico para trabalhar analise de sinal em Estatistica?', 'Sequencia simples: identificar dados, aplicar regras de analise de sinal e concluir no contexto de Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Erros Comuns e Dicas (Auto)', 'Deck automatico de Estatistica com foco em erros comuns e dicas.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Qual erro comum ao lidar com conjuntos numericos em Estatistica?', 'Erro comum: confundir conceito ou etapa de conjuntos numericos; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Qual erro comum ao lidar com operacoes com conjuntos em Estatistica?', 'Erro comum: confundir conceito ou etapa de operacoes com conjuntos; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Qual erro comum ao lidar com intervalos em Estatistica?', 'Erro comum: confundir conceito ou etapa de intervalos; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Qual erro comum ao lidar com modulo em Estatistica?', 'Erro comum: confundir conceito ou etapa de modulo; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Qual erro comum ao lidar com expressoes algebricas em Estatistica?', 'Erro comum: confundir conceito ou etapa de expressoes algebricas; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Qual erro comum ao lidar com equacoes lineares em Estatistica?', 'Erro comum: confundir conceito ou etapa de equacoes lineares; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Qual erro comum ao lidar com sistemas lineares em Estatistica?', 'Erro comum: confundir conceito ou etapa de sistemas lineares; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Qual erro comum ao lidar com equacoes quadraticas em Estatistica?', 'Erro comum: confundir conceito ou etapa de equacoes quadraticas; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Qual erro comum ao lidar com inequacoes em Estatistica?', 'Erro comum: confundir conceito ou etapa de inequacoes; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Qual erro comum ao lidar com funcoes afins em Estatistica?', 'Erro comum: confundir conceito ou etapa de funcoes afins; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Qual erro comum ao lidar com funcoes quadraticas em Estatistica?', 'Erro comum: confundir conceito ou etapa de funcoes quadraticas; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Qual erro comum ao lidar com funcoes modulares em Estatistica?', 'Erro comum: confundir conceito ou etapa de funcoes modulares; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Qual erro comum ao lidar com funcoes exponenciais em Estatistica?', 'Erro comum: confundir conceito ou etapa de funcoes exponenciais; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Qual erro comum ao lidar com funcoes logaritmicas em Estatistica?', 'Erro comum: confundir conceito ou etapa de funcoes logaritmicas; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Qual erro comum ao lidar com grafico de funcoes em Estatistica?', 'Erro comum: confundir conceito ou etapa de grafico de funcoes; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Qual erro comum ao lidar com zeros de funcao em Estatistica?', 'Erro comum: confundir conceito ou etapa de zeros de funcao; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Qual erro comum ao lidar com crescimento e decrescimento em Estatistica?', 'Erro comum: confundir conceito ou etapa de crescimento e decrescimento; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Qual erro comum ao lidar com progressao aritmetica em Estatistica?', 'Erro comum: confundir conceito ou etapa de progressao aritmetica; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Qual erro comum ao lidar com progressao geometrica em Estatistica?', 'Erro comum: confundir conceito ou etapa de progressao geometrica; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Qual erro comum ao lidar com juros simples em Estatistica?', 'Erro comum: confundir conceito ou etapa de juros simples; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Qual erro comum ao lidar com juros compostos em Estatistica?', 'Erro comum: confundir conceito ou etapa de juros compostos; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Qual erro comum ao lidar com porcentagem em Estatistica?', 'Erro comum: confundir conceito ou etapa de porcentagem; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Qual erro comum ao lidar com raizes e potencias em Estatistica?', 'Erro comum: confundir conceito ou etapa de raizes e potencias; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Qual erro comum ao lidar com fatoracao em Estatistica?', 'Erro comum: confundir conceito ou etapa de fatoracao; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Qual erro comum ao lidar com polinomios em Estatistica?', 'Erro comum: confundir conceito ou etapa de polinomios; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Qual erro comum ao lidar com identidades notaveis em Estatistica?', 'Erro comum: confundir conceito ou etapa de identidades notaveis; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Qual erro comum ao lidar com logaritmos em Estatistica?', 'Erro comum: confundir conceito ou etapa de logaritmos; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Qual erro comum ao lidar com equacoes exponenciais em Estatistica?', 'Erro comum: confundir conceito ou etapa de equacoes exponenciais; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Qual erro comum ao lidar com equacoes logaritmicas em Estatistica?', 'Erro comum: confundir conceito ou etapa de equacoes logaritmicas; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Qual erro comum ao lidar com analise de sinal em Estatistica?', 'Erro comum: confundir conceito ou etapa de analise de sinal; evite revisando definicoes e condicoes em Estatistica.', 'Template automatico');
+
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Estatistica - Revisao Rapida (Auto)', 'Deck automatico de Estatistica com foco em revisao rapida.', 0, v_user_id, v_cat_id, ARRAY['estatistica', 'math', 'auto', 'template'], true, true, 4.6)
+  RETURNING id INTO v_deck_id;
+
+  INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
+  (v_deck_id, 1, 'basic', 'Resumo rapido: conjuntos numericos em Estatistica.', 'Resumo: pontos essenciais de conjuntos numericos e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 2, 'basic', 'Resumo rapido: operacoes com conjuntos em Estatistica.', 'Resumo: pontos essenciais de operacoes com conjuntos e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 3, 'basic', 'Resumo rapido: intervalos em Estatistica.', 'Resumo: pontos essenciais de intervalos e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 4, 'basic', 'Resumo rapido: modulo em Estatistica.', 'Resumo: pontos essenciais de modulo e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 5, 'basic', 'Resumo rapido: expressoes algebricas em Estatistica.', 'Resumo: pontos essenciais de expressoes algebricas e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 6, 'basic', 'Resumo rapido: equacoes lineares em Estatistica.', 'Resumo: pontos essenciais de equacoes lineares e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 7, 'basic', 'Resumo rapido: sistemas lineares em Estatistica.', 'Resumo: pontos essenciais de sistemas lineares e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 8, 'basic', 'Resumo rapido: equacoes quadraticas em Estatistica.', 'Resumo: pontos essenciais de equacoes quadraticas e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 9, 'basic', 'Resumo rapido: inequacoes em Estatistica.', 'Resumo: pontos essenciais de inequacoes e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 10, 'basic', 'Resumo rapido: funcoes afins em Estatistica.', 'Resumo: pontos essenciais de funcoes afins e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 11, 'basic', 'Resumo rapido: funcoes quadraticas em Estatistica.', 'Resumo: pontos essenciais de funcoes quadraticas e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 12, 'basic', 'Resumo rapido: funcoes modulares em Estatistica.', 'Resumo: pontos essenciais de funcoes modulares e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 13, 'basic', 'Resumo rapido: funcoes exponenciais em Estatistica.', 'Resumo: pontos essenciais de funcoes exponenciais e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 14, 'basic', 'Resumo rapido: funcoes logaritmicas em Estatistica.', 'Resumo: pontos essenciais de funcoes logaritmicas e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 15, 'basic', 'Resumo rapido: grafico de funcoes em Estatistica.', 'Resumo: pontos essenciais de grafico de funcoes e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 16, 'basic', 'Resumo rapido: zeros de funcao em Estatistica.', 'Resumo: pontos essenciais de zeros de funcao e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 17, 'basic', 'Resumo rapido: crescimento e decrescimento em Estatistica.', 'Resumo: pontos essenciais de crescimento e decrescimento e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 18, 'basic', 'Resumo rapido: progressao aritmetica em Estatistica.', 'Resumo: pontos essenciais de progressao aritmetica e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 19, 'basic', 'Resumo rapido: progressao geometrica em Estatistica.', 'Resumo: pontos essenciais de progressao geometrica e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 20, 'basic', 'Resumo rapido: juros simples em Estatistica.', 'Resumo: pontos essenciais de juros simples e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 21, 'basic', 'Resumo rapido: juros compostos em Estatistica.', 'Resumo: pontos essenciais de juros compostos e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 22, 'basic', 'Resumo rapido: porcentagem em Estatistica.', 'Resumo: pontos essenciais de porcentagem e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 23, 'basic', 'Resumo rapido: raizes e potencias em Estatistica.', 'Resumo: pontos essenciais de raizes e potencias e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 24, 'basic', 'Resumo rapido: fatoracao em Estatistica.', 'Resumo: pontos essenciais de fatoracao e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 25, 'basic', 'Resumo rapido: polinomios em Estatistica.', 'Resumo: pontos essenciais de polinomios e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 26, 'basic', 'Resumo rapido: identidades notaveis em Estatistica.', 'Resumo: pontos essenciais de identidades notaveis e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 27, 'basic', 'Resumo rapido: logaritmos em Estatistica.', 'Resumo: pontos essenciais de logaritmos e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 28, 'basic', 'Resumo rapido: equacoes exponenciais em Estatistica.', 'Resumo: pontos essenciais de equacoes exponenciais e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 29, 'basic', 'Resumo rapido: equacoes logaritmicas em Estatistica.', 'Resumo: pontos essenciais de equacoes logaritmicas e sua utilidade em Estatistica.', 'Template automatico'),
+  (v_deck_id, 30, 'basic', 'Resumo rapido: analise de sinal em Estatistica.', 'Resumo: pontos essenciais de analise de sinal e sua utilidade em Estatistica.', 'Template automatico');
+
+
+  RAISE NOTICE 'Auto decks inseridos: Estatistica';
+END $$;

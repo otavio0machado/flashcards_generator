@@ -2,17 +2,17 @@
 
 DO $$
 DECLARE
-  v_author_id UUID;
+  v_user_id UUID;
   v_deck_id UUID;
   v_cat_id UUID;
 BEGIN
-  SELECT id INTO v_author_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
-  IF v_author_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/ciencias-da-natureza/biologia';
 
   -- CITOLOGIA
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
-  VALUES ('Citologia: Célula, Organelas e Divisão Celular', 'Estrutura celular, membrana, organelas, metabolismo energético e divisão celular.', 0, v_author_id, v_cat_id, ARRAY['biologia', 'citologia', 'célula', 'enem'], true, true, 4.9)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Citologia: Célula, Organelas e Divisão Celular', 'Estrutura celular, membrana, organelas, metabolismo energético e divisão celular.', 0, v_user_id, v_cat_id, ARRAY['biologia', 'citologia', 'célula', 'enem'], true, true, 4.9)
   RETURNING id INTO v_deck_id;
 
   INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
@@ -48,8 +48,8 @@ BEGIN
   (v_deck_id, 30, 'basic', 'O que são células-tronco?', 'Células indiferenciadas capazes de se dividir e diferenciar em tipos especializados. Totipotentes, pluripotentes, multipotentes.', 'Biologia - Amabis & Martho');
 
   -- GENÉTICA
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
-  VALUES ('Genética: Mendel, DNA e Biotecnologia', 'Leis de Mendel, grupos sanguíneos, DNA, RNA e engenharia genética.', 0, v_author_id, v_cat_id, ARRAY['biologia', 'genética', 'dna', 'enem'], true, true, 4.9)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Genética: Mendel, DNA e Biotecnologia', 'Leis de Mendel, grupos sanguíneos, DNA, RNA e engenharia genética.', 0, v_user_id, v_cat_id, ARRAY['biologia', 'genética', 'dna', 'enem'], true, true, 4.9)
   RETURNING id INTO v_deck_id;
 
   INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
@@ -85,8 +85,8 @@ BEGIN
   (v_deck_id, 30, 'basic', 'O que são células HeLa?', 'Primeira linhagem celular humana imortalizada (1951). De Henrietta Lacks. Usadas em pesquisas.', 'Biologia - Amabis & Martho');
 
   -- EVOLUÇÃO
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
-  VALUES ('Evolução: Darwin, Seleção Natural e Especiação', 'Teorias evolutivas, evidências da evolução, seleção natural e formação de espécies.', 0, v_author_id, v_cat_id, ARRAY['biologia', 'evolução', 'darwin', 'enem'], true, true, 4.8)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Evolução: Darwin, Seleção Natural e Especiação', 'Teorias evolutivas, evidências da evolução, seleção natural e formação de espécies.', 0, v_user_id, v_cat_id, ARRAY['biologia', 'evolução', 'darwin', 'enem'], true, true, 4.8)
   RETURNING id INTO v_deck_id;
 
   INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
@@ -122,8 +122,8 @@ BEGIN
   (v_deck_id, 30, 'basic', 'Como surgiu o oxigênio atmosférico?', 'Cianobactérias (fotossíntese) liberaram O₂. Grande Evento de Oxidação ~2,4 bilhões de anos.', 'Biologia - Amabis & Martho');
 
   -- ECOLOGIA
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
-  VALUES ('Ecologia: Cadeias, Ciclos e Biomas', 'Ecossistemas, cadeias alimentares, relações ecológicas, ciclos biogeoquímicos e biomas.', 0, v_author_id, v_cat_id, ARRAY['biologia', 'ecologia', 'biomas', 'enem'], true, true, 4.9)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Ecologia: Cadeias, Ciclos e Biomas', 'Ecossistemas, cadeias alimentares, relações ecológicas, ciclos biogeoquímicos e biomas.', 0, v_user_id, v_cat_id, ARRAY['biologia', 'ecologia', 'biomas', 'enem'], true, true, 4.9)
   RETURNING id INTO v_deck_id;
 
   INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
@@ -159,8 +159,8 @@ BEGIN
   (v_deck_id, 30, 'basic', 'O que é nicho ecológico?', 'Papel funcional da espécie: o que come, onde vive, como se reproduz. "Profissão" da espécie.', 'Biologia - Amabis & Martho');
 
   -- FISIOLOGIA HUMANA
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
-  VALUES ('Fisiologia Humana: Sistemas do Corpo', 'Sistemas digestório, respiratório, circulatório, excretor, nervoso, endócrino e reprodutor.', 0, v_author_id, v_cat_id, ARRAY['biologia', 'fisiologia', 'corpo humano', 'enem'], true, true, 4.9)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
+  VALUES ('Fisiologia Humana: Sistemas do Corpo', 'Sistemas digestório, respiratório, circulatório, excretor, nervoso, endócrino e reprodutor.', 0, v_user_id, v_cat_id, ARRAY['biologia', 'fisiologia', 'corpo humano', 'enem'], true, true, 4.9)
   RETURNING id INTO v_deck_id;
 
   INSERT INTO cards (deck_id, "order", type, front_content, back_content, source_citation) VALUES
