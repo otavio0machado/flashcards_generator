@@ -42,7 +42,7 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
             className: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
         },
         {
-            label: 'Dif?cil (Hard)',
+            label: 'Dif\u00edcil (Hard)',
             quality: 3,
             className: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
         },
@@ -52,7 +52,7 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
             className: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
         },
         {
-            label: 'F?cil (Easy)',
+            label: 'F\u00e1cil (Easy)',
             quality: 5,
             className: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
         }
@@ -106,7 +106,7 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
                 </div>
                 <h3 className="text-lg font-bold mb-2">Tudo em dia!</h3>
                 <p className="text-foreground/50 font-medium max-w-xs">
-                    Voc? n?o tem revis?es pendentes hoje.
+                    Voc\u00ea n\u00e3o tem revis\u00f5es pendentes hoje.
                 </p>
             </div>
         );
@@ -145,7 +145,7 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
                             {currentCard.front}
                         </p>
                         <span className="absolute bottom-6 text-xs text-foreground/20 font-medium">
-                            Clique ou Espa?o para virar
+                            Clique ou Espa\u00e7o para virar
                         </span>
                     </div>
 
