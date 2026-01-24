@@ -9,10 +9,65 @@ type ExportCard = {
     back?: string;
     question?: string;
     answer?: string;
+    image_url?: string | null;
+    imageUrl?: string | null;
 };
 
 const getSafeFileName = (title: string) => {
     return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'deck';
+};
+
+const parseDataUrl = (value: string) => {
+    const match = value.match(/^data:(.+);base64,(.+)$/i);
+    if (!match) return null;
+    return { mimeType: match[1], base64: match[2] };
+};
+
+const mimeToExtension = (mimeType: string) => {
+    switch (mimeType.toLowerCase()) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            return 'jpg';
+        case 'image/png':
+            return 'png';
+        case 'image/webp':
+            return 'webp';
+        case 'image/heic':
+            return 'heic';
+        case 'image/heif':
+            return 'heif';
+        default:
+            return 'png';
+    }
+};
+
+const resolveImageData = async (imageUrl: string, index: number) => {
+    const dataUrl = parseDataUrl(imageUrl);
+    if (dataUrl) {
+        const ext = mimeToExtension(dataUrl.mimeType);
+        return {
+            filename: `image-${index + 1}.${ext}`,
+            data: Buffer.from(dataUrl.base64, 'base64'),
+        };
+    }
+
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        try {
+            const response = await fetch(imageUrl);
+            if (!response.ok) return null;
+            const arrayBuffer = await response.arrayBuffer();
+            const mimeType = response.headers.get('content-type') || 'image/png';
+            const ext = mimeToExtension(mimeType);
+            return {
+                filename: `image-${index + 1}.${ext}`,
+                data: Buffer.from(arrayBuffer),
+            };
+        } catch (error) {
+            console.error('Erro ao baixar imagem para exportacao:', error);
+        }
+    }
+
+    return null;
 };
 
 export async function POST(req: Request) {
@@ -28,7 +83,7 @@ export async function POST(req: Request) {
         const apkg = new AnkiExport(title || 'Deck');
         let added = 0;
 
-        cards.forEach((card) => {
+        for (const [index, card] of cards.entries()) {
             const front = typeof card.front === 'string'
                 ? card.front
                 : typeof card.question === 'string'
@@ -40,10 +95,28 @@ export async function POST(req: Request) {
                     ? card.answer
                     : '';
 
-            if (!front && !back) return;
-            apkg.addCard(front, back);
+            if (!front && !back) continue;
+
+            const imageUrl = typeof card.image_url === 'string'
+                ? card.image_url
+                : typeof card.imageUrl === 'string'
+                    ? card.imageUrl
+                    : '';
+            let frontWithImage = front;
+
+            if (imageUrl) {
+                const imageData = await resolveImageData(imageUrl, index);
+                if (imageData) {
+                    apkg.addMedia(imageData.filename, imageData.data);
+                    frontWithImage = front
+                        ? `${front}<br/><img src="${imageData.filename}" />`
+                        : `<img src="${imageData.filename}" />`;
+                }
+            }
+
+            apkg.addCard(frontWithImage, back);
             added += 1;
-        });
+        }
 
         if (!added) {
             return NextResponse.json({ error: 'Nenhum card válido para exportar.' }, { status: 400 });
