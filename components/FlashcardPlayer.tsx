@@ -79,14 +79,14 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
 
             {/* Card Area */}
             <div
-                className="perspective-1000 h-[400px] cursor-pointer group"
+                className="perspective-1000 h-[320px] sm:h-[400px] cursor-pointer group"
                 onClick={handleFlip}
             >
                 <div
                     className={`relative w-full h-full text-center transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
                 >
                     {/* Front */}
-                    <div className="absolute inset-0 backface-hidden bg-white border border-border shadow-lg rounded-sm flex flex-col items-center justify-center p-8 md:p-12 hover:border-brand/40 transition-colors">
+                    <div className="absolute inset-0 backface-hidden bg-white border border-border shadow-lg rounded-sm flex flex-col items-center justify-center p-6 sm:p-8 md:p-12 hover:border-brand/40 transition-colors">
                         <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-brand/40">
                             Pergunta
                         </span>
@@ -99,7 +99,7 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
                     </div>
 
                     {/* Back */}
-                    <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gray-900 border border-gray-900 shadow-xl rounded-sm flex flex-col items-center justify-center p-8 md:p-12">
+                    <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gray-900 border border-gray-900 shadow-xl rounded-sm flex flex-col items-center justify-center p-6 sm:p-8 md:p-12">
                         <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-white/40">
                             Resposta
                         </span>

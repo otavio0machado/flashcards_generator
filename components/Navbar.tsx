@@ -43,10 +43,13 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
+    setMobileOpen(false);
     await supabase.auth.signOut();
     router.push('/');
     router.refresh();
   };
+
+  const closeMobileMenu = () => setMobileOpen(false);
 
   const displayName = (() => {
     const fullName = user?.user_metadata?.full_name;
@@ -100,17 +103,7 @@ export default function Navbar() {
                 <Link href="/settings" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border hover:bg-gray-100 transition-all cursor-pointer">
                   <UserIcon className="h-4 w-4 text-foreground/40" />
                   <span className="text-xs font-bold text-foreground/60">
-                    {(() => {
-                      // 1. Try full name from metadata
-                      const fullName = user.user_metadata?.full_name;
-                      if (fullName) return fullName.trim().split(/\s+/)[0];
-
-                      // 2. Fallback to email prefix (split by common delimiters)
-                      const emailPrefix = user.email?.split('@')[0];
-                      if (emailPrefix) return emailPrefix.split(/[._-]/)[0];
-
-                      return 'Usuário';
-                    })()}
+                    {displayName}
                   </span>
                 </Link>
                 <button
@@ -141,16 +134,76 @@ export default function Navbar() {
             )}
           </div>
 
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
             <Link
               href={user ? "/app" : "/auth/login"}
               className="bg-brand text-white px-4 py-2 rounded-sm text-sm font-bold hover:bg-brand/90 transition-all shadow-sm"
             >
               {user ? "App" : "Entrar"}
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileOpen((open) => !open)}
+              aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              className="p-2 rounded-sm border border-border bg-white/80 text-foreground/70 hover:text-foreground hover:bg-gray-50 transition-colors"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div id="mobile-nav" className="md:hidden border-t border-border bg-white/95 backdrop-blur-md">
+          <div className="px-4 py-4 space-y-1">
+            {user && (
+              <div className="px-3 py-2 mb-2 rounded-sm border border-border bg-gray-50 text-xs font-bold text-foreground/60">
+                Oi, {displayName}
+              </div>
+            )}
+            <Link href="/" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Inicio
+            </Link>
+            <Link href="/guia" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Tutorial
+            </Link>
+            <Link href="/app" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Gerador (App)
+            </Link>
+            {user && (
+              <Link href="/decks" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+                Minha Biblioteca
+              </Link>
+            )}
+            {user && (
+              <Link href="/settings" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+                Minha Conta
+              </Link>
+            )}
+            {user ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full text-left px-3 py-2 rounded-sm text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                Sair
+              </button>
+            ) : (
+              <div className="pt-2">
+                <Link
+                  href="/auth/signup"
+                  onClick={closeMobileMenu}
+                  className="block w-full text-center bg-brand text-white px-4 py-2 rounded-sm text-sm font-bold hover:bg-brand/90 transition-all shadow-sm"
+                >
+                  Criar Conta
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

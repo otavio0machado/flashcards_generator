@@ -62,7 +62,7 @@ export default function DecksPage() {
                 </div>
                 <Link
                     href="/app"
-                    className="bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 self-start"
+                    className="bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 self-stretch sm:self-start w-full sm:w-auto"
                 >
                     <Plus className="h-5 w-5" />
                     Novo Baralho
@@ -74,7 +74,7 @@ export default function DecksPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-brand" />
                 </div>
             ) : decks.length === 0 ? (
-                <div className="border-2 border-dashed border-border rounded-sm py-32 flex flex-col items-center justify-center text-center px-4 bg-white/50">
+                <div className="border-2 border-dashed border-border rounded-sm py-20 sm:py-32 flex flex-col items-center justify-center text-center px-4 bg-white/50">
                     <div className="bg-gray-100 p-6 rounded-full mb-6">
                         <Library className="h-10 w-10 text-foreground/20" />
                     </div>
@@ -116,17 +116,17 @@ export default function DecksPage() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <button
                                     onClick={() => setDeckToExport(deck)}
-                                    className="flex-1 bg-white border border-border py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full sm:flex-1 bg-white border border-border py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Download className="h-3.5 w-3.5" />
                                     Exportar
                                 </button>
                                 <Link
                                     href={`/decks/${deck.id}`}
-                                    className="flex-1 bg-gray-50 border border-border py-2 rounded-sm text-xs font-bold text-center hover:bg-white transition-all flex items-center justify-center gap-2"
+                                    className="w-full sm:flex-1 bg-gray-50 border border-border py-2 rounded-sm text-xs font-bold text-center hover:bg-white transition-all flex items-center justify-center gap-2"
                                 >
                                     Ver Cards
                                     <ArrowRight className="h-3.5 w-3.5" />

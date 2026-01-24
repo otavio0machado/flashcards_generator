@@ -88,7 +88,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visualizando Baralho</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{deck.title}</h1>
-                    <div className="flex items-center gap-6 text-sm font-bold text-foreground/40">
+                    <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-foreground/40">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
                             {new Date(deck.created_at).toLocaleDateString('pt-BR')}
@@ -99,17 +99,17 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => setIsExportModalOpen(true)}
-                        className="bg-white border border-border px-6 py-3 rounded-sm font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm"
+                        className="w-full sm:w-auto bg-white border border-border px-6 py-3 rounded-sm font-bold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                         <FileDown className="h-4 w-4 text-brand" />
                         Exportar
                     </button>
                     <button
                         onClick={() => setMode(mode === 'overview' ? 'study' : 'overview')}
-                        className={`px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${mode === 'study'
+                        className={`w-full sm:w-auto px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${mode === 'study'
                             ? 'bg-gray-100 text-foreground hover:bg-gray-200'
                             : 'bg-brand text-white hover:bg-brand/90 shadow-brand/20'
                             }`}

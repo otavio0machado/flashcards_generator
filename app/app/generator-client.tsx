@@ -244,7 +244,7 @@ export default function GeneratorClient() {
 
             {/* Coluna Esquerda: Input e Configs */}
             <div className="lg:col-span-5 space-y-6">
-                <div className="bg-white border border-border p-6 rounded-sm shadow-sm sticky top-24">
+                <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <div className="bg-brand/10 p-1.5 rounded-sm">
@@ -271,12 +271,12 @@ export default function GeneratorClient() {
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder="Cole seu texto, resumo ou notas aqui..."
-                            className={`w-full h-80 p-4 bg-gray-50 border rounded-sm focus:ring-1 outline-none transition-all resize-none font-medium text-foreground/80 placeholder:text-foreground/30 ${error ? 'border-red-500 focus:ring-red-500 bg-red-50/10' : 'border-border focus:ring-brand focus:border-brand'
+                            className={`w-full h-80 p-4 pb-16 bg-gray-50 border rounded-sm focus:ring-1 outline-none transition-all resize-none font-medium text-foreground/80 placeholder:text-foreground/30 ${error ? 'border-red-500 focus:ring-red-500 bg-red-50/10' : 'border-border focus:ring-brand focus:border-brand'
                                 }`}
                         />
 
                         {/* Status bar inside textarea */}
-                        <div className="absolute bottom-4 right-4 flex items-center gap-4 text-[11px] font-bold">
+                        <div className="absolute bottom-4 left-4 right-4 flex flex-col sm:flex-row sm:items-center items-start sm:justify-between gap-2 text-[11px] font-bold">
                             <button
                                 onClick={handleFileUpload}
                                 className="flex items-center gap-1.5 text-brand hover:underline"
@@ -298,7 +298,7 @@ export default function GeneratorClient() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                         <div>
                             <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
                             <div className="relative text-foreground">
@@ -392,11 +392,11 @@ export default function GeneratorClient() {
                     </div>
 
                     {cards.length > 0 && (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <button
                                 onClick={handleSaveLibrary}
                                 disabled={isSaving || saveSuccess}
-                                className={`flex items-center gap-2 border px-4 py-2 rounded-sm text-xs font-bold transition-all ${saveSuccess ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-border hover:bg-gray-50 hover:border-brand/40 text-foreground shadow-sm hover:shadow-md'
+                                className={`w-full sm:w-auto flex items-center justify-center gap-2 border px-4 py-2 rounded-sm text-xs font-bold transition-all ${saveSuccess ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-border hover:bg-gray-50 hover:border-brand/40 text-foreground shadow-sm hover:shadow-md'
                                     }`}
                             >
                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : saveSuccess ? <Check className="h-4 w-4" /> : <Library className="h-4 w-4 text-brand" />}
@@ -404,14 +404,14 @@ export default function GeneratorClient() {
                             </button>
                             <button
                                 onClick={exportToAnki}
-                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
                             >
                                 <FileDown className="h-4 w-4 text-brand" />
                                 Anki (.txt)
                             </button>
                             <button
                                 onClick={exportToCsv}
-                                className="flex items-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
                             >
                                 <Download className="h-4 w-4 text-brand" />
                                 CSV
@@ -421,7 +421,7 @@ export default function GeneratorClient() {
                 </div>
 
                 {cards.length === 0 ? (
-                    <div className="border-2 border-dashed border-border rounded-sm py-32 flex flex-col items-center justify-center text-center px-4 bg-white/50">
+                    <div className="border-2 border-dashed border-border rounded-sm py-20 sm:py-32 flex flex-col items-center justify-center text-center px-4 bg-white/50">
                         <div className="bg-gray-100 p-4 rounded-full mb-4">
                             <Plus className="h-8 w-8 text-foreground/20" />
                         </div>
