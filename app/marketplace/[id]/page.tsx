@@ -124,7 +124,7 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
 
     const priceLabel = (() => {
         const value = typeof deck.price === 'number' ? deck.price : Number(deck.price || 0);
-        if (!value) return 'GrÃ¡tis';
+        if (!value) return 'Grátis';
         return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     })();
 

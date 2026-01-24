@@ -452,8 +452,8 @@ export default function GeneratorClient() {
                                     className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
                                 >
                                     <option value="Iniciante">Iniciante</option>
-                                    <option value="Intermedi?rio">Intermedi?rio</option>
-                                    <option value="Avan?ado">Avan?ado</option>
+                                    <option value="Intermediário">Intermediário</option>
+                                    <option value="Avançado">Avançado</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                             </div>
@@ -489,8 +489,8 @@ export default function GeneratorClient() {
                                 onChange={(event) => setLanguage(event.target.value)}
                                 className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
                             >
-                                <option value="Portugu?s">Portugu?s</option>
-                                <option value="Ingl?s">Ingl?s</option>
+                                <option value="Português">Português</option>
+                                <option value="Inglês">Inglês</option>
                                 <option value="Espanhol">Espanhol</option>
                             </select>
                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />

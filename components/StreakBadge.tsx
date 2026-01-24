@@ -44,6 +44,7 @@ export default function StreakBadge({
   const statusLabel = getStatusLabel(hasStudiedToday, isFrozen, streak);
   const isActive = hasStudiedToday && streak > 0;
   const isFrozenState = isFrozen && !hasStudiedToday && streak > 0;
+  const tooltipLabel = `${statusLabel} - ${streak} dias`;
 
   const baseClass =
     'flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold transition-colors duration-300';
@@ -62,11 +63,12 @@ export default function StreakBadge({
 
   return (
     <div
-      title={`${statusLabel} - ${streak} dias`}
-      aria-label={`${statusLabel} - ${streak} dias`}
+      aria-label={tooltipLabel}
       className={`${baseClass} ${statusClass} ${pulse ? 'animate-streak-pulse' : ''} ${className}`}
     >
-      <Flame className={`h-3.5 w-3.5 ${iconClass}`} />
+      <span title={tooltipLabel} aria-label={tooltipLabel} className="inline-flex">
+        <Flame className={`h-3.5 w-3.5 ${iconClass}`} />
+      </span>
       <span className="font-mono">{streak}</span>
     </div>
   );
