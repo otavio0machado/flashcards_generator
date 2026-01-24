@@ -43,18 +43,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-const sentryWebpackPluginOptions = {
+const sentryBuildOptions = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
+  telemetry: false,
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 };
 
-export default withSentryConfig(nextConfig, sentryWebpackPluginOptions, {
-  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
-  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
-  hideSourceMaps: true,
-  transpileClientSDK: true,
-  widenClientFileUpload: true,
-  disableLogger: true,
-});
+const sentryEnabled = !!process.env.SENTRY_AUTH_TOKEN;
+
+export default sentryEnabled ? withSentryConfig(nextConfig, sentryBuildOptions) : nextConfig;
