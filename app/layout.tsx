@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -63,7 +64,9 @@ export default function RootLayout({
       >
         <AnalyticsProvider>
           <Navbar />
-          <AnalyticsPageView />
+          <Suspense fallback={null}>
+            <AnalyticsPageView />
+          </Suspense>
           <main>{children}</main>
           <FeedbackWidget />
           <Toaster />
