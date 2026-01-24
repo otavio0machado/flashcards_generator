@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Loader2, AlertCircle, Check, X } from 'lucide-react';
 
 export default function UpdatePasswordPage() {
     const router = useRouter();
@@ -11,10 +11,27 @@ export default function UpdatePasswordPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Password validation rules (same as signup)
+    const passwordChecks = {
+        minLength: password.length >= 8,
+        hasUpper: /[A-Z]/.test(password),
+        hasLower: /[a-z]/.test(password),
+        hasNumber: /[0-9]/.test(password),
+        hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    };
+
+    const isPasswordValid = Object.values(passwordChecks).every(Boolean);
+
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
+        if (!isPasswordValid) {
+            setError('A senha não atende aos requisitos de segurança.');
+            setLoading(false);
+            return;
+        }
 
         const { error } = await supabase.auth.updateUser({
             password: password
@@ -61,14 +78,37 @@ export default function UpdatePasswordPage() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-gray-50 border border-border px-10 py-3 rounded-sm text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none transition-all font-medium"
                                     required
-                                    minLength={6}
+                                    minLength={8}
                                 />
                             </div>
                         </div>
 
+                        {/* Password Requirements */}
+                        {password && (
+                            <div className="space-y-1 p-3 bg-gray-50 rounded-sm border border-border">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2">Requisitos da Senha</p>
+                                {[
+                                    { check: passwordChecks.minLength, label: 'Mínimo 8 caracteres' },
+                                    { check: passwordChecks.hasUpper, label: 'Uma letra maiúscula' },
+                                    { check: passwordChecks.hasLower, label: 'Uma letra minúscula' },
+                                    { check: passwordChecks.hasNumber, label: 'Um número' },
+                                    { check: passwordChecks.hasSpecial, label: 'Um caractere especial (!@#$%^&*)' },
+                                ].map((req, i) => (
+                                    <div key={i} className={`flex items-center gap-2 text-xs font-medium ${req.check ? 'text-green-600' : 'text-foreground/40'}`}>
+                                        {req.check ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                        {req.label}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <button
-                            disabled={loading}
-                            className="w-full bg-brand text-white py-3 font-bold rounded-sm mt-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/10 flex items-center justify-center gap-2"
+                            disabled={loading || !isPasswordValid}
+                            className={`w-full py-3 font-bold rounded-sm mt-2 transition-all shadow-lg flex items-center justify-center gap-2 ${
+                                loading || !isPasswordValid
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                    : 'bg-brand text-white hover:bg-brand/90 shadow-brand/10'
+                            }`}
                         >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Atualizar Senha'}
                         </button>

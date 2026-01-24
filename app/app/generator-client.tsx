@@ -99,8 +99,7 @@ export default function GeneratorClient() {
 
             setCards([...newCardsFormatted, ...cards]);
 
-            // Incrementar uso no Supabase
-            await deckService.incrementUsage(user.id);
+            // Uso já incrementado no servidor (API route)
 
             if (!deckTitle) {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);

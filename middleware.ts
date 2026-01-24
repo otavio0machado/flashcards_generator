@@ -54,17 +54,21 @@ export async function middleware(req: NextRequest) {
         }
     );
 
+    // Usar getUser() para validar JWT server-side (mais seguro que getSession())
     const {
-        data: { session },
-    } = await supabase.auth.getSession();
+        data: { user },
+        error,
+    } = await supabase.auth.getUser();
+
+    const isAuthenticated = !error && user;
 
     // Se o usuário está tentando acessar o /app ou /decks e não está logado
-    if ((req.nextUrl.pathname.startsWith('/app') || req.nextUrl.pathname.startsWith('/decks')) && !session) {
+    if ((req.nextUrl.pathname.startsWith('/app') || req.nextUrl.pathname.startsWith('/decks')) && !isAuthenticated) {
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
     // Se o usuário está logado e tenta ir para login/signup
-    if (req.nextUrl.pathname.startsWith('/auth') && session) {
+    if (req.nextUrl.pathname.startsWith('/auth') && isAuthenticated) {
         return NextResponse.redirect(new URL('/app', req.url));
     }
 
