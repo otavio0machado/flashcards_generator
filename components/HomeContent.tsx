@@ -94,7 +94,7 @@ export default function HomeContent() {
                                 <div className="w-full border-t border-border"></div>
                             </div>
                             <div className="relative flex justify-center uppercase tracking-widest text-[10px] font-bold text-foreground/40">
-                                <span className="bg-[#FAFAFA] px-4">Compatível com as principais plataformas</span>
+                                <span className="bg-background px-4">Compatível com as principais plataformas</span>
                             </div>
                         </motion.div>
                     </div>
@@ -317,7 +317,7 @@ export default function HomeContent() {
                             <CheckoutButton
                                 priceId={STRIPE_PRICES.ultimate}
                                 planName="ultimate"
-                                className="w-full py-3 bg-white text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all active:scale-95 transform"
+                                className="w-full py-3 bg-white theme-static-light text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all active:scale-95 transform"
                             >
                                 Ir para o Ultimate
                             </CheckoutButton>
@@ -361,7 +361,7 @@ export default function HomeContent() {
                     <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-8">Pronto para dominar qualquer conteúdo?</h2>
                     <Link
                         href="/app"
-                        className="inline-flex bg-white text-brand px-10 py-5 rounded-sm text-xl font-bold hover:bg-gray-50 transition-all shadow-xl"
+                        className="inline-flex bg-white theme-static-light text-brand px-10 py-5 rounded-sm text-xl font-bold hover:bg-gray-50 transition-all shadow-xl"
                     >
                         Começar a Criar Agora
                     </Link>

@@ -47,6 +47,8 @@ export default function GeneratorClient() {
     const [inputText, setInputText] = useState('');
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [deckTitle, setDeckTitle] = useState('');
+    const [deckDescription, setDeckDescription] = useState('');
+    const [deckTagsInput, setDeckTagsInput] = useState('');
     const [cards, setCards] = useState<Flashcard[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<PlanKey>('free');
@@ -57,6 +59,9 @@ export default function GeneratorClient() {
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [cardCount, setCardCount] = useState(5);
+    const [language, setLanguage] = useState('Português');
+    const [difficulty, setDifficulty] = useState('Intermediário');
+    const [isExportingApkg, setIsExportingApkg] = useState(false);
 
     const limits = PLAN_LIMITS[currentPlan];
     const fileAccept = limits.allowOCR
@@ -101,7 +106,8 @@ export default function GeneratorClient() {
         try {
             const formData = new FormData();
             formData.append('text', inputText);
-            formData.append('language', 'pt-BR');
+            formData.append('language', language);
+            formData.append('difficulty', difficulty);
             formData.append('cardCount', cardCount.toString());
             if (fileInfo) {
                 formData.append('files', fileInfo);
@@ -136,7 +142,8 @@ export default function GeneratorClient() {
                 card_count: data.cards?.length,
                 card_count_requested: cardCount,
                 input_chars: inputLength,
-                language: 'pt-BR',
+                language,
+                difficulty,
                 has_file: !!fileInfo,
                 file_type: fileInfo?.type,
                 file_size: fileInfo?.size,
@@ -147,6 +154,8 @@ export default function GeneratorClient() {
                 plan: currentPlan,
                 input_chars: inputLength,
                 error: err instanceof Error ? err.message : 'unknown',
+                language,
+                difficulty,
                 has_file: !!fileInfo,
                 file_type: fileInfo?.type,
                 file_size: fileInfo?.size,
@@ -168,7 +177,12 @@ export default function GeneratorClient() {
         try {
             const title = deckTitle || `Deck ${new Date().toLocaleDateString()}`;
             const formattedCards = cards.map(c => ({ front: c.question, back: c.answer }));
-            await deckService.saveDeck(user.id, title, formattedCards);
+            const tags = parseTags(deckTagsInput);
+            const description = deckDescription.trim();
+            await deckService.saveDeck(user.id, title, formattedCards, {
+                tags,
+                description: description || undefined
+            });
             setSaveSuccess(true);
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -255,6 +269,26 @@ export default function GeneratorClient() {
         }
     };
 
+    const parseTags = (value: string) => {
+        const rawTags = value
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+
+        const seen = new Set<string>();
+        const normalized: string[] = [];
+
+        for (const tag of rawTags) {
+            const key = tag.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                normalized.push(key);
+            }
+        }
+
+        return normalized.slice(0, 10);
+    };
+
     const deleteCard = (id: string) => {
         setCards(cards.filter(card => card.id !== id));
     };
@@ -263,6 +297,43 @@ export default function GeneratorClient() {
         setCards(cards.map(card =>
             card.id === id ? { ...card, [field]: value } : card
         ));
+    };
+
+    const getSafeFileName = (title: string) => {
+        return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'deck';
+    };
+
+    const exportToApkg = async () => {
+        if (cards.length === 0 || isExportingApkg) return;
+        setIsExportingApkg(true);
+        try {
+            const response = await fetch('/api/export/anki', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: deckTitle || `Deck ${new Date().toLocaleDateString()}`,
+                    cards: cards.map((card) => ({ question: card.question, answer: card.answer }))
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Erro ao exportar .apkg');
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${getSafeFileName(deckTitle || 'deck')}.apkg`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            setToast({ message: 'Erro ao exportar .apkg', type: 'error' });
+        } finally {
+            setIsExportingApkg(false);
+        }
     };
 
     const exportToAnki = () => {
@@ -374,10 +445,15 @@ export default function GeneratorClient() {
                         <div>
                             <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
                             <div className="relative text-foreground">
-                                <select id="difficulty-select" className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
-                                    <option>Iniciante</option>
-                                    <option>Intermediário</option>
-                                    <option>Avançado</option>
+                                <select
+                                    id="difficulty-select"
+                                    value={difficulty}
+                                    onChange={(event) => setDifficulty(event.target.value)}
+                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                >
+                                    <option value="Iniciante">Iniciante</option>
+                                    <option value="Intermedi?rio">Intermedi?rio</option>
+                                    <option value="Avan?ado">Avan?ado</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                             </div>
@@ -407,10 +483,15 @@ export default function GeneratorClient() {
                     <div className="mt-4">
                         <label htmlFor="language-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Idioma do Deck</label>
                         <div className="relative text-foreground">
-                            <select id="language-select" className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer">
-                                <option>Português</option>
-                                <option>Inglês</option>
-                                <option>Espanhol</option>
+                            <select
+                                id="language-select"
+                                value={language}
+                                onChange={(event) => setLanguage(event.target.value)}
+                                className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                            >
+                                <option value="Portugu?s">Portugu?s</option>
+                                <option value="Ingl?s">Ingl?s</option>
+                                <option value="Espanhol">Espanhol</option>
                             </select>
                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                         </div>
@@ -475,6 +556,14 @@ export default function GeneratorClient() {
                                 {saveSuccess ? 'Salvo!' : 'Salvar na Biblioteca'}
                             </button>
                             <button
+                                onClick={exportToApkg}
+                                disabled={isExportingApkg}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isExportingApkg ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4 text-brand" />}
+                                Anki (.apkg)
+                            </button>
+                            <button
                                 onClick={exportToAnki}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
                             >
@@ -491,6 +580,37 @@ export default function GeneratorClient() {
                         </div>
                     )}
                 </div>
+
+                {cards.length > 0 && (
+                    <div className="bg-white border border-border rounded-sm p-4 shadow-sm space-y-4">
+                        <div className="space-y-1">
+                            <label htmlFor="deck-description" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Descrição (opcional)
+                            </label>
+                            <textarea
+                                id="deck-description"
+                                value={deckDescription}
+                                onChange={(event) => setDeckDescription(event.target.value)}
+                                rows={2}
+                                className="w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-sm font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none resize-none"
+                                placeholder="Sobre o que é este baralho?"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="deck-tags" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Tags (separadas por vírgulas)
+                            </label>
+                            <input
+                                id="deck-tags"
+                                type="text"
+                                value={deckTagsInput}
+                                onChange={(event) => setDeckTagsInput(event.target.value)}
+                                className="w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-sm font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none"
+                                placeholder="ex: biologia, enem, citologia"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {cards.length === 0 ? (
                     <div className="border-2 border-dashed border-border rounded-sm py-20 sm:py-32 flex flex-col items-center justify-center text-center px-4 bg-white/50">

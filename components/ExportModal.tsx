@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { X, FileDown, Table, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, FileDown, Table, Download, Loader2 } from 'lucide-react';
 
 interface Card {
     front?: string;
@@ -22,6 +22,8 @@ interface ExportModalProps {
 }
 
 export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps) {
+    const [exportingApkg, setExportingApkg] = useState(false);
+
     if (!isOpen || !deck) return null;
 
     const getSafeFileName = (title: string) => {
@@ -39,6 +41,35 @@ export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps)
         onClose();
     };
 
+    const handleExportApkg = async () => {
+        if (exportingApkg) return;
+        setExportingApkg(true);
+        try {
+            const response = await fetch('/api/export/anki', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: deck.title,
+                    cards: deck.cards
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Erro ao exportar .apkg');
+            }
+
+            const blob = await response.blob();
+            downloadBlob(blob, `${getSafeFileName(deck.title)}.apkg`);
+            onClose();
+        } catch (error) {
+            console.error('Erro ao exportar .apkg:', error);
+            alert('Erro ao exportar arquivo .apkg. Tente novamente.');
+        } finally {
+            setExportingApkg(false);
+        }
+    };
+
     const handleExportCsv = () => {
         const header = "Front,Back\n";
         const content = deck.cards.map(c => {
@@ -54,8 +85,7 @@ export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps)
         onClose();
     };
 
-    const downloadFile = (content: string, filename: string, type: string) => {
-        const blob = new Blob([content], { type });
+    const downloadBlob = (blob: Blob, filename: string) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -64,6 +94,11 @@ export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps)
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    };
+
+    const downloadFile = (content: string, filename: string, type: string) => {
+        const blob = new Blob([content], { type });
+        downloadBlob(blob, filename);
     };
 
     return (
@@ -87,6 +122,22 @@ export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps)
                     </div>
 
                     <div className="space-y-3">
+                        <button
+                            onClick={handleExportApkg}
+                            disabled={exportingApkg}
+                            className="w-full flex items-center justify-between p-4 border border-border rounded-sm hover:border-brand/40 hover:bg-gray-50 transition-all group text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 bg-brand/10 rounded-sm flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors text-brand">
+                                    {exportingApkg ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-foreground group-hover:text-brand transition-colors">Anki (.apkg)</h4>
+                                    <p className="text-xs text-foreground/50 font-medium">Pacote completo para importar direto no Anki.</p>
+                                </div>
+                            </div>
+                            <Download className="h-4 w-4 text-foreground/20 group-hover:text-brand" />
+                        </button>
                         <button
                             onClick={handleExportAnki}
                             className="w-full flex items-center justify-between p-4 border border-border rounded-sm hover:border-brand/40 hover:bg-gray-50 transition-all group text-left"

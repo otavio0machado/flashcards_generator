@@ -4,16 +4,23 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
-import { Search, Loader2, Layers, ArrowRight, Copy, Tag } from 'lucide-react';
+import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
+import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
 
 interface PublicDeck {
     id: string;
     title: string;
+    description?: string | null;
+    price?: number;
+    rating?: number;
+    rating_count?: number;
+    is_verified?: boolean;
     tags?: string[];
     created_at: string;
     published_at?: string | null;
     cards: { count: number }[];
+    category?: Category | null;
 }
 
 export default function MarketplacePage() {
@@ -21,25 +28,42 @@ export default function MarketplacePage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [activeTag, setActiveTag] = useState<string | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
     const [cloningId, setCloningId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         const fetchDecks = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('decks')
-                .select('id, title, tags, created_at, published_at, cards(count)')
-                .eq('is_public', true)
-                .order('published_at', { ascending: false, nullsFirst: false })
-                .order('created_at', { ascending: false });
+            const [decksResult, categoriesResult] = await Promise.all([
+                supabase
+                    .from('decks')
+                    .select('id, title, description, price, rating, rating_count, is_verified, tags, created_at, published_at, cards(count), category:categories(id, name, parent_id, slug)')
+                    .eq('is_public', true)
+                    .order('published_at', { ascending: false, nullsFirst: false })
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('categories')
+                    .select('id, name, parent_id, slug')
+            ]);
 
-            if (error) {
-                console.error(error);
+            if (decksResult.error) {
+                console.error(decksResult.error);
                 setToast({ message: 'Erro ao carregar marketplace', type: 'error' });
                 setDecks([]);
             } else {
-                setDecks(data || []);
+                const normalized = (decksResult.data || []).map((deck) => ({
+                    ...deck,
+                    category: Array.isArray(deck.category) ? deck.category[0] ?? null : deck.category
+                }));
+                setDecks(normalized);
+            }
+
+            if (categoriesResult.error) {
+                console.error(categoriesResult.error);
+            } else {
+                setCategories(categoriesResult.data || []);
             }
             setLoading(false);
         };
@@ -57,17 +81,30 @@ export default function MarketplacePage() {
         return Array.from(tagSet).slice(0, 10);
     }, [decks]);
 
+    const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
+    const categoryLabels = useMemo(() => buildCategoryLabelMap(categories), [categories]);
+
     const filteredDecks = useMemo(() => {
         const query = search.trim().toLowerCase();
         return decks.filter((deck) => {
+            const categoryLabel = deck.category?.id ? (categoryLabels[deck.category.id] || deck.category.name || '') : '';
             const matchesQuery = !query
                 || deck.title.toLowerCase().includes(query)
+                || (deck.description || '').toLowerCase().includes(query)
+                || categoryLabel.toLowerCase().includes(query)
                 || (deck.tags || []).some((tag) => tag.toLowerCase().includes(query));
 
             const matchesTag = !activeTag || (deck.tags || []).includes(activeTag);
-            return matchesQuery && matchesTag;
+            const matchesCategory = !activeCategoryId || deck.category?.id === activeCategoryId;
+            return matchesQuery && matchesTag && matchesCategory;
         });
-    }, [decks, search, activeTag]);
+    }, [decks, search, activeTag, activeCategoryId, categoryLabels]);
+
+    const formatPrice = (price?: number) => {
+        const value = typeof price === 'number' ? price : Number(price || 0);
+        if (!value) return 'Grátis';
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
 
     const handleClone = async (deckId: string) => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -107,14 +144,31 @@ export default function MarketplacePage() {
             </div>
 
             <div className="bg-white border border-border rounded-sm p-4 mb-10 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <Search className="h-4 w-4 text-foreground/40" />
-                    <input
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Buscar por titulo ou tag"
-                        className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none"
-                    />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-3 flex-1">
+                        <Search className="h-4 w-4 text-foreground/40" />
+                        <input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Buscar por titulo, tag ou categoria"
+                            className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none"
+                        />
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                        <select
+                            value={activeCategoryId || ''}
+                            onChange={(event) => setActiveCategoryId(event.target.value || null)}
+                            className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-widest text-foreground/60 focus:ring-1 focus:ring-brand outline-none pr-8"
+                        >
+                            <option value="">Todas as categorias</option>
+                            {categoryOptions.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                    </div>
                 </div>
                 {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-4">
@@ -165,19 +219,48 @@ export default function MarketplacePage() {
                                 <div className="bg-brand/10 p-2 rounded-sm">
                                     <Layers className="h-5 w-5 text-brand" />
                                 </div>
-                                <div className="text-[10px] uppercase tracking-widest font-black text-foreground/30">
-                                    {new Date(deck.published_at || deck.created_at).toLocaleDateString('pt-BR')}
+                                <div className="flex flex-col items-end gap-2">
+                                    {deck.is_verified && (
+                                        <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 px-2 py-1 rounded-sm">
+                                            <BadgeCheck className="h-3 w-3" />
+                                            Verificado
+                                        </span>
+                                    )}
+                                    <div className="text-[10px] uppercase tracking-widest font-black text-foreground/30">
+                                        {new Date(deck.published_at || deck.created_at).toLocaleDateString('pt-BR')}
+                                    </div>
                                 </div>
                             </div>
+
+                            {deck.category?.id && (
+                                <div className="text-[10px] uppercase tracking-widest font-black text-foreground/30 mb-2">
+                                    {categoryLabels[deck.category.id] || deck.category.name}
+                                </div>
+                            )}
 
                             <h3 className="text-xl font-bold mb-2 group-hover:text-brand transition-colors line-clamp-2">
                                 {deck.title}
                             </h3>
 
-                            <div className="flex items-center gap-4 text-xs font-bold text-foreground/40 mb-6">
+                            {deck.description && (
+                                <p className="text-sm text-foreground/60 font-medium mb-4 line-clamp-2">
+                                    {deck.description}
+                                </p>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-foreground/40 mb-6">
                                 <div className="bg-gray-100 px-2 py-0.5 rounded-sm">
                                     {deck.cards?.[0]?.count || 0} CARDS
                                 </div>
+                                <div className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-sm">
+                                    {formatPrice(deck.price)}
+                                </div>
+                                {(deck.rating_count || 0) > 0 && (
+                                    <div className="flex items-center gap-1">
+                                        <Star className="h-3.5 w-3.5" />
+                                        {Number(deck.rating || 0).toFixed(1)} ({deck.rating_count})
+                                    </div>
+                                )}
                                 {(deck.tags || []).length > 0 && (
                                     <div className="flex items-center gap-1">
                                         <Tag className="h-3.5 w-3.5" />

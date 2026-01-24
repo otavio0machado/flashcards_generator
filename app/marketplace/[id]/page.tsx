@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag, Star, BadgeCheck } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
+import { buildCategoryLabelMap, Category } from '@/lib/category-utils';
 
 interface Card {
     id: string;
@@ -21,6 +22,12 @@ interface Deck {
     created_at: string;
     published_at?: string | null;
     tags?: string[];
+    description?: string | null;
+    price?: number;
+    rating?: number;
+    rating_count?: number;
+    is_verified?: boolean;
+    category?: Category | null;
     cards: Card[];
 }
 
@@ -32,12 +39,15 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [cloning, setCloning] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+
+    const categoryLabels = useMemo(() => buildCategoryLabelMap(categories), [categories]);
 
     useEffect(() => {
         const fetchDeck = async (id: string) => {
             const { data, error } = await supabase
                 .from('decks')
-                .select('*, cards(*)')
+                .select('*, cards(*), category:categories(id, name, parent_id, slug)')
                 .eq('id', id)
                 .eq('is_public', true)
                 .single();
@@ -55,6 +65,23 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
             fetchDeck(resolvedParams.id);
         }
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data, error } = await supabase
+                .from('categories')
+                .select('id, name, parent_id, slug');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            setCategories(data || []);
+        };
+
+        fetchCategories();
+    }, []);
 
     const handleClone = async () => {
         if (!deck || cloning) return;
@@ -95,6 +122,16 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
         );
     }
 
+    const priceLabel = (() => {
+        const value = typeof deck.price === 'number' ? deck.price : Number(deck.price || 0);
+        if (!value) return 'GrÃ¡tis';
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    })();
+
+    const categoryLabel = deck.category?.id
+        ? categoryLabels[deck.category.id] || deck.category.name
+        : undefined;
+
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
             <Link
@@ -112,8 +149,19 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                             <Layers className="h-5 w-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Deck Publico</span>
+                        {deck.is_verified && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-brand bg-brand/10 px-2 py-1 rounded-sm">
+                                <BadgeCheck className="h-3 w-3" />
+                                Verificado
+                            </span>
+                        )}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{deck.title}</h1>
+                    {deck.description && (
+                        <p className="text-foreground/60 font-medium max-w-2xl mb-4">
+                            {deck.description}
+                        </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-foreground/40">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -122,6 +170,20 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                         <div className="bg-gray-100 px-3 py-1 rounded-sm text-foreground text-[10px]">
                             {deck.cards.length} CARDS
                         </div>
+                        {categoryLabel && (
+                            <div className="bg-gray-100 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-black text-foreground/40">
+                                {categoryLabel}
+                            </div>
+                        )}
+                        <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-black">
+                            {priceLabel}
+                        </div>
+                        {(deck.rating_count || 0) > 0 && (
+                            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-foreground/40">
+                                <Star className="h-3 w-3" />
+                                {Number(deck.rating || 0).toFixed(1)} ({deck.rating_count})
+                            </div>
+                        )}
                         {(deck.tags || []).length > 0 && (
                             <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-foreground/40">
                                 <Tag className="h-3 w-3" />

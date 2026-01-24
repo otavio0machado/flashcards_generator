@@ -10,6 +10,7 @@ import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 import StreakBadge from '@/components/StreakBadge';
 import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/study-activity';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Navbar() {
   const router = useRouter();
@@ -155,6 +156,8 @@ export default function Navbar() {
               Gerador (App)
             </Link>
 
+            <ThemeToggle className="p-2 rounded-sm border border-border bg-white/80 text-foreground/70 hover:text-foreground hover:bg-gray-50 transition-colors" />
+
             {user ? (
               <div className="flex items-center gap-4 border-l border-border pl-8">
                 <StreakBadge
@@ -203,6 +206,7 @@ export default function Navbar() {
             >
               {user ? "App" : "Entrar"}
             </Link>
+            <ThemeToggle className="p-2 rounded-sm border border-border bg-white/80 text-foreground/70 hover:text-foreground hover:bg-gray-50 transition-colors" />
             <button
               type="button"
               onClick={() => setMobileOpen((open) => !open)}

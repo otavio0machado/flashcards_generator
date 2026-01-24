@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock, Tag } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
+import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
 
 interface Card {
     id: string;
@@ -23,6 +24,13 @@ interface Deck {
     is_public: boolean;
     published_at?: string | null;
     tags?: string[];
+    description?: string | null;
+    category_id?: string | null;
+    category?: Category | null;
+    price?: number;
+    rating?: number;
+    rating_count?: number;
+    is_verified?: boolean;
     cards: Card[];
 }
 
@@ -37,13 +45,20 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     const [isOwner, setIsOwner] = useState(false);
     const [publishLoading, setPublishLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [metadataSaving, setMetadataSaving] = useState(false);
+    const [deckDescription, setDeckDescription] = useState('');
+    const [deckTagsInput, setDeckTagsInput] = useState('');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
+    const categoryLabels = useMemo(() => buildCategoryLabelMap(categories), [categories]);
 
     useEffect(() => {
         const fetchDeck = async (id: string) => {
             const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase
                 .from('decks')
-                .select('*, cards(*)')
+                .select('*, cards(*), category:categories(id, name, parent_id, slug)')
                 .eq('id', id)
                 .single();
 
@@ -60,6 +75,30 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             fetchDeck(resolvedParams.id);
         }
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const { data, error } = await supabase
+                .from('categories')
+                .select('id, name, parent_id, slug');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            setCategories(data || []);
+        };
+
+        fetchCategories();
+    }, []);
+
+    useEffect(() => {
+        if (!deck) return;
+        setDeckDescription(deck.description || '');
+        setDeckTagsInput((deck.tags || []).join(', '));
+        setSelectedCategoryId(deck.category_id || deck.category?.id || null);
+    }, [deck]);
 
     useEffect(() => {
         const fetchDueCards = async (id: string) => {
@@ -85,6 +124,64 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             fetchDueCards(resolvedParams.id);
         }
     }, [mode, resolvedParams.id]);
+
+    const parseTags = (value: string) => {
+        const rawTags = value
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+
+        const seen = new Set<string>();
+        const normalized: string[] = [];
+
+        for (const tag of rawTags) {
+            const key = tag.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                normalized.push(key);
+            }
+        }
+
+        return normalized.slice(0, 10);
+    };
+
+    const handleSaveMetadata = async () => {
+        if (!deck || metadataSaving || !isOwner) return;
+        setMetadataSaving(true);
+
+        const tags = parseTags(deckTagsInput);
+        const description = deckDescription.trim();
+
+        const { data, error } = await supabase
+            .from('decks')
+            .update({
+                description: description || null,
+                tags,
+                category_id: selectedCategoryId || null
+            })
+            .eq('id', deck.id)
+            .select('description, tags, category_id, category:categories(id, name, parent_id, slug)')
+            .single();
+
+        if (error) {
+            console.error(error);
+            setToast({ message: 'Erro ao salvar detalhes do baralho', type: 'error' });
+        } else if (data) {
+            const updatedCategory = selectedCategoryId
+                ? categories.find((category) => category.id === selectedCategoryId) ?? null
+                : null;
+            setDeck({
+                ...deck,
+                description: data.description,
+                tags: data.tags,
+                category_id: data.category_id,
+                category: updatedCategory
+            });
+            setToast({ message: 'Detalhes do baralho atualizados', type: 'success' });
+        }
+
+        setMetadataSaving(false);
+    };
 
     const handleTogglePublish = async () => {
         if (!deck || publishLoading) return;
@@ -135,6 +232,12 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
         );
     }
 
+    const categoryLabel = deck.category?.id
+        ? categoryLabels[deck.category.id] || deck.category.name
+        : deck.category_id
+            ? categoryLabels[deck.category_id]
+            : undefined;
+
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
             <Link
@@ -154,6 +257,11 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visualizando Baralho</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{deck.title}</h1>
+                    {deck.description && (
+                        <p className="text-foreground/60 font-medium max-w-2xl mb-4">
+                            {deck.description}
+                        </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-foreground/40">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -162,10 +270,21 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <div className="bg-gray-100 px-3 py-1 rounded-sm text-foreground text-[10px]">
                             {deck.cards.length} CARDS
                         </div>
+                        {categoryLabel && (
+                            <div className="bg-gray-100 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-black text-foreground/40">
+                                {categoryLabel}
+                            </div>
+                        )}
                         <div className={`flex items-center gap-2 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-black ${deck.is_public ? 'bg-brand/10 text-brand' : 'bg-gray-100 text-foreground/40'}`}>
                             {deck.is_public ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                             {deck.is_public ? 'Publicado' : 'Privado'}
                         </div>
+                        {(deck.tags || []).length > 0 && (
+                            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-foreground/40">
+                                <Tag className="h-3 w-3" />
+                                {(deck.tags || []).slice(0, 3).join(', ')}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -219,6 +338,67 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                     </button>
                 </div>
             </div>
+
+            {isOwner && (
+                <div className="bg-white border border-border rounded-sm p-6 shadow-sm mb-10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/40">Detalhes do Baralho</h3>
+                        <button
+                            onClick={handleSaveMetadata}
+                            disabled={metadataSaving}
+                            className="px-4 py-2 bg-brand text-white rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-brand/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {metadataSaving ? 'Salvando...' : 'Salvar detalhes'}
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2 space-y-1">
+                            <label htmlFor="deck-meta-description" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Descrição
+                            </label>
+                            <textarea
+                                id="deck-meta-description"
+                                value={deckDescription}
+                                onChange={(event) => setDeckDescription(event.target.value)}
+                                rows={3}
+                                className="w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-sm font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none resize-none"
+                                placeholder="Fale sobre o conteúdo e o objetivo deste baralho."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="deck-meta-category" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Categoria
+                            </label>
+                            <select
+                                id="deck-meta-category"
+                                value={selectedCategoryId || ''}
+                                onChange={(event) => setSelectedCategoryId(event.target.value || null)}
+                                className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                            >
+                                <option value="">Sem categoria</option>
+                                {categoryOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="deck-meta-tags" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Tags (separadas por vírgulas)
+                            </label>
+                            <input
+                                id="deck-meta-tags"
+                                type="text"
+                                value={deckTagsInput}
+                                onChange={(event) => setDeckTagsInput(event.target.value)}
+                                className="w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-sm font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none"
+                                placeholder="ex: anatomia, cardio, prova"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {mode === 'overview' ? (
                 <div className="grid grid-cols-1 gap-6">

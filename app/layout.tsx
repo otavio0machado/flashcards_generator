@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "sonner";
@@ -58,10 +59,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning data-theme="light">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16`}
       >
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function() {
+  try {
+    var storedTheme = localStorage.getItem('theme');
+    var hasStored = storedTheme === 'light' || storedTheme === 'dark';
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = hasStored ? storedTheme : (systemDark ? 'dark' : 'light');
+    var root = document.documentElement;
+    root.classList.toggle('dark', theme === 'dark');
+    root.setAttribute('data-theme', theme);
+  } catch (e) {}
+})();`}
+        </Script>
         <AnalyticsProvider>
           <Navbar />
           <Suspense fallback={null}>

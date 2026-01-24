@@ -51,7 +51,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-bold text-foreground mb-4">3. Isenção de Responsabilidade</h2>
                         <p>
-                            Os materiais no site da Flashcards Generator são fornecidos 'como estão'. Flashcards Generator não oferece garantias, expressas ou implícitas, e, por este meio, isenta e nega todas as outras garantias, incluindo, sem limitação, garantias implícitas ou condições de comercialização, adequação a um fim específico ou não violação de propriedade intelectual ou outra violação de direitos.
+                            Os materiais no site da Flashcards Generator são fornecidos &quot;como estão&quot;. Flashcards Generator não oferece garantias, expressas ou implícitas, e, por este meio, isenta e nega todas as outras garantias, incluindo, sem limitação, garantias implícitas ou condições de comercialização, adequação a um fim específico ou não violação de propriedade intelectual ou outra violação de direitos.
                         </p>
                     </section>
 

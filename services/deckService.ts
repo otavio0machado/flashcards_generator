@@ -7,6 +7,12 @@ export interface Card {
     order?: number;
 }
 
+interface DeckMetadata {
+    tags?: string[];
+    description?: string;
+    categoryId?: string | null;
+}
+
 interface PublicDeckCard {
     front: string;
     back: string;
@@ -17,11 +23,26 @@ export const deckService = {
     /**
      * Salva um baralho e seus respectivos cards em batch.
      */
-    async saveDeck(userId: string, title: string, cards: Card[], tags: string[] = []) {
+    async saveDeck(userId: string, title: string, cards: Card[], metadata: DeckMetadata = {}) {
+        const tags = metadata.tags ?? [];
+        const deckPayload: Record<string, unknown> = {
+            user_id: userId,
+            title,
+            tags,
+        };
+
+        if (metadata.description) {
+            deckPayload.description = metadata.description;
+        }
+
+        if (metadata.categoryId) {
+            deckPayload.category_id = metadata.categoryId;
+        }
+
         // 1. Criar o Deck
         const { data: deck, error: deckError } = await supabase
             .from('decks')
-            .insert({ user_id: userId, title, tags })
+            .insert(deckPayload)
             .select()
             .single();
 
@@ -92,7 +113,7 @@ export const deckService = {
     async clonePublicDeck(userId: string, deckId: string) {
         const { data: sourceDeck, error: sourceError } = await supabase
             .from('decks')
-            .select('title, tags, cards(front, back, "order")')
+            .select('title, description, category_id, tags, cards(front, back, "order")')
             .eq('id', deckId)
             .eq('is_public', true)
             .single();
@@ -104,6 +125,8 @@ export const deckService = {
             .insert({
                 user_id: userId,
                 title: `${sourceDeck.title} (Clone)`,
+                description: sourceDeck.description || null,
+                category_id: sourceDeck.category_id || null,
                 tags: sourceDeck.tags || [],
                 is_public: false,
                 published_at: null

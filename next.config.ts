@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  serverExternalPackages: ['anki-apkg-export'],
 };
 
 const sentryBuildOptions = {

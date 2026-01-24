@@ -2,6 +2,7 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: var(--background);
 }
 
 @theme {
@@ -17,10 +18,28 @@ html {
 }
 
 :root {
-  --background: #FAFAFA;
-  --foreground: #1A1A1A;
-  --brand: #FF4F00;
-  --border: #E5E5E5;
+  color-scheme: light;
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --brand: var(--color-brand);
+  --border: var(--color-border);
+  --surface: #FFFFFF;
+  --surface-muted: #F9FAFB;
+  --surface-strong: #F3F4F6;
+  --surface-stronger: #E5E7EB;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-background: #0D0F12;
+  --color-foreground: #F5F5F5;
+  --color-border: #2A2F35;
+  --color-brand: #FF4F00;
+  --color-brand-foreground: #FFFFFF;
+  --surface: #14181D;
+  --surface-muted: #171C21;
+  --surface-strong: #1C2229;
+  --surface-stronger: #232B35;
 }
 
 body {
@@ -40,7 +59,7 @@ h4,
 h5,
 h6 {
   @apply font-bold tracking-tight;
-  color: #1A1A1A;
+  color: var(--foreground);
 }
 
 .noise-bg {
@@ -89,4 +108,80 @@ h6 {
 
 .animate-streak-pulse {
   animation: streakPulse 0.6s ease-out;
+}
+
+.dark .bg-white:not(.theme-static-light) {
+  background-color: var(--surface);
+}
+
+.dark .bg-white\/50:not(.theme-static-light) {
+  background-color: rgba(20, 24, 29, 0.5);
+}
+
+.dark .bg-white\/80:not(.theme-static-light) {
+  background-color: rgba(20, 24, 29, 0.8);
+}
+
+.dark .bg-white\/95:not(.theme-static-light) {
+  background-color: rgba(20, 24, 29, 0.95);
+}
+
+.dark .bg-gray-50 {
+  background-color: var(--surface-muted);
+}
+
+.dark .bg-gray-50\/50 {
+  background-color: rgba(22, 27, 33, 0.5);
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--surface-strong);
+}
+
+.dark .bg-gray-200 {
+  background-color: var(--surface-stronger);
+}
+
+.dark .hover\:bg-white:hover:not(.theme-static-light) {
+  background-color: var(--surface);
+}
+
+.dark .hover\:bg-white\/90:hover:not(.theme-static-light) {
+  background-color: rgba(20, 24, 29, 0.9);
+}
+
+.dark .hover\:bg-gray-50:hover:not(.theme-static-light) {
+  background-color: var(--surface-muted);
+}
+
+.dark .hover\:bg-gray-100:hover:not(.theme-static-light) {
+  background-color: var(--surface-strong);
+}
+
+.dark .hover\:bg-gray-200:hover:not(.theme-static-light) {
+  background-color: var(--surface-stronger);
+}
+
+.dark .focus\:bg-white:focus:not(.theme-static-light) {
+  background-color: var(--surface);
+}
+
+.dark .border-gray-200 {
+  border-color: #2D343F;
+}
+
+.dark .border-gray-300 {
+  border-color: #3A4350;
+}
+
+.dark .text-gray-300 {
+  color: #9AA3AD;
+}
+
+.dark .text-gray-400 {
+  color: #8A93A0;
+}
+
+.dark .placeholder\:text-gray-400::placeholder {
+  color: #8A93A0;
 }
