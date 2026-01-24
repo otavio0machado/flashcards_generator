@@ -1,6 +1,13 @@
 export type StudyActivityRecord = {
   day: string;
   count: number;
+  decks?: string[];
+};
+
+export type StudyActivityDay = {
+  date: string;
+  count: number;
+  decks?: string[];
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -31,19 +38,20 @@ export const buildActivityRange = (
 ) => {
   if (days <= 0) return [];
 
-  const activityMap = new Map<string, number>();
+  const activityMap = new Map<string, { count: number; decks?: string[] }>();
   for (const item of activity) {
     if (!item?.day) continue;
-    activityMap.set(item.day, item.count ?? 0);
+    activityMap.set(item.day, { count: item.count ?? 0, decks: item.decks });
   }
 
   const normalizedEnd = startOfUtcDay(endDate);
-  const range: { date: string; count: number }[] = [];
+  const range: StudyActivityDay[] = [];
 
   for (let offset = days - 1; offset >= 0; offset -= 1) {
     const date = addUtcDays(normalizedEnd, -offset);
     const key = getDateKey(date);
-    range.push({ date: key, count: activityMap.get(key) ?? 0 });
+    const entry = activityMap.get(key);
+    range.push({ date: key, count: entry?.count ?? 0, decks: entry?.decks });
   }
 
   return range;

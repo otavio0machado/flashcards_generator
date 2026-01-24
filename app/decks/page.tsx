@@ -25,7 +25,7 @@ export default function DecksPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const startDate = addUtcDays(startOfUtcDay(new Date()), -30);
+            const startDate = addUtcDays(startOfUtcDay(new Date()), -120);
             const startKey = getDateKey(startDate);
 
             const [decksResult, activityResult] = await Promise.all([
@@ -75,6 +75,8 @@ export default function DecksPage() {
         setDeckToDelete(null);
     };
 
+    const ctaHref = decks.length > 0 ? '#decks-list' : '/app';
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -92,7 +94,7 @@ export default function DecksPage() {
             </div>
 
             <div className="mb-10 bg-white border border-border rounded-sm p-6 shadow-sm">
-                <StudyHeatmap activityData={activityData} />
+                <StudyHeatmap activityData={activityData} ctaHref={ctaHref} />
             </div>
 
             {loading ? (
@@ -113,7 +115,7 @@ export default function DecksPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="decks-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {decks.map((deck) => (
                         <div key={deck.id} className="group bg-white border border-border p-6 rounded-sm shadow-sm hover:border-brand/40 transition-all relative overflow-hidden">
                             <div className="flex items-start justify-between mb-8">

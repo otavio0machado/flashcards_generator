@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { STRIPE_PRICES } from '@/constants/config';
 import CheckoutButton from '@/components/CheckoutButton';
+import Logo from '@/components/Logo';
 import {
     ArrowRight,
     FileText,
@@ -312,6 +312,7 @@ export default function HomeContent() {
                                 <PricingItem text="Escolha quantos cards (Até 30)" dark />
                                 <PricingItem text="Até 100.000 caracteres" dark />
                                 <PricingItem text="Upload de PDF, DOCX e imagens" dark />
+                                <PricingItem text="Geracao de imagens para flashcards" dark />
                                 <PricingItem text="Suporte Prioritário" dark highlight />
                             </ul>
                             <CheckoutButton
@@ -373,12 +374,9 @@ export default function HomeContent() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-8">
                         <div className="flex items-center">
-                            <Image
-                                src="/logo.png"
+                            <Logo
+                                className="h-10 w-[160px]"
                                 alt="Flashcards Generator Logo"
-                                width={150}
-                                height={32}
-                                className="h-8 w-auto object-contain"
                             />
                         </div>
 

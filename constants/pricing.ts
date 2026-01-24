@@ -4,8 +4,10 @@ export interface PlanLimit {
     maxChars: number;
     dailyGens: number;
     maxCardsPerGen: number;
+    maxImageCardsPerGen: number;
     allowFile: boolean;
     allowOCR: boolean;
+    allowImageGeneration: boolean;
     name: string;
     price: string;
     description: string;
@@ -21,8 +23,10 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         maxChars: 2000,
         dailyGens: 3,
         maxCardsPerGen: 5,
+        maxImageCardsPerGen: 0,
         allowFile: false,
         allowOCR: false,
+        allowImageGeneration: false,
         name: 'Básico',
         price: 'Grátis',
         description: 'Para estudantes ocasionais.',
@@ -35,8 +39,10 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         maxChars: 20000,
         dailyGens: 10,
         maxCardsPerGen: 15,
+        maxImageCardsPerGen: 0,
         allowFile: true,
         allowOCR: false,
+        allowImageGeneration: false,
         name: 'Pro',
         price: 'R$ 9,90',
         description: 'Para vestibulandos e concurseiros.',
@@ -50,8 +56,10 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         maxChars: 100000,
         dailyGens: 20,
         maxCardsPerGen: 30,
+        maxImageCardsPerGen: 3,
         allowFile: true,
         allowOCR: true,
+        allowImageGeneration: true,
         name: 'Ultimate',
         price: 'R$ 19,90',
         description: 'Para heavy users e pesquisadores.',

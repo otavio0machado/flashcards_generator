@@ -14,6 +14,9 @@ interface Card {
     front: string;
     back: string;
     next_review?: string;
+    image_url?: string | null;
+    question_image_url?: string | null;
+    answer_image_url?: string | null;
 }
 
 interface Deck {
@@ -106,7 +109,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             const nowIso = new Date().toISOString();
             const { data, error } = await supabase
                 .from('cards')
-                .select('id, front, back, next_review')
+                .select('id, front, back, next_review, image_url')
                 .eq('deck_id', id)
                 .lte('next_review', nowIso)
                 .order('next_review', { ascending: true });
@@ -407,12 +410,30 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                             <div className="grid grid-cols-1 md:grid-cols-2">
                                 <div className="p-8 border-b md:border-b-0 md:border-r border-border relative">
                                     <span className="absolute top-4 left-4 text-[9px] font-black text-brand/20 uppercase tracking-widest">Frente #{index + 1}</span>
+                                    {(card.question_image_url || card.image_url) && (
+                                        <div className="mt-4">
+                                            <img
+                                                src={card.question_image_url || card.image_url || ''}
+                                                alt={`Imagem do card ${index + 1}`}
+                                                className="w-full h-48 object-cover rounded-sm border border-border"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
                                         {card.front}
                                     </div>
                                 </div>
                                 <div className="p-8 bg-gray-50/50 relative">
                                     <span className="absolute top-4 left-4 text-[9px] font-black text-foreground/10 uppercase tracking-widest">Verso / Resposta</span>
+                                    {card.answer_image_url && (
+                                        <div className="mt-4">
+                                            <img
+                                                src={card.answer_image_url}
+                                                alt={`Imagem da resposta ${index + 1}`}
+                                                className="w-full h-48 object-cover rounded-sm border border-border"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="mt-4 text-lg font-medium text-foreground/60 leading-relaxed">
                                         {card.back}
                                     </div>

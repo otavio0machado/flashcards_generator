@@ -9,6 +9,7 @@ interface Card {
     front: string;
     back: string;
     next_review?: string;
+    image_url?: string | null;
 }
 
 interface FlashcardPlayerProps {
@@ -84,7 +85,7 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
             });
 
             if (error) {
-                console.error('Erro ao atualizar card:', error);
+                console.error('Erro ao atualizar card:', JSON.stringify(error, null, 2));
             } else {
                 window.dispatchEvent(new Event('study-activity-updated'));
             }
@@ -111,7 +112,7 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                 </div>
                 <h3 className="text-lg font-bold mb-2">Tudo em dia!</h3>
                 <p className="text-foreground/50 font-medium max-w-xs">
-                    Voc\u00ea n\u00e3o tem revis\u00f5es pendentes hoje.
+                    {'Voc\u00ea n\u00e3o tem revis\u00f5es pendentes hoje.'}
                 </p>
             </div>
         );
@@ -146,11 +147,18 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                         <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-brand/40">
                             Pergunta
                         </span>
+                        {currentCard.image_url && (
+                            <img
+                                src={currentCard.image_url}
+                                alt=""
+                                className="w-full max-h-40 object-contain mb-4 rounded-sm border border-border"
+                            />
+                        )}
                         <p className="text-2xl md:text-3xl font-bold text-foreground leading-relaxed">
                             {currentCard.front}
                         </p>
                         <span className="absolute bottom-6 text-xs text-foreground/20 font-medium">
-                            Clique ou Espa\u00e7o para virar
+                            {'Clique ou Espa\u00e7o para virar'}
                         </span>
                     </div>
 
@@ -159,6 +167,13 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                         <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-white/40">
                             Resposta
                         </span>
+                        {currentCard.image_url && (
+                            <img
+                                src={currentCard.image_url}
+                                alt=""
+                                className="w-full max-h-40 object-contain mb-4 rounded-sm border border-white/10"
+                            />
+                        )}
                         <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">
                             {currentCard.back}
                         </p>

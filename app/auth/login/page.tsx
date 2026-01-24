@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { identifyUser, trackEvent } from '@/lib/analytics';
 import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -44,15 +44,10 @@ export default function LoginPage() {
                 {/* Header */}
                 <div className="text-center mb-10">
                     <Link href="/" className="inline-flex items-center mb-6 group">
-                        <div className="relative h-12 w-48 transform group-hover:scale-105 transition-transform">
-                            <Image
-                                src="/logo.png"
-                                alt="Flashcards Generator"
-                                fill
-                                className="object-contain"
-                                priority
-                            />
-                        </div>
+                        <Logo
+                            className="h-14 w-[200px] transform group-hover:scale-105 transition-transform"
+                            priority
+                        />
                     </Link>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Bem-vindo de volta</h1>
                     <p className="text-foreground/60 font-medium text-sm">Entre com suas credenciais para continuar.</p>

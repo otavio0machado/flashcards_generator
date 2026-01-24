@@ -8,6 +8,8 @@ interface Card {
     back?: string;
     question?: string;
     answer?: string;
+    image_url?: string | null;
+    imageUrl?: string | null;
 }
 
 interface Deck {

@@ -5,6 +5,9 @@ export interface Card {
     front: string;
     back: string;
     order?: number;
+    image_url?: string | null;
+    question_image_url?: string | null;
+    answer_image_url?: string | null;
 }
 
 interface DeckMetadata {
@@ -17,6 +20,9 @@ interface PublicDeckCard {
     front: string;
     back: string;
     order?: number;
+    image_url?: string | null;
+    question_image_url?: string | null;
+    answer_image_url?: string | null;
 }
 
 export const deckService = {
@@ -53,7 +59,10 @@ export const deckService = {
             deck_id: deck.id,
             front: card.front,
             back: card.back,
-            order: card.order ?? index
+            order: card.order ?? index,
+            image_url: card.image_url ?? null,
+            question_image_url: card.question_image_url ?? null,
+            answer_image_url: card.answer_image_url ?? null
         }));
 
         const { error: cardsError } = await supabase
@@ -113,7 +122,7 @@ export const deckService = {
     async clonePublicDeck(userId: string, deckId: string) {
         const { data: sourceDeck, error: sourceError } = await supabase
             .from('decks')
-            .select('title, description, category_id, tags, cards(front, back, "order")')
+            .select('title, description, category_id, tags, cards(front, back, image_url, "order")')
             .eq('id', deckId)
             .eq('is_public', true)
             .single();
@@ -141,7 +150,8 @@ export const deckService = {
             deck_id: newDeck.id,
             front: card.front,
             back: card.back,
-            order: card.order ?? index
+            order: card.order ?? index,
+            image_url: card.image_url ?? null
         }));
 
         if (cardsToInsert.length > 0) {

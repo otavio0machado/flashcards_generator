@@ -43,7 +43,11 @@ RETURNS TABLE (
   "interval" INT,
   ease_factor FLOAT,
   repetitions INT
-) AS $$
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   v_quality INT := LEAST(GREATEST(p_quality, 0), 5);
   v_repetitions INT;
@@ -53,16 +57,24 @@ DECLARE
   v_new_interval INT;
   v_new_ease_factor FLOAT;
   v_next_review TIMESTAMPTZ;
+  v_deck_user_id UUID;
 BEGIN
+  -- Check permission
+  SELECT d.user_id INTO v_deck_user_id
+  FROM cards c
+  JOIN decks d ON c.deck_id = d.id
+  WHERE c.id = p_card_id;
+
+  IF v_deck_user_id IS NULL OR v_deck_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Card not found or permission denied';
+  END IF;
+
   SELECT repetitions, "interval", ease_factor
     INTO v_repetitions, v_interval, v_ease_factor
   FROM cards
   WHERE id = p_card_id;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Card not found';
-  END IF;
-
+  -- Logic SRS (SM-2 simplified)
   IF v_quality < 3 THEN
     v_new_repetitions := 0;
     v_new_interval := 1;
@@ -98,6 +110,7 @@ BEGIN
   RETURNING cards.id, cards.next_review, cards."interval", cards.ease_factor, cards.repetitions
     INTO id, next_review, "interval", ease_factor, repetitions;
 
+  -- Update study activity
   IF auth.uid() IS NOT NULL THEN
     INSERT INTO study_activity (user_id, day, count, updated_at)
     VALUES (auth.uid(), CURRENT_DATE, 1, NOW())
@@ -107,6 +120,6 @@ BEGIN
 
   RETURN NEXT;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 GRANT EXECUTE ON FUNCTION update_card_progress(UUID, INT) TO authenticated;

@@ -4,13 +4,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import Image from 'next/image';
 import { User as UserIcon, LogOut, Menu, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 import StreakBadge from '@/components/StreakBadge';
 import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/study-activity';
 import ThemeToggle from '@/components/ThemeToggle';
+import Logo from '@/components/Logo';
 
 export default function Navbar() {
   const router = useRouter();
@@ -126,14 +126,10 @@ export default function Navbar() {
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative h-9 w-auto transition-transform"
+                className="transition-transform"
               >
-                <Image
-                  src="/logo.png"
-                  alt="Flashcards Generator"
-                  width={150}
-                  height={36}
-                  className="h-full w-auto object-contain"
+                <Logo
+                  className="h-12 w-[170px] sm:h-14 sm:w-[200px]"
                   priority
                 />
               </motion.div>
@@ -151,6 +147,9 @@ export default function Navbar() {
             </Link>
             <Link href="/guia" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Tutorial
+            </Link>
+            <Link href="/documentacao" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
+              Documentacao
             </Link>
             <Link href="/app" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Gerador (App)
@@ -241,6 +240,9 @@ export default function Navbar() {
             </Link>
             <Link href="/guia" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Tutorial
+            </Link>
+            <Link href="/documentacao" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Documentacao
             </Link>
             <Link href="/marketplace" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Marketplace

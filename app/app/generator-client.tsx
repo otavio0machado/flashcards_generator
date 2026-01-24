@@ -13,7 +13,9 @@ import {
     FileUp,
     AlertCircle,
     Check,
-    Library
+    Library,
+    GripVertical,
+    X
 } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
@@ -27,7 +29,14 @@ interface Flashcard {
     id: string;
     question: string;
     answer: string;
+    question_image_url?: string | null;
+    answer_image_url?: string | null;
 }
+
+type ImageDropTarget = {
+    cardId: string;
+    section: 'question' | 'answer';
+};
 
 const IMAGE_MIME_TYPES = new Set([
     'image/jpeg',
@@ -45,7 +54,7 @@ const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 export default function GeneratorClient() {
     const router = useRouter();
     const [inputText, setInputText] = useState('');
-    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [deckTitle, setDeckTitle] = useState('');
     const [deckDescription, setDeckDescription] = useState('');
     const [deckTagsInput, setDeckTagsInput] = useState('');
@@ -62,6 +71,11 @@ export default function GeneratorClient() {
     const [language, setLanguage] = useState('Português');
     const [difficulty, setDifficulty] = useState('Intermediário');
     const [isExportingApkg, setIsExportingApkg] = useState(false);
+    const [generateImages, setGenerateImages] = useState(false);
+    const [imageCount, setImageCount] = useState(1);
+    const [showImageWarningModal, setShowImageWarningModal] = useState(false);
+    const [draggedImage, setDraggedImage] = useState<{ cardId: string; section: 'question' | 'answer'; imageUrl: string } | null>(null);
+    const [dropTarget, setDropTarget] = useState<ImageDropTarget | null>(null);
 
     const limits = PLAN_LIMITS[currentPlan];
     const fileAccept = limits.allowOCR
@@ -94,11 +108,39 @@ export default function GeneratorClient() {
         }
     }, [inputText, limits]);
 
+    useEffect(() => {
+        if (!limits.allowImageGeneration && generateImages) {
+            setGenerateImages(false);
+        }
+    }, [limits.allowImageGeneration, generateImages]);
+
+    const handleToggleImageGeneration = () => {
+        if (!limits.allowImageGeneration) {
+            setShowUpgradeModal(true);
+            setToast({ message: 'Geracao de imagens disponivel apenas no plano Ultimate.', type: 'info' });
+            return;
+        }
+        setGenerateImages((prev) => !prev);
+    };
+
+    const handleGenerateClick = () => {
+        if (generateImages) {
+            setShowImageWarningModal(true);
+        } else {
+            handleGenerate();
+        }
+    };
+
+    const handleConfirmGenerate = () => {
+        setShowImageWarningModal(false);
+        handleGenerate();
+    };
+
     const handleGenerate = async () => {
         const hasInput = inputText.trim().length > 0;
-        const fileInfo = uploadedFile;
+        const hasFiles = uploadedFiles.length > 0;
 
-        if ((!hasInput && !fileInfo) || error || !user) return;
+        if ((!hasInput && !hasFiles) || error || !user) return;
 
         setIsGenerating(true);
         const inputLength = inputText.length;
@@ -109,9 +151,12 @@ export default function GeneratorClient() {
             formData.append('language', language);
             formData.append('difficulty', difficulty);
             formData.append('cardCount', cardCount.toString());
-            if (fileInfo) {
-                formData.append('files', fileInfo);
-            }
+            formData.append('generateImages', generateImages ? 'true' : 'false');
+            formData.append('imageCount', imageCount.toString());
+            
+            uploadedFiles.forEach(file => {
+                formData.append('files', file);
+            });
 
             const response = await fetch('/api/generate', {
                 method: 'POST',
@@ -122,31 +167,69 @@ export default function GeneratorClient() {
 
             if (data.error) throw new Error(data.error);
 
-            const newCardsFormatted = data.cards.map((c: { question: string, answer: string }) => ({
-                id: Math.random().toString(36).substr(2, 9),
-                question: c.question,
-                answer: c.answer
-            }));
+            const newCardsFormatted = data.cards.map((c: {
+                question: string;
+                answer: string;
+                image_url?: string | null;
+                question_image_url?: string | null;
+                answer_image_url?: string | null;
+                user_image_index?: number;
+                user_image_section?: 'question' | 'answer';
+            }) => {
+                let qImg = c.question_image_url ?? c.image_url ?? null;
+                let aImg = c.answer_image_url ?? null;
+
+                // Handle user uploaded image assignment
+                if (c.user_image_index !== undefined && c.user_image_index >= 0 && c.user_image_index < uploadedFiles.length) {
+                    const file = uploadedFiles[c.user_image_index];
+
+                    if (IMAGE_MIME_TYPES.has(file.type)) {
+                        const objectUrl = URL.createObjectURL(file);
+
+                        if (c.user_image_section === 'question') {
+                            qImg = objectUrl;
+                        } else {
+                            aImg = objectUrl;
+                        }
+                        if (!c.user_image_section) {
+                            if (!aImg) aImg = objectUrl;
+                        }
+                    }
+                }
+                
+                return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    question: c.question,
+                    answer: c.answer,
+                    question_image_url: qImg,
+                    answer_image_url: aImg
+                };
+            });
 
             setCards([...newCardsFormatted, ...cards]);
-
-            // Uso já incrementado no servidor (API route)
 
             if (!deckTitle) {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
             }
             setInputText('');
-            setUploadedFile(null);
+            setUploadedFiles([]);
+            if (data.imageGeneration?.failed) {
+                setToast({
+                    message: `Algumas imagens nao puderam ser geradas (${data.imageGeneration.failed}).`,
+                    type: 'info'
+                });
+            }
             trackEvent('generate_cards_success', {
                 plan: currentPlan,
                 card_count: data.cards?.length,
                 card_count_requested: cardCount,
+                image_cards_requested: generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
+                image_cards_generated: data.imageGeneration?.generated ?? 0,
                 input_chars: inputLength,
                 language,
                 difficulty,
-                has_file: !!fileInfo,
-                file_type: fileInfo?.type,
-                file_size: fileInfo?.size,
+                has_files: hasFiles,
+                file_count: uploadedFiles.length,
             });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
@@ -154,11 +237,11 @@ export default function GeneratorClient() {
                 plan: currentPlan,
                 input_chars: inputLength,
                 error: err instanceof Error ? err.message : 'unknown',
+                image_cards_requested: generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
                 language,
                 difficulty,
-                has_file: !!fileInfo,
-                file_type: fileInfo?.type,
-                file_size: fileInfo?.size,
+                has_files: hasFiles,
+                file_count: uploadedFiles.length,
             });
         } finally {
             setIsGenerating(false);
@@ -176,7 +259,12 @@ export default function GeneratorClient() {
         setIsSaving(true);
         try {
             const title = deckTitle || `Deck ${new Date().toLocaleDateString()}`;
-            const formattedCards = cards.map(c => ({ front: c.question, back: c.answer }));
+            const formattedCards = cards.map(c => ({
+                front: c.question,
+                back: c.answer,
+                question_image_url: c.question_image_url,
+                answer_image_url: c.answer_image_url
+            }));
             const tags = parseTags(deckTagsInput);
             const description = deckDescription.trim();
             await deckService.saveDeck(user.id, title, formattedCards, {
@@ -205,61 +293,71 @@ export default function GeneratorClient() {
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
-        const isPdf = file.type === PDF_MIME_TYPE;
-        const isDocx = file.type === DOCX_MIME_TYPE;
-        const isImage = IMAGE_MIME_TYPES.has(file.type);
+        const newFiles = [...uploadedFiles];
+        let docxCount = 0;
 
-        if (!isPdf && !isDocx && !isImage) {
-            setToast({ message: 'Por favor, envie arquivos PDF, DOCX ou imagens (JPG/PNG/WEBP/HEIC).', type: 'error' });
-            return;
-        }
+        for (const file of files) {
+            const isPdf = file.type === PDF_MIME_TYPE;
+            const isDocx = file.type === DOCX_MIME_TYPE;
+            const isImage = IMAGE_MIME_TYPES.has(file.type);
 
-        if (file.size > MAX_UPLOAD_BYTES) {
-            setToast({ message: `Arquivo muito grande. Limite de ${MAX_UPLOAD_MB}MB.`, type: 'error' });
-            return;
-        }
-
-        if (isImage && !limits.allowOCR) {
-            setShowUpgradeModal(true);
-            setToast({ message: 'Imagens estão disponíveis apenas no plano Ultimate.', type: 'error' });
-            return;
-        }
-
-        if ((isPdf || isDocx) && !limits.allowFile) {
-            setShowUpgradeModal(true);
-            setToast({ message: 'Upload de arquivos disponível apenas nos planos Pro e Ultimate.', type: 'error' });
-            return;
-        }
-
-        if (isDocx) {
-            setIsGenerating(true);
-            try {
-                const mammoth = await import('mammoth');
-                const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer });
-
-                if (result.value.trim()) {
-                    setInputText(result.value);
-                    setToast({ message: 'Conteúdo extraído com sucesso!', type: 'success' });
-                } else {
-                    setToast({ message: 'Não foi possível extrair texto do arquivo.', type: 'error' });
-                }
-            } catch (err) {
-                console.error('Erro ao ler arquivo:', err);
-                setToast({ message: 'Erro ao processar o arquivo.', type: 'error' });
-            } finally {
-                setIsGenerating(false);
+            if (!isPdf && !isDocx && !isImage) {
+                setToast({ message: `Arquivo ${file.name} ignorado. Formato inválido.`, type: 'error' });
+                continue;
             }
-            setUploadedFile(null);
-        } else {
-            setUploadedFile(file);
-            setToast({
-                message: isImage
-                    ? 'Imagem anexada. Clique em "Gerar Flashcards" para processar.'
-                    : 'PDF anexado. Clique em "Gerar Flashcards" para processar.',
+
+            if (file.size > MAX_UPLOAD_BYTES) {
+                setToast({ message: `Arquivo ${file.name} muito grande.`, type: 'error' });
+                continue;
+            }
+
+            if (isImage && !limits.allowOCR) {
+                setShowUpgradeModal(true);
+                return;
+            }
+
+            if ((isPdf || isDocx) && !limits.allowFile) {
+                setShowUpgradeModal(true);
+                return;
+            }
+
+            if (isDocx) {
+                docxCount++;
+                setIsGenerating(true);
+                try {
+                    const mammoth = await import('mammoth');
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+
+                    if (result.value.trim()) {
+                        setInputText(prev => prev + '\n\n' + result.value);
+                    }
+                } catch (err) {
+                    console.error('Erro ao ler arquivo:', err);
+                    setToast({ message: `Erro ao processar ${file.name}.`, type: 'error' });
+                } finally {
+                    setIsGenerating(false);
+                }
+            } else {
+                newFiles.push(file);
+            }
+        }
+
+        if (docxCount > 0) {
+            setToast({ message: 'Conteúdo dos arquivos DOCX extraído!', type: 'success' });
+        }
+        
+        setUploadedFiles(newFiles);
+        
+        const imageCount = newFiles.filter(f => IMAGE_MIME_TYPES.has(f.type)).length;
+        const pdfCount = newFiles.filter(f => f.type === PDF_MIME_TYPE).length;
+
+        if (imageCount > 0 || pdfCount > 0) {
+             setToast({
+                message: `${newFiles.length} arquivo(s) anexado(s).`,
                 type: 'success'
             });
         }
@@ -299,6 +397,87 @@ export default function GeneratorClient() {
         ));
     };
 
+    // Drag and drop handlers for images
+    const handleImageDragStart = (e: React.DragEvent, cardId: string, section: 'question' | 'answer', imageUrl: string) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({ cardId, section, imageUrl }));
+        e.dataTransfer.effectAllowed = 'move';
+        setDraggedImage({ cardId, section, imageUrl });
+    };
+
+    const handleImageDragEnd = () => {
+        setDraggedImage(null);
+        setDropTarget(null);
+    };
+
+    const handleImageDragOver = (e: React.DragEvent, cardId: string, section: 'question' | 'answer') => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDropTarget({ cardId, section });
+    };
+
+    const handleImageDragLeave = () => {
+        setDropTarget(null);
+    };
+
+    const handleImageDrop = (e: React.DragEvent, targetCardId: string, targetSection: 'question' | 'answer') => {
+        e.preventDefault();
+        const data = e.dataTransfer.getData('application/json');
+        if (!data) return;
+
+        try {
+            const { cardId: sourceCardId, section: sourceSection, imageUrl } = JSON.parse(data);
+
+            // If dropping on the same position, do nothing
+            if (sourceCardId === targetCardId && sourceSection === targetSection) {
+                setDropTarget(null);
+                setDraggedImage(null);
+                return;
+            }
+
+            setCards(prevCards => {
+                return prevCards.map(card => {
+                    // Remove image from source
+                    if (card.id === sourceCardId) {
+                        if (sourceSection === 'question') {
+                            card = { ...card, question_image_url: null };
+                        } else {
+                            card = { ...card, answer_image_url: null };
+                        }
+                    }
+                    // Add image to target
+                    if (card.id === targetCardId) {
+                        if (targetSection === 'question') {
+                            card = { ...card, question_image_url: imageUrl };
+                        } else {
+                            card = { ...card, answer_image_url: imageUrl };
+                        }
+                    }
+                    return card;
+                });
+            });
+
+            setToast({ message: 'Imagem movida com sucesso!', type: 'success' });
+        } catch (err) {
+            console.error('Error parsing drag data:', err);
+        }
+
+        setDropTarget(null);
+        setDraggedImage(null);
+    };
+
+    const removeImage = (cardId: string, section: 'question' | 'answer') => {
+        setCards(prevCards => prevCards.map(card => {
+            if (card.id === cardId) {
+                if (section === 'question') {
+                    return { ...card, question_image_url: null };
+                } else {
+                    return { ...card, answer_image_url: null };
+                }
+            }
+            return card;
+        }));
+    };
+
     const getSafeFileName = (title: string) => {
         return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'deck';
     };
@@ -312,7 +491,12 @@ export default function GeneratorClient() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: deckTitle || `Deck ${new Date().toLocaleDateString()}`,
-                    cards: cards.map((card) => ({ question: card.question, answer: card.answer }))
+                    cards: cards.map((card) => ({
+                        question: card.question,
+                        answer: card.answer,
+                        question_image_url: card.question_image_url,
+                        answer_image_url: card.answer_image_url
+                    }))
                 })
             });
 
@@ -382,7 +566,8 @@ export default function GeneratorClient() {
                         <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm ${currentPlan === 'free' ? 'bg-gray-100 text-foreground/40' : 'bg-brand text-white'}`}>
                             Plano {limits.name}
                         </div>
-                    </div>
+                    </div>multiple
+                            
 
                     <div className="relative">
                         <input
@@ -417,19 +602,23 @@ export default function GeneratorClient() {
                         </div>
                     </div>
 
-                    {uploadedFile && (
-                        <div className="mt-3 flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-brand">Arquivo anexado:</span>
-                                <span className="truncate text-foreground/70">{uploadedFile.name}</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setUploadedFile(null)}
-                                className="text-[10px] uppercase tracking-wider text-foreground/40 hover:text-brand transition-colors"
-                            >
-                                Remover
-                            </button>
+                    {uploadedFiles.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                             {uploadedFiles.map((file, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-brand">Anexo {idx + 1}:</span>
+                                        <span className="truncate text-foreground/70">{file.name}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                                        className="text-[10px] uppercase tracking-wider text-foreground/40 hover:text-brand transition-colors"
+                                    >
+                                        Remover
+                                    </button>
+                                </div>
+                             ))}
                         </div>
                     )}
 
@@ -496,11 +685,57 @@ export default function GeneratorClient() {
                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                         </div>
                     </div>
+                    <div className="mt-4">
+                        <div className={`flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowImageGeneration ? 'bg-gray-50 border-border' : 'bg-gray-100 border-border/60'}`}>
+                            <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowImageGeneration ? 'text-foreground' : 'text-foreground/40'}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={generateImages}
+                                    onChange={handleToggleImageGeneration}
+                                    className="h-4 w-4 accent-brand"
+                                    aria-disabled={!limits.allowImageGeneration}
+                                />
+                                Gerar imagens para os cards
+                            </label>
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowImageGeneration ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
+                                Ultimate
+                            </span>
+                        </div>
+                        {generateImages && limits.allowImageGeneration && (
+                            <div className="mt-3 flex items-center gap-3">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                    Quantidade de imagens:
+                                </label>
+                                <select
+                                    value={imageCount}
+                                    onChange={(e) => setImageCount(Number(e.target.value))}
+                                    className="appearance-none bg-gray-50 border border-border px-3 py-1.5 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
+                                >
+                                    {Array.from({ length: limits.maxImageCardsPerGen }, (_, i) => i + 1).map((num) => (
+                                        <option key={num} value={num}>{num}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <p className="text-[10px] text-foreground/40 mt-2">
+                            {limits.allowImageGeneration
+                                ? `Ate ${limits.maxImageCardsPerGen} imagens por geracao.`
+                                : 'Disponivel no Ultimate.'}
+                        </p>
+                        {generateImages && limits.allowImageGeneration && (
+                            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                                <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                                    <span className="font-bold">⚡ Recurso Premium:</span> A geração de imagens por IA utiliza tecnologia avançada (DALL-E 3) com custo elevado por imagem. 
+                                    Use de forma consciente, priorizando cards que realmente se beneficiam de recursos visuais, como diagramas, anatomia, mapas e conceitos abstratos.
+                                </p>
+                            </div>
+                        )}
+                    </div>
 
                     <button
-                        onClick={handleGenerate}
-                        disabled={isGenerating || !!error || (!inputText.trim() && !uploadedFile)}
-                        className={`w-full mt-8 py-4 rounded-sm font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${isGenerating || !!error || (!inputText.trim() && !uploadedFile)
+                        onClick={handleGenerateClick}
+                        disabled={isGenerating || !!error || (!inputText.trim() && uploadedFiles.length === 0)}
+                        className={`w-full mt-8 py-4 rounded-sm font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${isGenerating || !!error || (!inputText.trim() && uploadedFiles.length === 0)
                             ? 'bg-gray-200 cursor-not-allowed text-gray-400 shadow-none'
                             : 'bg-brand hover:bg-brand/90'
                             }`}
@@ -635,8 +870,46 @@ export default function GeneratorClient() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
+                                    {/* Seção Pergunta */}
+                                    <div
+                                        className={`space-y-2 rounded-sm transition-all ${dropTarget?.cardId === card.id && dropTarget?.section === 'question' ? 'bg-brand/5 ring-2 ring-brand/30 ring-dashed p-2 -m-2' : ''}`}
+                                        onDragOver={(e) => handleImageDragOver(e, card.id, 'question')}
+                                        onDragLeave={handleImageDragLeave}
+                                        onDrop={(e) => handleImageDrop(e, card.id, 'question')}
+                                    >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-brand">Pergunta #{index + 1}</label>
+                                        {card.question_image_url ? (
+                                            <div className="relative group/img w-full">
+                                                <img
+                                                    src={card.question_image_url}
+                                                    alt={`Imagem da pergunta ${index + 1}`}
+                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    draggable
+                                                    onDragStart={(e) => handleImageDragStart(e, card.id, 'question', card.question_image_url!)}
+                                                    onDragEnd={handleImageDragEnd}
+                                                    onError={() => removeImage(card.id, 'question')}
+                                                />
+                                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                                                    <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">
+                                                        <GripVertical className="h-3.5 w-3.5" />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeImage(card.id, 'question')}
+                                                        className="bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-sm transition-colors"
+                                                        title="Remover imagem"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-[9px] text-foreground/40 mt-1 text-center">Arraste para mover</p>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className={`w-full h-20 border-2 border-dashed rounded-sm flex items-center justify-center text-xs text-foreground/30 transition-all ${draggedImage ? 'border-brand/40 bg-brand/5' : 'border-border'}`}
+                                            >
+                                                {draggedImage ? 'Solte aqui' : 'Arraste uma imagem aqui'}
+                                            </div>
+                                        )}
                                         <textarea
                                             value={card.question}
                                             onChange={(e) => updateCard(card.id, 'question', e.target.value)}
@@ -644,8 +917,47 @@ export default function GeneratorClient() {
                                             rows={3}
                                         />
                                     </div>
-                                    <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6 text-foreground">
+
+                                    {/* Seção Resposta */}
+                                    <div
+                                        className={`space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6 text-foreground rounded-sm transition-all ${dropTarget?.cardId === card.id && dropTarget?.section === 'answer' ? 'bg-brand/5 ring-2 ring-brand/30 ring-dashed p-2 -m-2' : ''}`}
+                                        onDragOver={(e) => handleImageDragOver(e, card.id, 'answer')}
+                                        onDragLeave={handleImageDragLeave}
+                                        onDrop={(e) => handleImageDrop(e, card.id, 'answer')}
+                                    >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Resposta</label>
+                                        {card.answer_image_url ? (
+                                            <div className="relative group/img w-full">
+                                                <img
+                                                    src={card.answer_image_url}
+                                                    alt={`Imagem da resposta ${index + 1}`}
+                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    draggable
+                                                    onDragStart={(e) => handleImageDragStart(e, card.id, 'answer', card.answer_image_url!)}
+                                                    onDragEnd={handleImageDragEnd}
+                                                    onError={() => removeImage(card.id, 'answer')}
+                                                />
+                                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                                                    <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">
+                                                        <GripVertical className="h-3.5 w-3.5" />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeImage(card.id, 'answer')}
+                                                        className="bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-sm transition-colors"
+                                                        title="Remover imagem"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-[9px] text-foreground/40 mt-1 text-center">Arraste para mover</p>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className={`w-full h-20 border-2 border-dashed rounded-sm flex items-center justify-center text-xs text-foreground/30 transition-all ${draggedImage ? 'border-brand/40 bg-brand/5' : 'border-border'}`}
+                                            >
+                                                {draggedImage ? 'Solte aqui' : 'Arraste uma imagem aqui'}
+                                            </div>
+                                        )}
                                         <textarea
                                             value={card.answer}
                                             onChange={(e) => updateCard(card.id, 'answer', e.target.value)}
@@ -658,7 +970,7 @@ export default function GeneratorClient() {
                         ))}
 
                         <button
-                            onClick={() => setCards([...cards, { id: Math.random().toString(), question: 'Nova pergunta...', answer: 'Nova resposta...' }])}
+                            onClick={() => setCards([...cards, { id: Math.random().toString(), question: 'Nova pergunta...', answer: 'Nova resposta...', question_image_url: null, answer_image_url: null }])}
                             className="w-full py-4 border-2 border-dashed border-border rounded-sm text-foreground/40 font-bold hover:border-brand/40 hover:text-brand transition-all flex items-center justify-center gap-2 mt-4"
                         >
                             <Plus className="h-5 w-5" />
@@ -674,6 +986,40 @@ export default function GeneratorClient() {
                     type={toast.type}
                     onClose={() => setToast(null)}
                 />
+            )}
+
+            {/* Modal de aviso sobre geração de imagens */}
+            {showImageWarningModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-sm shadow-xl max-w-md w-full p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-amber-100 p-2 rounded-full">
+                                <AlertCircle className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-foreground">Funcionalidade em Desenvolvimento</h3>
+                        </div>
+                        <p className="text-foreground/70 mb-6">
+                            A geração de imagens ainda está em desenvolvimento e pode apresentar <strong>lentidão</strong> durante o processo.
+                        </p>
+                        <p className="text-foreground font-medium mb-6">
+                            Você deseja continuar mesmo assim?
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                                onClick={() => setShowImageWarningModal(false)}
+                                className="flex-1 px-4 py-3 border border-border rounded-sm font-bold text-foreground/70 hover:bg-gray-50 transition-colors"
+                            >
+                                Não, vou testar depois
+                            </button>
+                            <button
+                                onClick={handleConfirmGenerate}
+                                className="flex-1 px-4 py-3 bg-brand text-white rounded-sm font-bold hover:bg-brand/90 transition-colors"
+                            >
+                                Sim, desejo prosseguir
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

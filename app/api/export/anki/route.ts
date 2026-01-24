@@ -107,7 +107,8 @@ export async function POST(req: Request) {
             if (imageUrl) {
                 const imageData = await resolveImageData(imageUrl, index);
                 if (imageData) {
-                    apkg.addMedia(imageData.filename, imageData.data);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (apkg as any).addMedia(imageData.filename, imageData.data);
                     frontWithImage = front
                         ? `${front}<br/><img src="${imageData.filename}" />`
                         : `<img src="${imageData.filename}" />`;

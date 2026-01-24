@@ -14,6 +14,7 @@ interface Card {
     id: string;
     front: string;
     back: string;
+    image_url?: string | null;
 }
 
 interface Deck {
@@ -244,6 +245,15 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                                 <div className="grid grid-cols-1 md:grid-cols-2">
                                     <div className="p-8 border-b md:border-b-0 md:border-r border-border/60 relative">
                                         <span className="absolute top-4 left-4 text-[9px] font-black text-brand/30 uppercase tracking-widest">Frente #{index + 1}</span>
+                                        {card.image_url && (
+                                            <div className="mt-4">
+                                                <img
+                                                    src={card.image_url}
+                                                    alt={`Imagem do card ${index + 1}`}
+                                                    className="w-full h-48 object-cover rounded-sm border border-border"
+                                                />
+                                            </div>
+                                        )}
                                         <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
                                             {card.front}
                                         </div>
