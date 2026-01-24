@@ -263,7 +263,7 @@ export default function HomeContent() {
                                 <h3 className="text-xl font-bold text-brand mb-2">Pro</h3>
                                 <div className="flex items-baseline gap-1 mb-4">
                                     <span className="text-sm font-bold text-foreground/40">R$</span>
-                                    <span className="text-5xl font-bold tracking-tighter">29</span>
+                                    <span className="text-5xl font-bold tracking-tighter">9,90</span>
                                     <span className="text-sm font-bold text-foreground/40">/mês</span>
                                 </div>
                                 <p className="text-sm font-medium text-foreground/50">Para vestibulandos e concurseiros.</p>
@@ -302,7 +302,7 @@ export default function HomeContent() {
                                 <h3 className="text-xl font-bold mb-2">Ultimate</h3>
                                 <div className="flex items-baseline gap-1 mb-4">
                                     <span className="text-sm font-bold text-white/40">R$</span>
-                                    <span className="text-4xl font-bold tracking-tighter italic">59</span>
+                                    <span className="text-4xl font-bold tracking-tighter italic">19,90</span>
                                     <span className="text-sm font-bold text-white/40">/mês</span>
                                 </div>
                                 <p className="text-sm font-medium text-white/50">Para heavy users e pesquisadores.</p>
