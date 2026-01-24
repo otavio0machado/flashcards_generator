@@ -11,6 +11,7 @@ interface Card {
     id: string;
     front: string;
     back: string;
+    next_review?: string;
 }
 
 interface Deck {
@@ -26,6 +27,8 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'overview' | 'study'>('overview');
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [studyCards, setStudyCards] = useState<Card[]>([]);
+    const [studyLoading, setStudyLoading] = useState(false);
 
     useEffect(() => {
         const fetchDeck = async (id: string) => {
@@ -47,6 +50,31 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             fetchDeck(resolvedParams.id);
         }
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchDueCards = async (id: string) => {
+            setStudyLoading(true);
+            const nowIso = new Date().toISOString();
+            const { data, error } = await supabase
+                .from('cards')
+                .select('id, front, back, next_review')
+                .eq('deck_id', id)
+                .lte('next_review', nowIso)
+                .order('next_review', { ascending: true });
+
+            if (error) {
+                console.error(error);
+                setStudyCards([]);
+            } else {
+                setStudyCards(data || []);
+            }
+            setStudyLoading(false);
+        };
+
+        if (mode === 'study' && resolvedParams.id) {
+            fetchDueCards(resolvedParams.id);
+        }
+    }, [mode, resolvedParams.id]);
 
 
 
@@ -151,7 +179,13 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                     ))}
                 </div>
             ) : (
-                <FlashcardPlayer cards={deck.cards} />
+                studyLoading ? (
+                    <div className="h-64 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    </div>
+                ) : (
+                    <FlashcardPlayer cards={studyCards} />
+                )
             )}
 
             <ExportModal
