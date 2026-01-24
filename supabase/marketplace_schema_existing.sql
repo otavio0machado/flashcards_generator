@@ -90,3 +90,43 @@ BEGIN
       CHECK (char_length(trim(source_citation)) > 0);
   END IF;
 END $$;
+
+-- Keep legacy (front/back) and new content fields (front_content/back_content/source_citation) in sync.
+-- This makes the migration backward-compatible with the existing app code that only writes front/back.
+CREATE OR REPLACE FUNCTION public.sync_cards_content()
+RETURNS trigger AS $$
+BEGIN
+  -- Prefer explicit content fields; fallback to legacy fields.
+  IF NEW.front IS NULL OR char_length(trim(NEW.front)) = 0 THEN
+    NEW.front := COALESCE(NEW.front_content, NEW.front);
+  END IF;
+
+  IF NEW.back IS NULL OR char_length(trim(NEW.back)) = 0 THEN
+    NEW.back := COALESCE(NEW.back_content, NEW.back);
+  END IF;
+
+  IF NEW.front_content IS NULL OR char_length(trim(NEW.front_content)) = 0 THEN
+    NEW.front_content := NEW.front;
+  END IF;
+
+  IF NEW.back_content IS NULL OR char_length(trim(NEW.back_content)) = 0 THEN
+    NEW.back_content := NEW.back;
+  END IF;
+
+  IF NEW.source_citation IS NULL OR char_length(trim(NEW.source_citation)) = 0 THEN
+    NEW.source_citation := 'fonte_nao_informada';
+  END IF;
+
+  IF NEW.type IS NULL OR char_length(trim(NEW.type)) = 0 THEN
+    NEW.type := 'basic';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_cards_content ON cards;
+CREATE TRIGGER trg_sync_cards_content
+BEFORE INSERT OR UPDATE ON cards
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_cards_content();

@@ -3,23 +3,23 @@
 
 DO $$
 DECLARE
-  v_author_id UUID;
+  v_user_id UUID;
   v_deck_id UUID;
   v_cat_id UUID;
 BEGIN
-  SELECT id INTO v_author_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
-  IF v_author_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
 
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/geometria';
 
   -- ============================================================================
   -- MATEMÁTICA - GEOMETRIA ESPACIAL
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Geometria Espacial: Prismas, Pirâmides, Cilindros, Cones e Esferas',
     'Estudo dos sólidos geométricos: poliedros, corpos redondos, áreas e volumes.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'geometria espacial', 'volume', 'enem', 'vestibular'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -59,11 +59,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - GEOMETRIA ANALÍTICA
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Geometria Analítica: Ponto, Reta, Circunferência e Cônicas',
     'Estudo da geometria no plano cartesiano: distâncias, equações de retas, circunferências e cônicas.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'geometria analítica', 'reta', 'circunferência', 'enem'],
     true, true, 4.7
   ) RETURNING id INTO v_deck_id;
@@ -103,11 +103,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - TRIGONOMETRIA
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Trigonometria: Razões, Ciclo e Funções',
     'Trigonometria no triângulo retângulo, ciclo trigonométrico, funções seno/cosseno/tangente e identidades.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'trigonometria', 'seno', 'cosseno', 'enem'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -149,11 +149,11 @@ BEGIN
   -- ============================================================================
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/estatistica';
 
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Estatística: Média, Moda, Mediana e Desvio Padrão',
     'Medidas de tendência central e dispersão: média, moda, mediana, variância e desvio padrão.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'estatística', 'média', 'desvio padrão', 'enem'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -195,11 +195,11 @@ BEGIN
   -- ============================================================================
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/algebra';
 
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Matrizes e Sistemas Lineares: Operações e Determinantes',
     'Matrizes, operações, determinantes e resolução de sistemas lineares.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'matrizes', 'sistemas', 'determinante', 'enem'],
     true, true, 4.7
   ) RETURNING id INTO v_deck_id;

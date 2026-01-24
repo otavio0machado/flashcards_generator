@@ -3,23 +3,23 @@
 
 DO $$
 DECLARE
-  v_author_id UUID;
+  v_user_id UUID;
   v_deck_id UUID;
   v_cat_id UUID;
 BEGIN
-  SELECT id INTO v_author_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
-  IF v_author_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'otavio100206@gmail.com';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Usuário não encontrado'; END IF;
 
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/estatistica';
 
   -- ============================================================================
   -- MATEMÁTICA - ANÁLISE COMBINATÓRIA
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Análise Combinatória: Arranjos, Combinações e Permutações',
     'Fatorial, princípios de contagem, arranjos, combinações e permutações. Essencial para probabilidade e ENEM.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'combinatória', 'enem', 'vestibular', 'contagem'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -59,11 +59,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - PROBABILIDADE
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Probabilidade: Eventos, Espaço Amostral e Probabilidade Condicional',
     'Conceitos fundamentais de probabilidade: experimentos, eventos, cálculos básicos e probabilidade condicional.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'probabilidade', 'enem', 'vestibular', 'estatística'],
     true, true, 4.9
   ) RETURNING id INTO v_deck_id;
@@ -105,11 +105,11 @@ BEGIN
   -- ============================================================================
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/geometria';
 
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Geometria Plana: Ângulos, Triângulos, Polígonos e Círculos',
     'Estudo completo da geometria plana: ângulos, triângulos, semelhança, Pitágoras, polígonos, áreas e circunferência.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'geometria', 'enem', 'vestibular', 'triângulos'],
     true, true, 4.9
   ) RETURNING id INTO v_deck_id;

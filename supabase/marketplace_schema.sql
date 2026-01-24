@@ -1,4 +1,7 @@
 -- Marketplace schema for categories, decks, and cards.
+-- NOTE: This file is for a FRESH database (it creates new tables named `decks`/`cards`).
+-- If your project already has `decks`/`cards` (like this repo), use:
+--   `supabase/marketplace_schema_existing.sql`
 
 CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -2,19 +2,19 @@
 -- Autor: otavio100206@gmail.com
 -- Total: ~50 decks com 30 cards cada
 
--- Buscar o author_id do usuário
+-- Buscar o user_id do usuário
 DO $$
 DECLARE
-  v_author_id UUID;
+  v_user_id UUID;
   v_deck_id UUID;
   v_cat_id UUID;
 BEGIN
   -- Buscar o ID do autor pelo email
-  SELECT id INTO v_author_id
+  SELECT id INTO v_user_id
   FROM auth.users
   WHERE email = 'otavio100206@gmail.com';
 
-  IF v_author_id IS NULL THEN
+  IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Usuário não encontrado: otavio100206@gmail.com';
   END IF;
 
@@ -23,11 +23,11 @@ BEGIN
   -- ============================================================================
   SELECT id INTO v_cat_id FROM categories WHERE slug = 'ensino-medio/matematica/algebra';
 
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Conjuntos Numéricos (N, Z, Q, I, R)',
     'Domínio completo dos conjuntos numéricos: naturais, inteiros, racionais, irracionais e reais. Inclui intervalos e operações.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'conjuntos', 'enem', 'vestibular', 'ensino médio'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -67,11 +67,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - FUNÇÕES DO 1º E 2º GRAU
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Funções: 1º Grau (Afim) e 2º Grau (Quadrática)',
     'Estudo completo das funções afim e quadrática: gráficos, raízes, vértice, concavidade e aplicações.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'funções', 'enem', 'vestibular', 'parábola'],
     true, true, 4.9
   ) RETURNING id INTO v_deck_id;
@@ -111,11 +111,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - FUNÇÃO EXPONENCIAL E LOGARÍTMICA
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Funções Exponencial e Logarítmica',
     'Domínio das funções exponenciais e logarítmicas: propriedades, gráficos, equações e inequações.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'exponencial', 'logaritmo', 'enem', 'vestibular'],
     true, true, 4.8
   ) RETURNING id INTO v_deck_id;
@@ -155,11 +155,11 @@ BEGIN
   -- ============================================================================
   -- MATEMÁTICA - MATEMÁTICA FINANCEIRA
   -- ============================================================================
-  INSERT INTO decks (title, description, price, author_id, category_id, tags, is_public, is_verified, rating)
+  INSERT INTO decks (title, description, price, user_id, category_id, tags, is_public, is_verified, rating)
   VALUES (
     'Matemática Financeira: Porcentagem e Juros',
     'Porcentagem, juros simples e compostos, descontos e aplicações práticas do dia a dia.',
-    0, v_author_id, v_cat_id,
+    0, v_user_id, v_cat_id,
     ARRAY['matemática', 'financeira', 'juros', 'enem', 'porcentagem'],
     true, true, 4.9
   ) RETURNING id INTO v_deck_id;
