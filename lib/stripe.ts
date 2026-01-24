@@ -5,7 +5,6 @@ let stripeInstance: Stripe | null = null;
 export const getStripe = (): Stripe => {
     if (!stripeInstance) {
         stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-            apiVersion: '2025-12-15.clover' as Stripe.StripeConfig['apiVersion'],
             typescript: true,
         });
     }

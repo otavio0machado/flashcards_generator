@@ -8,6 +8,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     try {
+        // Check if Stripe is configured
+        if (!process.env.STRIPE_SECRET_KEY) {
+            console.error('STRIPE_SECRET_KEY is not configured');
+            return NextResponse.json(
+                { error: 'Stripe não está configurado. Configure STRIPE_SECRET_KEY no Vercel.' },
+                { status: 500 }
+            );
+        }
+
         const supabase = await createClient();
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -83,6 +92,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ url: session.url });
     } catch (error: unknown) {
         console.error('Checkout error:', error);
+        console.error('Full error details:', JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
 
         // Return more specific error for debugging
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -91,7 +101,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
             {
                 error: 'Erro ao criar sessão de checkout',
-                details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+                details: errorMessage,
                 stripeError: isStripeError ? (error as { type: string }).type : undefined
             },
             { status: 500 }
