@@ -116,7 +116,7 @@ export default function HomeContent() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                         {[
-                            { icon: FileText, title: "1. Cole seu conteúdo", text: "Insira textos, resumos ou documentos PDF diretamente no nosso gerador inteligente." },
+                            { icon: FileText, title: "1. Cole seu conteúdo", text: "Insira textos, resumos, imagens ou documentos PDF diretamente no nosso gerador inteligente." },
                             { icon: Cpu, title: "2. IA Processa Tudo", text: "Nossa IA analisa os pontos-chave e cria pares de Pergunta/Resposta otimizados para SRS." },
                             { icon: Download, title: "3. Exporte e Estude", text: "Baixe seu deck para Anki (.apkg), Quizlet ou use nosso preview para estudar na hora." }
                         ].map((step, index) => (
@@ -311,7 +311,7 @@ export default function HomeContent() {
                                 <PricingItem text="Até 20 gerações por dia" dark />
                                 <PricingItem text="Escolha quantos cards (Até 30)" dark />
                                 <PricingItem text="Até 100.000 caracteres" dark />
-                                <PricingItem text="Upload de PDF e DOCX" dark />
+                                <PricingItem text="Upload de PDF, DOCX e imagens" dark />
                                 <PricingItem text="Suporte Prioritário" dark highlight />
                             </ul>
                             <CheckoutButton
@@ -338,8 +338,7 @@ export default function HomeContent() {
                             answer="Sim! O Flashcards Generator oferece um plano gratuito para você começar a criar seus primeiros decks agora mesmo."
                         />
                         <FaqItem
-                            question="Funciona com arquivos PDF?"
-                            answer="Com certeza. Você pode copiar o texto do seu PDF e colá-lo em nosso gerador para um processamento instantâneo."
+                            question="Funciona com arquivos PDF?"                            answer="Com certeza. Você pode enviar PDFs diretamente e, no Ultimate, também imagens."
                         />
                         <FaqItem
                             question="Como importar no Anki?"

@@ -3,7 +3,8 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock } from 'lucide-react';
+import { deckService } from '@/services/deckService';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
@@ -12,46 +13,40 @@ interface Card {
     id: string;
     front: string;
     back: string;
-    next_review?: string;
 }
 
 interface Deck {
     id: string;
-    user_id: string;
     title: string;
     created_at: string;
-    is_public: boolean;
     published_at?: string | null;
     tags?: string[];
     cards: Card[];
 }
 
-export default function DeckDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
     const [deck, setDeck] = useState<Deck | null>(null);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<'overview' | 'study'>('overview');
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-    const [studyCards, setStudyCards] = useState<Card[]>([]);
-    const [studyLoading, setStudyLoading] = useState(false);
-    const [isOwner, setIsOwner] = useState(false);
-    const [publishLoading, setPublishLoading] = useState(false);
+    const [cloning, setCloning] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
     useEffect(() => {
         const fetchDeck = async (id: string) => {
-            const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase
                 .from('decks')
                 .select('*, cards(*)')
                 .eq('id', id)
+                .eq('is_public', true)
                 .single();
 
             if (error) {
                 console.error(error);
+                setDeck(null);
             } else {
                 setDeck(data);
-                setIsOwner(session?.user?.id === data.user_id);
             }
             setLoading(false);
         };
@@ -61,60 +56,25 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
         }
     }, [resolvedParams.id]);
 
-    useEffect(() => {
-        const fetchDueCards = async (id: string) => {
-            setStudyLoading(true);
-            const nowIso = new Date().toISOString();
-            const { data, error } = await supabase
-                .from('cards')
-                .select('id, front, back, next_review')
-                .eq('deck_id', id)
-                .lte('next_review', nowIso)
-                .order('next_review', { ascending: true });
-
-            if (error) {
-                console.error(error);
-                setStudyCards([]);
-            } else {
-                setStudyCards(data || []);
-            }
-            setStudyLoading(false);
-        };
-
-        if (mode === 'study' && resolvedParams.id) {
-            fetchDueCards(resolvedParams.id);
-        }
-    }, [mode, resolvedParams.id]);
-
-    const handleTogglePublish = async () => {
-        if (!deck || publishLoading) return;
-        setPublishLoading(true);
-        const nextPublic = !deck.is_public;
-
-        const { data, error } = await supabase
-            .from('decks')
-            .update({
-                is_public: nextPublic,
-                published_at: nextPublic ? new Date().toISOString() : null
-            })
-            .eq('id', deck.id)
-            .select('id, is_public, published_at')
-            .single();
-
-        if (error) {
-            setToast({ message: 'Erro ao atualizar visibilidade', type: 'error' });
-        } else if (data) {
-            setDeck({ ...deck, is_public: data.is_public, published_at: data.published_at });
-            setToast({
-                message: data.is_public ? 'Deck publicado no marketplace' : 'Deck removido do marketplace',
-                type: 'success'
-            });
+    const handleClone = async () => {
+        if (!deck || cloning) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            setToast({ message: 'Faca login para clonar', type: 'info' });
+            return;
         }
 
-        setPublishLoading(false);
+        setCloning(true);
+        try {
+            await deckService.clonePublicDeck(session.user.id, deck.id);
+            setToast({ message: 'Deck clonado com sucesso', type: 'success' });
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Erro ao clonar deck', type: 'error' });
+        } finally {
+            setCloning(false);
+        }
     };
-
-
 
     if (loading) {
         return (
@@ -127,9 +87,9 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     if (!deck) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center pt-20 px-4">
-                <h2 className="text-2xl font-bold mb-4">Baralho não encontrado</h2>
-                <Link href="/decks" className="text-brand font-bold hover:underline">
-                    Voltar para a Biblioteca
+                <h2 className="text-2xl font-bold mb-4">Deck nao encontrado</h2>
+                <Link href="/marketplace" className="text-brand font-bold hover:underline">
+                    Voltar para o Marketplace
                 </Link>
             </div>
         );
@@ -138,11 +98,11 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     return (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
             <Link
-                href="/decks"
+                href="/marketplace"
                 className="inline-flex items-center gap-2 text-foreground/40 hover:text-brand transition-colors font-bold text-sm mb-8 group"
             >
                 <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                Voltar para Biblioteca
+                Voltar para o Marketplace
             </Link>
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-12">
@@ -151,34 +111,35 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <div className="bg-brand/10 p-2 rounded-sm text-brand">
                             <Layers className="h-5 w-5" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visualizando Baralho</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Deck Publico</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{deck.title}</h1>
                     <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-foreground/40">
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {new Date(deck.created_at).toLocaleDateString('pt-BR')}
+                            {new Date(deck.published_at || deck.created_at).toLocaleDateString('pt-BR')}
                         </div>
                         <div className="bg-gray-100 px-3 py-1 rounded-sm text-foreground text-[10px]">
                             {deck.cards.length} CARDS
                         </div>
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-sm text-[10px] uppercase tracking-widest font-black ${deck.is_public ? 'bg-brand/10 text-brand' : 'bg-gray-100 text-foreground/40'}`}>
-                            {deck.is_public ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                            {deck.is_public ? 'Publicado' : 'Privado'}
-                        </div>
+                        {(deck.tags || []).length > 0 && (
+                            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black text-foreground/40">
+                                <Tag className="h-3 w-3" />
+                                {(deck.tags || []).slice(0, 3).join(', ')}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    {deck.is_public && (
-                        <Link
-                            href={`/marketplace/${deck.id}`}
-                            className="w-full sm:w-auto bg-gray-50 border border-border px-6 py-3 rounded-sm font-bold text-sm hover:bg-white transition-all flex items-center justify-center gap-2 shadow-sm"
-                        >
-                            <Globe className="h-4 w-4 text-brand" />
-                            Ver no Marketplace
-                        </Link>
-                    )}
+                    <button
+                        onClick={handleClone}
+                        disabled={cloning}
+                        className="w-full sm:w-auto bg-brand text-white px-6 py-3 rounded-sm font-bold text-sm hover:bg-brand/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        <Copy className="h-4 w-4" />
+                        {cloning ? 'Clonando...' : 'Clonar deck'}
+                    </button>
                     <button
                         onClick={() => setIsExportModalOpen(true)}
                         className="w-full sm:w-auto bg-white border border-border px-6 py-3 rounded-sm font-bold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
@@ -186,18 +147,6 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <FileDown className="h-4 w-4 text-brand" />
                         Exportar
                     </button>
-                    {isOwner && (
-                        <button
-                            onClick={handleTogglePublish}
-                            disabled={publishLoading}
-                            className={`w-full sm:w-auto px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${deck.is_public
-                                ? 'bg-gray-100 text-foreground hover:bg-gray-200'
-                                : 'bg-brand text-white hover:bg-brand/90 shadow-brand/20'
-                                } ${publishLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                            {deck.is_public ? 'Remover do Marketplace' : 'Publicar no Marketplace'}
-                        </button>
-                    )}
                     <button
                         onClick={() => setMode(mode === 'overview' ? 'study' : 'overview')}
                         className={`w-full sm:w-auto px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${mode === 'study'
@@ -242,13 +191,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                     ))}
                 </div>
             ) : (
-                studyLoading ? (
-                    <div className="h-64 flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-brand" />
-                    </div>
-                ) : (
-                    <FlashcardPlayer cards={studyCards} disableProgress={!isOwner} />
-                )
+                <FlashcardPlayer cards={deck.cards} disableProgress />
             )}
 
             <ExportModal

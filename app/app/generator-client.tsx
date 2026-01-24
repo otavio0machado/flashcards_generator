@@ -29,9 +29,23 @@ interface Flashcard {
     answer: string;
 }
 
+const IMAGE_MIME_TYPES = new Set([
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+]);
+const PDF_MIME_TYPE = 'application/pdf';
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
+
 export default function GeneratorClient() {
     const router = useRouter();
     const [inputText, setInputText] = useState('');
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [deckTitle, setDeckTitle] = useState('');
     const [cards, setCards] = useState<Flashcard[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -45,6 +59,10 @@ export default function GeneratorClient() {
     const [cardCount, setCardCount] = useState(5);
 
     const limits = PLAN_LIMITS[currentPlan];
+    const fileAccept = limits.allowOCR
+        ? 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif'
+        : 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const uploadLabel = limits.allowOCR ? 'Upload PDF/DOCX ou Imagem' : 'Upload PDF/DOCX';
 
     // Auth & Profile Check
     useEffect(() => {
@@ -72,21 +90,26 @@ export default function GeneratorClient() {
     }, [inputText, limits]);
 
     const handleGenerate = async () => {
-        if (!inputText.trim() || error || !user) return;
+        const hasInput = inputText.trim().length > 0;
+        const fileInfo = uploadedFile;
+
+        if ((!hasInput && !fileInfo) || error || !user) return;
 
         setIsGenerating(true);
         const inputLength = inputText.length;
 
         try {
+            const formData = new FormData();
+            formData.append('text', inputText);
+            formData.append('language', 'pt-BR');
+            formData.append('cardCount', cardCount.toString());
+            if (fileInfo) {
+                formData.append('files', fileInfo);
+            }
+
             const response = await fetch('/api/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: inputText,
-                    plan: currentPlan,
-                    language: 'pt-BR',
-                    cardCount: cardCount
-                })
+                body: formData
             });
 
             const data = await response.json();
@@ -107,12 +130,16 @@ export default function GeneratorClient() {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
             }
             setInputText('');
+            setUploadedFile(null);
             trackEvent('generate_cards_success', {
                 plan: currentPlan,
                 card_count: data.cards?.length,
                 card_count_requested: cardCount,
                 input_chars: inputLength,
                 language: 'pt-BR',
+                has_file: !!fileInfo,
+                file_type: fileInfo?.type,
+                file_size: fileInfo?.size,
             });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
@@ -120,6 +147,9 @@ export default function GeneratorClient() {
                 plan: currentPlan,
                 input_chars: inputLength,
                 error: err instanceof Error ? err.message : 'unknown',
+                has_file: !!fileInfo,
+                file_type: fileInfo?.type,
+                file_size: fileInfo?.size,
             });
         } finally {
             setIsGenerating(false);
@@ -153,7 +183,7 @@ export default function GeneratorClient() {
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleFileUpload = () => {
-        if (!limits.allowFile) {
+        if (!limits.allowFile && !limits.allowOCR) {
             setShowUpgradeModal(true);
             return;
         }
@@ -164,52 +194,64 @@ export default function GeneratorClient() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.type !== 'application/pdf' && file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            setToast({ message: 'Por favor, envie arquivos PDF ou DOCX.', type: 'error' });
+        const isPdf = file.type === PDF_MIME_TYPE;
+        const isDocx = file.type === DOCX_MIME_TYPE;
+        const isImage = IMAGE_MIME_TYPES.has(file.type);
+
+        if (!isPdf && !isDocx && !isImage) {
+            setToast({ message: 'Por favor, envie arquivos PDF, DOCX ou imagens (JPG/PNG/WEBP/HEIC).', type: 'error' });
             return;
         }
 
-        setIsGenerating(true);
-        try {
-            let fullText = '';
+        if (file.size > MAX_UPLOAD_BYTES) {
+            setToast({ message: `Arquivo muito grande. Limite de ${MAX_UPLOAD_MB}MB.`, type: 'error' });
+            return;
+        }
 
-            if (file.type === 'application/pdf') {
-                const pdfjs = await import('pdfjs-dist');
-                pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        if (isImage && !limits.allowOCR) {
+            setShowUpgradeModal(true);
+            setToast({ message: 'Imagens estão disponíveis apenas no plano Ultimate.', type: 'error' });
+            return;
+        }
 
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        if ((isPdf || isDocx) && !limits.allowFile) {
+            setShowUpgradeModal(true);
+            setToast({ message: 'Upload de arquivos disponível apenas nos planos Pro e Ultimate.', type: 'error' });
+            return;
+        }
 
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items
-                        .map((item) => (item as { str: string }).str)
-                        .join(' ');
-                    fullText += pageText + '\n\n';
-                }
-            } else {
-                // Suporte DOCX com Mammoth
+        if (isDocx) {
+            setIsGenerating(true);
+            try {
                 const mammoth = await import('mammoth');
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer });
-                fullText = result.value;
-            }
 
-            if (fullText.trim()) {
-                setInputText(fullText);
-                setToast({ message: 'Conteúdo extraído com sucesso!', type: 'success' });
-            } else {
-                setToast({ message: 'Não foi possível extrair texto do arquivo.', type: 'error' });
+                if (result.value.trim()) {
+                    setInputText(result.value);
+                    setToast({ message: 'Conteúdo extraído com sucesso!', type: 'success' });
+                } else {
+                    setToast({ message: 'Não foi possível extrair texto do arquivo.', type: 'error' });
+                }
+            } catch (err) {
+                console.error('Erro ao ler arquivo:', err);
+                setToast({ message: 'Erro ao processar o arquivo.', type: 'error' });
+            } finally {
+                setIsGenerating(false);
             }
-        } catch (err) {
-            console.error('Erro ao ler arquivo:', err);
-            setToast({ message: 'Erro ao processar o arquivo.', type: 'error' });
-        } finally {
-            setIsGenerating(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+            setUploadedFile(null);
+        } else {
+            setUploadedFile(file);
+            setToast({
+                message: isImage
+                    ? 'Imagem anexada. Clique em "Gerar Flashcards" para processar.'
+                    : 'PDF anexado. Clique em "Gerar Flashcards" para processar.',
+                type: 'success'
+            });
+        }
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
@@ -276,7 +318,7 @@ export default function GeneratorClient() {
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
-                            accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            accept={fileAccept}
                             className="hidden"
                         />
                         <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
@@ -296,13 +338,29 @@ export default function GeneratorClient() {
                                 className="flex items-center gap-1.5 text-brand hover:underline"
                             >
                                 <FileUp className="h-3.5 w-3.5" />
-                                Upload PDF
+                                {uploadLabel}
                             </button>
                             <span className={error ? 'text-red-500 animate-pulse' : 'text-foreground/40'}>
                                 {inputText.length} / {limits.maxChars}
                             </span>
                         </div>
                     </div>
+
+                    {uploadedFile && (
+                        <div className="mt-3 flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-brand">Arquivo anexado:</span>
+                                <span className="truncate text-foreground/70">{uploadedFile.name}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setUploadedFile(null)}
+                                className="text-[10px] uppercase tracking-wider text-foreground/40 hover:text-brand transition-colors"
+                            >
+                                Remover
+                            </button>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mt-3 flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-2 border border-red-100 rounded-sm">
@@ -360,8 +418,8 @@ export default function GeneratorClient() {
 
                     <button
                         onClick={handleGenerate}
-                        disabled={isGenerating || !inputText.trim() || !!error}
-                        className={`w-full mt-8 py-4 rounded-sm font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${isGenerating || !inputText.trim() || !!error
+                        disabled={isGenerating || !!error || (!inputText.trim() && !uploadedFile)}
+                        className={`w-full mt-8 py-4 rounded-sm font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${isGenerating || !!error || (!inputText.trim() && !uploadedFile)
                             ? 'bg-gray-200 cursor-not-allowed text-gray-400 shadow-none'
                             : 'bg-brand hover:bg-brand/90'
                             }`}

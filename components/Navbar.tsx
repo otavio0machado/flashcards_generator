@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { User as UserIcon, LogOut, Menu, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
+import StreakBadge from '@/components/StreakBadge';
+import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/study-activity';
 
 export default function Navbar() {
   const router = useRouter();
@@ -15,6 +17,36 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [hasStudiedToday, setHasStudiedToday] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false);
+
+  const loadStudySummary = useCallback(async (activeUser: User) => {
+    const startDate = addUtcDays(startOfUtcDay(new Date()), -120);
+    const startKey = getDateKey(startDate);
+
+    const { data, error } = await supabase
+      .from('study_activity')
+      .select('day, count')
+      .eq('user_id', activeUser.id)
+      .gte('day', startKey);
+
+    if (error) {
+      console.error('Erro ao carregar atividade de estudo:', error);
+      return null;
+    }
+
+    return getStudySummary(data ?? []);
+  }, []);
+
+  const refreshStudySummary = useCallback(async () => {
+    if (!user) return;
+    const summary = await loadStudySummary(user);
+    if (!summary) return;
+    setStreak(summary.streak);
+    setHasStudiedToday(summary.hasStudiedToday);
+    setIsFrozen(summary.isFrozen);
+  }, [loadStudySummary, user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,6 +73,28 @@ export default function Navbar() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setStreak(0);
+      setHasStudiedToday(false);
+      setIsFrozen(false);
+      return;
+    }
+
+    refreshStudySummary();
+  }, [refreshStudySummary, user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const handleUpdate = () => {
+      refreshStudySummary();
+    };
+
+    window.addEventListener('study-activity-updated', handleUpdate);
+    return () => window.removeEventListener('study-activity-updated', handleUpdate);
+  }, [refreshStudySummary, user]);
 
   const handleLogout = async () => {
     setMobileOpen(false);
@@ -91,6 +145,9 @@ export default function Navbar() {
                 Minha Biblioteca
               </Link>
             )}
+            <Link href="/marketplace" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
+              Marketplace
+            </Link>
             <Link href="/guia" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Tutorial
             </Link>
@@ -100,6 +157,11 @@ export default function Navbar() {
 
             {user ? (
               <div className="flex items-center gap-4 border-l border-border pl-8">
+                <StreakBadge
+                  streak={streak}
+                  hasStudiedToday={hasStudiedToday}
+                  isFrozen={isFrozen}
+                />
                 <Link href="/settings" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border hover:bg-gray-100 transition-all cursor-pointer">
                   <UserIcon className="h-4 w-4 text-foreground/40" />
                   <span className="text-xs font-bold text-foreground/60">
@@ -159,8 +221,15 @@ export default function Navbar() {
         <div id="mobile-nav" className="md:hidden border-t border-border bg-white/95 backdrop-blur-md">
           <div className="px-4 py-4 space-y-1">
             {user && (
-              <div className="px-3 py-2 mb-2 rounded-sm border border-border bg-gray-50 text-xs font-bold text-foreground/60">
-                Oi, {displayName}
+              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-sm border border-border bg-gray-50">
+                <span className="text-xs font-bold text-foreground/60">
+                  Oi, {displayName}
+                </span>
+                <StreakBadge
+                  streak={streak}
+                  hasStudiedToday={hasStudiedToday}
+                  isFrozen={isFrozen}
+                />
               </div>
             )}
             <Link href="/" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
@@ -168,6 +237,9 @@ export default function Navbar() {
             </Link>
             <Link href="/guia" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Tutorial
+            </Link>
+            <Link href="/marketplace" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Marketplace
             </Link>
             <Link href="/app" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Gerador (App)

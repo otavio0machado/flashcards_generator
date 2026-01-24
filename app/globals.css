@@ -74,3 +74,19 @@ h6 {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+@keyframes streakPulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-streak-pulse {
+  animation: streakPulse 0.6s ease-out;
+}

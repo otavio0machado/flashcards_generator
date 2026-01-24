@@ -6,6 +6,23 @@ ALTER TABLE cards
   ADD COLUMN IF NOT EXISTS ease_factor FLOAT DEFAULT 2.5,
   ADD COLUMN IF NOT EXISTS repetitions INT DEFAULT 0;
 
+CREATE TABLE IF NOT EXISTS study_activity (
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  day DATE NOT NULL,
+  count INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id, day)
+);
+
+ALTER TABLE study_activity ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their study activity" ON study_activity;
+
+CREATE POLICY "Users can manage their study activity"
+ON study_activity FOR ALL
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
 UPDATE cards
 SET
   next_review = COALESCE(next_review, NOW()),
@@ -80,6 +97,13 @@ BEGIN
   WHERE id = p_card_id
   RETURNING cards.id, cards.next_review, cards."interval", cards.ease_factor, cards.repetitions
     INTO id, next_review, "interval", ease_factor, repetitions;
+
+  IF auth.uid() IS NOT NULL THEN
+    INSERT INTO study_activity (user_id, day, count, updated_at)
+    VALUES (auth.uid(), CURRENT_DATE, 1, NOW())
+    ON CONFLICT (user_id, day)
+    DO UPDATE SET count = study_activity.count + 1, updated_at = NOW();
+  END IF;
 
   RETURN NEXT;
 END;

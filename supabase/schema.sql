@@ -15,8 +15,13 @@ CREATE TABLE decks (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   tags TEXT[] DEFAULT '{}',
+  is_public BOOLEAN NOT NULL DEFAULT false,
+  published_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX decks_public_published_idx
+  ON decks (is_public, published_at DESC);
 
 -- Tabela de Flashcards
 CREATE TABLE cards (
@@ -31,12 +36,22 @@ CREATE TABLE cards (
   repetitions INT DEFAULT 0
 );
 
+-- Tabela de atividade de estudo (resumo diario)
+CREATE TABLE study_activity (
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  day DATE NOT NULL,
+  count INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id, day)
+);
+
 -- TAREFA 2: Segurança (RLS - Row Level Security)
 
 -- Ativar RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE decks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_activity ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para Profiles
 CREATE POLICY "Users can view their own profile"
@@ -52,6 +67,10 @@ CREATE POLICY "Users can manage their own decks"
 ON decks FOR ALL
 USING (auth.uid() = user_id);
 
+CREATE POLICY "Anyone can view public decks"
+ON decks FOR SELECT
+USING (is_public = true);
+
 -- Políticas para Cards
 -- Nota: Aqui usamos uma subquery para verificar se o deck pertence ao usuário
 CREATE POLICY "Users can manage cards in their own decks"
@@ -61,6 +80,21 @@ USING (
     SELECT 1 FROM decks
     WHERE decks.id = cards.deck_id
     AND decks.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Users can manage their study activity"
+ON study_activity FOR ALL
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Anyone can view cards in public decks"
+ON cards FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM decks
+    WHERE decks.id = cards.deck_id
+    AND decks.is_public = true
   )
 );
 
@@ -174,6 +208,13 @@ BEGIN
   WHERE id = p_card_id
   RETURNING cards.id, cards.next_review, cards."interval", cards.ease_factor, cards.repetitions
     INTO id, next_review, "interval", ease_factor, repetitions;
+
+  IF auth.uid() IS NOT NULL THEN
+    INSERT INTO study_activity (user_id, day, count, updated_at)
+    VALUES (auth.uid(), CURRENT_DATE, 1, NOW())
+    ON CONFLICT (user_id, day)
+    DO UPDATE SET count = study_activity.count + 1, updated_at = NOW();
+  END IF;
 
   RETURN NEXT;
 END;

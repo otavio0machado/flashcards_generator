@@ -7,11 +7,14 @@ import { Library, Folder, Calendar, ArrowRight, Loader2, Plus, Download, Trash2 
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
+import StudyHeatmap from '@/components/StudyHeatmap';
+import { addUtcDays, getDateKey, startOfUtcDay, StudyActivityRecord } from '@/lib/study-activity';
 
 export default function DecksPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [decks, setDecks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activityData, setActivityData] = useState<StudyActivityRecord[]>([]);
     const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [deckToExport, setDeckToExport] = useState<any | null>(null);
@@ -22,14 +25,33 @@ export default function DecksPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const { data, error } = await supabase
-                .from('decks')
-                .select('*, cards(count)')
-                .eq('user_id', session.user.id)
-                .order('created_at', { ascending: false });
+            const startDate = addUtcDays(startOfUtcDay(new Date()), -30);
+            const startKey = getDateKey(startDate);
 
-            if (error) console.error(error);
-            else setDecks(data || []);
+            const [decksResult, activityResult] = await Promise.all([
+                supabase
+                    .from('decks')
+                    .select('*, cards(count)')
+                    .eq('user_id', session.user.id)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('study_activity')
+                    .select('day, count')
+                    .eq('user_id', session.user.id)
+                    .gte('day', startKey)
+            ]);
+
+            if (decksResult.error) {
+                console.error(decksResult.error);
+            } else {
+                setDecks(decksResult.data || []);
+            }
+
+            if (activityResult.error) {
+                console.error(activityResult.error);
+            } else {
+                setActivityData(activityResult.data || []);
+            }
             setLoading(false);
         };
 
@@ -67,6 +89,10 @@ export default function DecksPage() {
                     <Plus className="h-5 w-5" />
                     Novo Baralho
                 </Link>
+            </div>
+
+            <div className="mb-10 bg-white border border-border rounded-sm p-6 shadow-sm">
+                <StudyHeatmap activityData={activityData} />
             </div>
 
             {loading ? (

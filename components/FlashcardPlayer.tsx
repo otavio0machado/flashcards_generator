@@ -13,6 +13,7 @@ interface Card {
 
 interface FlashcardPlayerProps {
     cards: Card[];
+    disableProgress?: boolean;
 }
 
 interface ReviewOption {
@@ -21,7 +22,7 @@ interface ReviewOption {
     className: string;
 }
 
-export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
+export default function FlashcardPlayer({ cards, disableProgress = false }: FlashcardPlayerProps) {
     const [queue, setQueue] = useState<Card[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -76,13 +77,17 @@ export default function FlashcardPlayer({ cards }: FlashcardPlayerProps) {
         setCurrentIndex(nextIndex);
         setIsFlipped(false);
 
-        const { error } = await supabase.rpc('update_card_progress', {
-            p_card_id: cardId,
-            p_quality: quality
-        });
+        if (!disableProgress) {
+            const { error } = await supabase.rpc('update_card_progress', {
+                p_card_id: cardId,
+                p_quality: quality
+            });
 
-        if (error) {
-            console.error('Erro ao atualizar card:', error);
+            if (error) {
+                console.error('Erro ao atualizar card:', error);
+            } else {
+                window.dispatchEvent(new Event('study-activity-updated'));
+            }
         }
     };
 

@@ -7,6 +7,12 @@ export interface Card {
     order?: number;
 }
 
+interface PublicDeckCard {
+    front: string;
+    back: string;
+    order?: number;
+}
+
 export const deckService = {
     /**
      * Salva um baralho e seus respectivos cards em batch.
@@ -78,5 +84,51 @@ export const deckService = {
     async incrementUsage(userId: string) {
         const { error } = await supabase.rpc('increment_daily_usage', { p_user_id: userId });
         if (error) throw error;
+    },
+
+    /**
+     * Clona um baralho pÃºblico para a biblioteca do usuÃ¡rio.
+     */
+    async clonePublicDeck(userId: string, deckId: string) {
+        const { data: sourceDeck, error: sourceError } = await supabase
+            .from('decks')
+            .select('title, tags, cards(front, back, "order")')
+            .eq('id', deckId)
+            .eq('is_public', true)
+            .single();
+
+        if (sourceError) throw sourceError;
+
+        const { data: newDeck, error: deckError } = await supabase
+            .from('decks')
+            .insert({
+                user_id: userId,
+                title: `${sourceDeck.title} (Clone)`,
+                tags: sourceDeck.tags || [],
+                is_public: false,
+                published_at: null
+            })
+            .select()
+            .single();
+
+        if (deckError) throw deckError;
+
+        const sourceCards = (sourceDeck.cards || []) as PublicDeckCard[];
+        const cardsToInsert = sourceCards.map((card, index) => ({
+            deck_id: newDeck.id,
+            front: card.front,
+            back: card.back,
+            order: card.order ?? index
+        }));
+
+        if (cardsToInsert.length > 0) {
+            const { error: cardsError } = await supabase
+                .from('cards')
+                .insert(cardsToInsert);
+
+            if (cardsError) throw cardsError;
+        }
+
+        return newDeck;
     }
 };
