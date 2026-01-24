@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { identifyUser, trackEvent } from '@/lib/analytics';
 import { ArrowRight, User, Mail, Lock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function SignupPage() {
@@ -49,7 +50,7 @@ export default function SignupPage() {
             return;
         }
 
-        const { error: signupError } = await supabase.auth.signUp({
+        const { data, error: signupError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -63,6 +64,10 @@ export default function SignupPage() {
             setError(signupError.message);
             setLoading(false);
         } else {
+            if (data?.user?.id) {
+                identifyUser(data.user.id, { email, name });
+            }
+            trackEvent('signup_completed', { method: 'password' });
             setSuccess(true);
             setLoading(false);
         }

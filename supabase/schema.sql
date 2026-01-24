@@ -95,6 +95,23 @@ $$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION update_card_progress(UUID, INT) TO authenticated;
 
+-- Feedback table
+CREATE TABLE feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL DEFAULT auth.uid(),
+  email TEXT,
+  message TEXT NOT NULL,
+  page_path TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can submit feedback"
+ON feedback
+FOR INSERT
+WITH CHECK (true);
+
 -- SRS: SM-2 progress update RPC
 CREATE OR REPLACE FUNCTION update_card_progress(p_card_id UUID, p_quality INT)
 RETURNS TABLE (

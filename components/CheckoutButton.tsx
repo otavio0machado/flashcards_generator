@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { trackEvent } from '@/lib/analytics';
 
 
 interface CheckoutButtonProps {
@@ -19,6 +20,7 @@ export default function CheckoutButton({ priceId, planName, className, children 
     const handleCheckout = async () => {
         try {
             setLoading(true);
+            trackEvent('upgrade_clicked', { plan: planName, price_id: priceId });
 
             const response = await fetch('/api/stripe/checkout', {
                 method: 'POST',

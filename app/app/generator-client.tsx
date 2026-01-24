@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
 import UpgradeModal from '@/components/UpgradeModal';
 import { User } from '@supabase/supabase-js';
+import { trackEvent } from '@/lib/analytics';
 
 interface Flashcard {
     id: string;
@@ -74,6 +75,7 @@ export default function GeneratorClient() {
         if (!inputText.trim() || error || !user) return;
 
         setIsGenerating(true);
+        const inputLength = inputText.length;
 
         try {
             const response = await fetch('/api/generate', {
@@ -105,8 +107,20 @@ export default function GeneratorClient() {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
             }
             setInputText('');
+            trackEvent('generate_cards_success', {
+                plan: currentPlan,
+                card_count: data.cards?.length,
+                card_count_requested: cardCount,
+                input_chars: inputLength,
+                language: 'pt-BR',
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
+            trackEvent('generate_cards_failed', {
+                plan: currentPlan,
+                input_chars: inputLength,
+                error: err instanceof Error ? err.message : 'unknown',
+            });
         } finally {
             setIsGenerating(false);
         }
