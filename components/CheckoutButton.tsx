@@ -31,17 +31,20 @@ export default function CheckoutButton({ priceId, planName, className, children 
                 }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
                 if (response.status === 401) {
                     toast.error("Faça login para continuar");
-                    // Redirect to login handled by user usually, but here we might validly want to redirect.
-                    // window.location.href = '/auth/login'; 
                     return;
                 }
-                throw new Error('Network response was not ok');
+                // Show actual error from API
+                const errorMsg = data.details || data.error || 'Erro desconhecido';
+                console.error('Checkout API error:', data);
+                throw new Error(errorMsg);
             }
 
-            const { url } = await response.json();
+            const { url } = data;
 
             if (url) {
                 window.location.href = url;
