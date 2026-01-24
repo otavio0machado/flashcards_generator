@@ -2,17 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
-import { User as UserIcon, LogOut } from 'lucide-react';
+import { User as UserIcon, LogOut, Menu, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +23,10 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     // Get initial session
@@ -42,8 +48,18 @@ export default function Navbar() {
     router.refresh();
   };
 
+  const displayName = (() => {
+    const fullName = user?.user_metadata?.full_name;
+    if (fullName) return fullName.trim().split(/\s+/)[0];
+
+    const emailPrefix = user?.email?.split('@')[0];
+    if (emailPrefix) return emailPrefix.split(/[._-]/)[0];
+
+    return 'Usuario';
+  })();
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
