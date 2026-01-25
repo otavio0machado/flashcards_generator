@@ -8,16 +8,17 @@ export interface Category {
 
 export interface Deck {
   id: string;
+  user_id: string; // Unified from author_id
   title: string;
   description?: string | null;
   price: number;
-  author_id: string;
   category_id?: string | null;
   tags: string[];
   is_verified: boolean;
   rating: number;
   rating_count: number;
   is_public: boolean;
+  published_at?: string | null;
   created_at: string;
   updated_at: string;
 }

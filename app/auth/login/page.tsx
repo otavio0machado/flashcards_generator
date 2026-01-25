@@ -57,7 +57,11 @@ export default function LoginPage() {
                 <div className="bg-white border border-border p-8 rounded-sm shadow-sm">
                     <form onSubmit={handleLogin} className="space-y-4">
                         {error && (
-                            <div className="p-3 bg-red-50 border border-red-100 rounded-sm flex items-center gap-2 text-red-500 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                            <div
+                                role="alert"
+                                aria-live="assertive"
+                                className="p-3 bg-red-50 border border-red-100 rounded-sm flex items-center gap-2 text-red-500 text-xs font-bold animate-in fade-in slide-in-from-top-1"
+                            >
                                 <AlertCircle className="h-4 w-4 shrink-0" />
                                 {error}
                             </div>

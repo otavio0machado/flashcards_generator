@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -41,12 +42,12 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
         {
             label: 'Errei (Again)',
             quality: 0,
-            className: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+            className: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
         },
         {
-            label: 'Dif\u00edcil (Hard)',
+            label: 'Difícil (Hard)',
             quality: 3,
-            className: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+            className: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
         },
         {
             label: 'Bom (Good)',
@@ -54,7 +55,7 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
             className: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
         },
         {
-            label: 'F\u00e1cil (Easy)',
+            label: 'Fácil (Easy)',
             quality: 5,
             className: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
         }
@@ -77,6 +78,11 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
         setQueue(nextQueue);
         setCurrentIndex(nextIndex);
         setIsFlipped(false);
+
+        // Simple vibration for feedback if available
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(50);
+        }
 
         if (!disableProgress) {
             const { error } = await supabase.rpc('update_card_progress', {
@@ -112,14 +118,14 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                 </div>
                 <h3 className="text-lg font-bold mb-2">Tudo em dia!</h3>
                 <p className="text-foreground/50 font-medium max-w-xs">
-                    {'Voc\u00ea n\u00e3o tem revis\u00f5es pendentes hoje.'}
+                    {'Você não tem revisões pendentes hoje.'}
                 </p>
             </div>
         );
     }
 
     return (
-        <div className="w-full max-w-3xl mx-auto space-y-8">
+        <div className="w-full max-w-3xl mx-auto space-y-6 sm:space-y-8">
             {/* Progress Bar */}
             <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold text-foreground/40 uppercase tracking-wider">
@@ -136,7 +142,7 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
 
             {/* Card Area */}
             <div
-                className="perspective-1000 h-[320px] sm:h-[400px] cursor-pointer group"
+                className="perspective-1000 h-[380px] sm:h-[450px] cursor-pointer group touch-manipulation"
                 onClick={handleFlip}
             >
                 <div
@@ -148,17 +154,22 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                             Pergunta
                         </span>
                         {currentCard.image_url && (
-                            <img
-                                src={currentCard.image_url}
-                                alt=""
-                                className="w-full max-h-40 object-contain mb-4 rounded-sm border border-border"
-                            />
+                            <div className="relative w-full h-40 mb-4">
+                                <Image
+                                    src={currentCard.image_url}
+                                    alt="Conteúdo do card"
+                                    fill
+                                    className="object-contain rounded-sm"
+                                    sizes="(max-width: 768px) 100vw, 500px"
+                                    priority={currentIndex === 0}
+                                />
+                            </div>
                         )}
-                        <p className="text-2xl md:text-3xl font-bold text-foreground leading-relaxed">
+                        <p className="text-2xl md:text-3xl font-bold text-foreground leading-relaxed select-none">
                             {currentCard.front}
                         </p>
                         <span className="absolute bottom-6 text-xs text-foreground/20 font-medium">
-                            {'Clique ou Espa\u00e7o para virar'}
+                            {'Toque ou Espaço para virar'}
                         </span>
                     </div>
 
@@ -168,13 +179,17 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
                             Resposta
                         </span>
                         {currentCard.image_url && (
-                            <img
-                                src={currentCard.image_url}
-                                alt=""
-                                className="w-full max-h-40 object-contain mb-4 rounded-sm border border-white/10"
-                            />
+                            <div className="relative w-full h-40 mb-4">
+                                <Image
+                                    src={currentCard.image_url}
+                                    alt="Conteúdo do card"
+                                    fill
+                                    className="object-contain rounded-sm border border-white/10"
+                                    sizes="(max-width: 768px) 100vw, 500px"
+                                />
+                            </div>
                         )}
-                        <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">
+                        <p className="text-xl md:text-2xl font-medium text-white leading-relaxed select-none">
                             {currentCard.back}
                         </p>
                         <span className="absolute bottom-6 text-xs text-white/30 font-medium">
@@ -185,22 +200,26 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
             </div>
 
             {/* Review Controls */}
-            <div className="space-y-3">
+            <div className="w-full">
                 {isFlipped ? (
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-center sm:gap-3">
+                    <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-center sm:gap-4">
                         {reviewOptions.map((option) => (
                             <button
                                 key={option.label}
                                 type="button"
-                                onClick={() => handleReview(option.quality)}
-                                className={`px-3 py-2 rounded-sm border text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors ${option.className}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReview(option.quality);
+                                }}
+                                className={`px-2 py-4 sm:px-6 sm:py-3 rounded-sm border text-xs sm:text-xs font-black uppercase tracking-widest transition-transform active:scale-95 touch-manipulation shadow-sm ${option.className}`}
+                                style={{ minHeight: '52px' }}
                             >
                                 {option.label}
                             </button>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-xs font-bold text-foreground/30 uppercase tracking-widest">
+                    <div className="text-center py-4 text-xs font-bold text-foreground/30 uppercase tracking-widest animate-pulse">
                         Vire o card para avaliar
                     </div>
                 )}

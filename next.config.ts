@@ -42,6 +42,20 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ['anki-apkg-export'],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'zypsfonrummuenmirxyh.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
+  },
 };
 
 const sentryBuildOptions = {

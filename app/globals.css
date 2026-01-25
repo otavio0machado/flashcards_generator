@@ -6,7 +6,7 @@ html {
 }
 
 @theme {
-  --color-brand: #FF4F00;
+  --color-brand: #CC3F00;
   --color-brand-foreground: #FFFFFF;
   --color-background: #FAFAFA;
   --color-foreground: #1A1A1A;
@@ -27,6 +27,12 @@ html {
   --surface-muted: #F9FAFB;
   --surface-strong: #F3F4F6;
   --surface-stronger: #E5E7EB;
+}
+
+/* Global Focus Styles for Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }
 
 .dark {

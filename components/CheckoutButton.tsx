@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { trackEvent } from '@/lib/analytics';
 
 
@@ -65,7 +65,7 @@ export default function CheckoutButton({ priceId, planName, className, children,
     };
 
     return (
-        <motion.button
+        <m.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleCheckout}
@@ -80,6 +80,6 @@ export default function CheckoutButton({ priceId, planName, className, children,
             ) : (
                 children
             )}
-        </motion.button>
+        </m.button>
     );
 }

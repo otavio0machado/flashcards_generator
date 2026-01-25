@@ -165,14 +165,14 @@ export default function Navbar() {
                   isFrozen={isFrozen}
                 />
                 <Link href="/settings" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-sm border border-border hover:bg-gray-100 transition-all cursor-pointer">
-                  <UserIcon className="h-4 w-4 text-foreground/40" />
-                  <span className="text-xs font-bold text-foreground/60">
+                  <UserIcon className="h-4 w-4 text-foreground/60" />
+                  <span className="text-xs font-bold text-foreground/70">
                     {displayName}
                   </span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-foreground/40 hover:text-red-500 transition-colors"
+                  className="text-foreground/60 hover:text-red-500 transition-colors"
                   title="Sair"
                 >
                   <LogOut className="h-5 w-5" />
@@ -224,7 +224,7 @@ export default function Navbar() {
         <div id="mobile-nav" className="md:hidden border-t border-border bg-white/95 backdrop-blur-md">
           <div className="px-4 py-4 space-y-1">
             {user && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2 mb-2 rounded-sm border border-border bg-gray-50">
+              <div className="flex items-center justify-between gap-3 px-3 py-3 mb-2 rounded-sm border border-border bg-gray-50">
                 <span className="text-xs font-bold text-foreground/60">
                   Oi, {displayName}
                 </span>
@@ -235,28 +235,28 @@ export default function Navbar() {
                 />
               </div>
             )}
-            <Link href="/" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+            <Link href="/" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Inicio
             </Link>
-            <Link href="/guia" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+            <Link href="/guia" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Tutorial
             </Link>
-            <Link href="/documentacao" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+            <Link href="/documentacao" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Documentacao
             </Link>
-            <Link href="/marketplace" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+            <Link href="/marketplace" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Marketplace
             </Link>
-            <Link href="/app" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+            <Link href="/app" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Gerador (App)
             </Link>
             {user && (
-              <Link href="/decks" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              <Link href="/decks" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
                 Minha Biblioteca
               </Link>
             )}
             {user && (
-              <Link href="/settings" onClick={closeMobileMenu} className="block px-3 py-2 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              <Link href="/settings" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
                 Minha Conta
               </Link>
             )}
@@ -264,7 +264,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full text-left px-3 py-2 rounded-sm text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full text-left px-3 py-4 rounded-sm text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
               >
                 Sair
               </button>

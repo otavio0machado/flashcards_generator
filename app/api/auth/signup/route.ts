@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+// Rate limiter: 5 signups per hour per IP
+const ratelimit = process.env.UPSTASH_REDIS_REST_URL
+    ? new Ratelimit({
+        redis: Redis.fromEnv(),
+        limiter: Ratelimit.slidingWindow(5, '1 h'),
+        analytics: true,
+    })
+    : null;
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -18,6 +29,18 @@ function isValidPassword(password: string) {
 
 export async function POST(req: Request) {
     try {
+        // Rate Limiting Check
+        if (ratelimit) {
+            const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1';
+            const { success } = await ratelimit.limit(`signup_${ip}`);
+            if (!success) {
+                return NextResponse.json(
+                    { error: 'Muitas tentativas de cadastro. Tente novamente em 1 hora.' },
+                    { status: 429 }
+                );
+            }
+        }
+
         const body = await req.json().catch(() => ({}));
         const name = typeof body?.name === 'string' ? body.name.trim() : '';
         const email = typeof body?.email === 'string' ? body.email.trim() : '';

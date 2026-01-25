@@ -79,33 +79,56 @@ export const deckService = {
      * Auto-reseta o contador se for um novo dia.
      */
     async checkUserLimit(userId: string) {
+        const { profile, plan, limits } = await this.getUserProfileAndPlan(userId);
+
+        const today = new Date().toISOString().split('T')[0];
+        let currentUsage = profile.daily_generations;
+
+        if (profile.last_reset_date !== today) {
+            currentUsage = 0;
+        }
+
+        return {
+            canGenerate: currentUsage < limits.dailyGens,
+            currentUsage,
+            limit: limits.dailyGens,
+            planTier: plan,
+            planName: limits.name,
+            limits
+        };
+    },
+
+    /**
+     * Helper to get user profile and plan limits
+     */
+    async getUserProfileAndPlan(userId: string) {
         const { data: profile, error } = await supabase
             .from('profiles')
             .select('plan_tier, daily_generations, last_reset_date')
             .eq('id', userId)
             .single();
 
-        if (error) throw error;
-
-        const today = new Date().toISOString().split('T')[0];
-        const plan = profile.plan_tier as PlanKey;
-        let currentUsage = profile.daily_generations;
-
-        // Lógica de reset diário se o acesso for em um novo dia
-        if (profile.last_reset_date !== today) {
-            currentUsage = 0;
-            // Opcional: Atualizar no banco imediatamente ou esperar o incremento
+        if (error || !profile) {
+            throw new Error('Erro ao buscar perfil do usuário');
         }
 
-        const limit = PLAN_LIMITS[plan].dailyGens;
+        const plan = (profile.plan_tier || 'free') as PlanKey;
+        const limits = PLAN_LIMITS[plan];
 
-        return {
-            canGenerate: currentUsage < limit,
-            currentUsage,
-            limit,
-            planTier: plan,
-            planName: PLAN_LIMITS[plan].name
-        };
+        return { profile, plan, limits };
+    },
+
+    /**
+     * Asserts that the user has not exceeded their daily generation limit
+     */
+    async assertUserCanGenerate(userId: string) {
+        const { currentUsage, limit, planName } = await this.checkUserLimit(userId);
+
+        if (currentUsage >= limit) {
+            throw new Error(`Você atingiu o limite de ${limit} gerações diárias do plano ${planName}.`);
+        }
+
+        return currentUsage;
     },
 
     /**
@@ -113,11 +136,14 @@ export const deckService = {
      */
     async incrementUsage(userId: string) {
         const { error } = await supabase.rpc('increment_daily_usage', { p_user_id: userId });
-        if (error) throw error;
+        if (error) {
+            console.error('[DeckService] Failed to increment usage:', error);
+            // Non-blocking error for the user flow, but strictly should be logged
+        }
     },
 
     /**
-     * Clona um baralho pÃºblico para a biblioteca do usuÃ¡rio.
+     * Clona um baralho público para a biblioteca do usuário.
      */
     async clonePublicDeck(userId: string, deckId: string) {
         const { data: sourceDeck, error: sourceError } = await supabase
