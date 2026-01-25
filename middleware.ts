@@ -62,8 +62,8 @@ export async function middleware(req: NextRequest) {
 
     const isAuthenticated = !error && user;
 
-    // Se o usuário está tentando acessar o /app ou /decks e não está logado
-    if ((req.nextUrl.pathname.startsWith('/app') || req.nextUrl.pathname.startsWith('/decks')) && !isAuthenticated) {
+    // Se o usuário está tentando acessar o /decks e não está logado
+    if (req.nextUrl.pathname.startsWith('/decks') && !isAuthenticated) {
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { STRIPE_PRICES } from '@/constants/config';
 import CheckoutButton from '@/components/CheckoutButton';
 import Logo from '@/components/Logo';
+import { trackEvent } from '@/lib/analytics';
 import {
     ArrowRight,
     FileText,
@@ -18,6 +20,10 @@ import {
 } from 'lucide-react';
 
 export default function HomeContent() {
+    useEffect(() => {
+        trackEvent('landing_view');
+    }, []);
+
     return (
         <div className="flex flex-col min-h-screen">
             {/* Hero Section */}
@@ -71,6 +77,7 @@ export default function HomeContent() {
                         >
                             <Link
                                 href="/app"
+                                onClick={() => trackEvent('cta_click_start', { location: 'hero' })}
                                 className="group bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all shadow-lg hover:shadow-brand/40 flex items-center gap-2 transform hover:-translate-y-1"
                             >
                                 Começar Agora — É Grátis
@@ -83,6 +90,57 @@ export default function HomeContent() {
                                 Ver Tutorial
                             </Link>
                         </motion.div>
+
+                        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-xs font-bold text-foreground/60">
+                            <span className="inline-flex items-center gap-2 bg-white/70 border border-border px-3 py-1 rounded-sm">
+                                Feito por um criador independente brasileiro
+                            </span>
+                            <span className="inline-flex items-center gap-2 bg-white/70 border border-border px-3 py-1 rounded-sm">
+                                IA focada em memorização eficiente
+                            </span>
+                        </div>
+
+                        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                            <div className="bg-white border border-border rounded-sm p-6 shadow-sm">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-3">Exemplo rápido</div>
+                                <div className="space-y-4">
+                                    <div className="bg-gray-50 border border-border rounded-sm p-4">
+                                        <div className="text-xs font-bold text-foreground/60 mb-2">Texto</div>
+                                        <p className="text-sm text-foreground/70">“Fotossíntese é o processo pelo qual plantas convertem luz em energia química...”</p>
+                                    </div>
+                                    <div className="bg-gray-50 border border-border rounded-sm p-4">
+                                        <div className="text-xs font-bold text-foreground/60 mb-2">Flashcards</div>
+                                        <ul className="space-y-2 text-sm">
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-brand font-bold">Q:</span>
+                                                <span>O que é fotossíntese?</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-brand font-bold">A:</span>
+                                                <span>Processo de conversão de luz em energia química.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white border border-border rounded-sm p-6 shadow-sm">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-3">Por que funciona</div>
+                                <ul className="space-y-4 text-sm">
+                                    <li className="flex items-start gap-2">
+                                        <Check className="h-4 w-4 text-brand mt-0.5" />
+                                        <span>Transforma textos longos em perguntas objetivas.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <Check className="h-4 w-4 text-brand mt-0.5" />
+                                        <span>Otimiza para repetição espaçada e revisão rápida.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2">
+                                        <Check className="h-4 w-4 text-brand mt-0.5" />
+                                        <span>Prévia instantânea antes de exportar.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
 
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -236,7 +294,11 @@ export default function HomeContent() {
                                 <PricingItem text="Apenas texto (Copy/Paste)" />
                                 <PricingItem text="Exportação Anki" />
                             </ul>
-                            <Link href="/app" className="w-full py-3 border border-border text-center font-bold text-sm rounded-sm hover:bg-gray-50 transition-all">
+                            <Link
+                                href="/app"
+                                onClick={() => trackEvent('cta_click_start', { location: 'pricing' })}
+                                className="w-full py-3 border border-border text-center font-bold text-sm rounded-sm hover:bg-gray-50 transition-all"
+                            >
                                 Começar Grátis
                             </Link>
                         </motion.div>

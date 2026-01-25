@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { identifyUser, trackEvent } from '@/lib/analytics';
@@ -17,6 +17,21 @@ export default function SignupPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    useEffect(() => {
+        trackEvent('signup_view', { source: 'signup_page' });
+    }, []);
+
+    useEffect(() => {
+        const handleUnload = () => {
+            if (!success) {
+                trackEvent('signup_abandoned', { source: 'signup_page' });
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnload);
+        return () => window.removeEventListener('beforeunload', handleUnload);
+    }, [success]);
+
     const validatePassword = (pass: string) => {
         const minLength = pass.length >= 8;
         const hasUpper = /[A-Z]/.test(pass);
@@ -30,6 +45,7 @@ export default function SignupPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        trackEvent('signup_start', { method: 'password' });
 
         // Validation
         if (email !== confirmEmail) {
@@ -50,27 +66,37 @@ export default function SignupPage() {
             return;
         }
 
-        const { data, error: signupError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: name,
-                },
-            },
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
         });
 
-        if (signupError) {
-            setError(signupError.message);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            setError(data?.error || 'Erro ao criar conta.');
             setLoading(false);
-        } else {
-            if (data?.user?.id) {
-                identifyUser(data.user.id, { email, name });
-            }
-            trackEvent('signup_completed', { method: 'password' });
-            setSuccess(true);
-            setLoading(false);
+            return;
         }
+
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (loginError) {
+            setError(loginError.message);
+            setLoading(false);
+            return;
+        }
+
+        if (loginData?.user?.id) {
+            identifyUser(loginData.user.id, { email, name });
+        }
+        trackEvent('signup_complete', { method: 'password' });
+        setSuccess(true);
+        setLoading(false);
     };
 
     if (success) {
@@ -80,13 +106,24 @@ export default function SignupPage() {
                     <div className="bg-green-50 w-20 h-20 rounded-full flex items-center justify-center mb-6 mx-auto">
                         <CheckCircle2 className="h-10 w-10 text-green-500" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Verifique seu e-mail</h2>
-                    <p className="text-foreground/60 font-medium mb-8 leading-relaxed">
-                        Enviamos um link de confirmação para <span className="text-foreground font-bold">{email}</span> para ativar sua conta.
+                    <h2 className="text-2xl font-bold mb-3">Conta criada com sucesso</h2>
+                    <p className="text-foreground/60 font-medium mb-6 leading-relaxed">
+                        Seu primeiro deck foi salvo ✅
                     </p>
-                    <Link href="/auth/login" className="inline-flex items-center gap-2 text-brand font-bold hover:gap-3 transition-all">
-                        Ir para o Login <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    <div className="space-y-3">
+                        <Link href="/app" className="inline-flex items-center gap-2 text-brand font-bold hover:gap-3 transition-all">
+                            Ir para o App <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <Link href="/app" className="inline-flex items-center gap-2 text-foreground font-bold">
+                            Exportar agora <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <div className="text-[11px] text-foreground/50 font-medium">
+                            Sugestões: confira templates prontos no Marketplace.
+                        </div>
+                        <Link href="/marketplace" className="text-xs font-bold text-foreground/70 underline">
+                            Ver templates
+                        </Link>
+                    </div>
                 </div>
             </div>
         );

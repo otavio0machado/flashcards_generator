@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Plus,
     Trash2,
@@ -22,8 +21,18 @@ import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
 import { deckService } from '@/services/deckService';
 import UpgradeModal from '@/components/UpgradeModal';
+import AuthGateModal from '@/components/AuthGateModal';
 import { User } from '@supabase/supabase-js';
 import { trackEvent } from '@/lib/analytics';
+
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (container: HTMLElement, options: { sitekey: string; size: 'invisible'; callback: (token: string) => void }) => string;
+            execute: (widgetId: string) => void;
+        };
+    }
+}
 
 interface Flashcard {
     id: string;
@@ -52,7 +61,6 @@ const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 
 export default function GeneratorClient() {
-    const router = useRouter();
     const [inputText, setInputText] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [deckTitle, setDeckTitle] = useState('');
@@ -64,6 +72,8 @@ export default function GeneratorClient() {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
+    const [isDemo, setIsDemo] = useState(true);
+    const [isAuthChecked, setIsAuthChecked] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -76,8 +86,28 @@ export default function GeneratorClient() {
     const [showImageWarningModal, setShowImageWarningModal] = useState(false);
     const [draggedImage, setDraggedImage] = useState<{ cardId: string; section: 'question' | 'answer'; imageUrl: string } | null>(null);
     const [dropTarget, setDropTarget] = useState<ImageDropTarget | null>(null);
+    const [showAuthGateModal, setShowAuthGateModal] = useState(false);
+    const [appOpenTracked, setAppOpenTracked] = useState(false);
+    const [demoInputStarted, setDemoInputStarted] = useState(false);
+    const [demoFingerprint, setDemoFingerprint] = useState('');
+    const [captchaRequired, setCaptchaRequired] = useState(false);
+    const [pendingDemoText, setPendingDemoText] = useState<string | null>(null);
+    const [signupModalAction, setSignupModalAction] = useState(false);
+    const captchaContainerRef = useRef<HTMLDivElement | null>(null);
+    const captchaWidgetIdRef = useRef<string | null>(null);
 
-    const limits = PLAN_LIMITS[currentPlan];
+    const demoLimits = {
+        ...PLAN_LIMITS.free,
+        name: 'Demo',
+        dailyGens: 1,
+        historySaved: false,
+        allowFile: false,
+        allowOCR: false,
+        allowImageGeneration: false,
+        customCardCount: false,
+    };
+
+    const limits = isDemo ? demoLimits : PLAN_LIMITS[currentPlan];
     const fileAccept = limits.allowOCR
         ? 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif'
         : 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -87,17 +117,22 @@ export default function GeneratorClient() {
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
-                router.push('/auth/login');
+                setUser(null);
+                setIsDemo(true);
+                setCurrentPlan('free');
+                setCardCount(demoLimits.maxCardsPerGen);
+                setIsAuthChecked(true);
                 return;
             }
             setUser(session.user);
+            setIsDemo(false);
             deckService.checkUserLimit(session.user.id).then(res => {
                 setCurrentPlan(res.planTier);
                 // Ajustar cardCount inicial baseado no plano
                 setCardCount(PLAN_LIMITS[res.planTier].maxCardsPerGen);
-            }).catch(console.error);
+            }).catch(console.error).finally(() => setIsAuthChecked(true));
         });
-    }, [router]);
+    }, []);
 
     // Check character limits on input
     useEffect(() => {
@@ -114,7 +149,63 @@ export default function GeneratorClient() {
         }
     }, [limits.allowImageGeneration, generateImages]);
 
+    useEffect(() => {
+        if (isAuthChecked && !appOpenTracked) {
+            trackEvent('app_open', { is_demo: isDemo });
+            setAppOpenTracked(true);
+        }
+    }, [appOpenTracked, isDemo, isAuthChecked]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const stored = window.localStorage.getItem('demo_fingerprint');
+        if (stored) {
+            setDemoFingerprint(stored);
+            return;
+        }
+
+        const newFp = crypto.randomUUID();
+        window.localStorage.setItem('demo_fingerprint', newFp);
+        setDemoFingerprint(newFp);
+    }, []);
+
+    useEffect(() => {
+        if (!captchaRequired) return;
+        const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+        if (!siteKey) return;
+        if (typeof window === 'undefined') return;
+
+        if (window.turnstile) return;
+
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, [captchaRequired]);
+
+    useEffect(() => {
+        if (isDemo && uploadedFiles.length > 0) {
+            setUploadedFiles([]);
+        }
+    }, [isDemo, uploadedFiles.length]);
+
+    const openAuthGate = (reason?: string) => {
+        setSignupModalAction(false);
+        setShowAuthGateModal(true);
+        trackEvent('paywall_view', { reason, is_demo: true });
+        trackEvent('signup_view', { source: reason || 'demo', is_demo: true });
+    };
+
     const handleToggleImageGeneration = () => {
+        if (isDemo) {
+            openAuthGate('demo_image_generation');
+            return;
+        }
         if (!limits.allowImageGeneration) {
             setShowUpgradeModal(true);
             setToast({ message: 'Geracao de imagens disponivel apenas no plano Ultimate.', type: 'info' });
@@ -124,6 +215,12 @@ export default function GeneratorClient() {
     };
 
     const handleGenerateClick = () => {
+        if (isDemo) {
+            trackEvent('demo_generate_click', {
+                is_demo: true,
+                char_count: inputText.length,
+            });
+        }
         if (generateImages) {
             setShowImageWarningModal(true);
         } else {
@@ -136,36 +233,82 @@ export default function GeneratorClient() {
         handleGenerate();
     };
 
-    const handleGenerate = async () => {
-        const hasInput = inputText.trim().length > 0;
+    const handleGenerate = async (overrideText?: string, captchaToken?: string) => {
+        const textToUse = typeof overrideText === 'string' ? overrideText : inputText;
+        const hasInput = textToUse.trim().length > 0;
         const hasFiles = uploadedFiles.length > 0;
 
-        if ((!hasInput && !hasFiles) || error || !user) return;
+        if ((!hasInput && !hasFiles) || error || (!user && !isDemo)) return;
 
         setIsGenerating(true);
-        const inputLength = inputText.length;
+        const inputLength = textToUse.length;
 
         try {
-            const formData = new FormData();
-            formData.append('text', inputText);
-            formData.append('language', language);
-            formData.append('difficulty', difficulty);
-            formData.append('cardCount', cardCount.toString());
-            formData.append('generateImages', generateImages ? 'true' : 'false');
-            formData.append('imageCount', imageCount.toString());
-            
-            uploadedFiles.forEach(file => {
-                formData.append('files', file);
-            });
+            const response = isDemo
+                ? await fetch('/api/demo/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-demo-fingerprint': demoFingerprint || '',
+                    },
+                    body: JSON.stringify({
+                        text: textToUse,
+                        language,
+                        difficulty,
+                        captchaToken,
+                    })
+                })
+                : await fetch('/api/generate', {
+                    method: 'POST',
+                    body: (() => {
+                        const formData = new FormData();
+                        formData.append('text', textToUse);
+                        formData.append('language', language);
+                        formData.append('difficulty', difficulty);
+                        formData.append('cardCount', cardCount.toString());
+                        formData.append('generateImages', generateImages ? 'true' : 'false');
+                        formData.append('imageCount', imageCount.toString());
 
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                body: formData
-            });
+                        uploadedFiles.forEach(file => {
+                            formData.append('files', file);
+                        });
+
+                        return formData;
+                    })()
+                });
 
             const data = await response.json();
 
-            if (data.error) throw new Error(data.error);
+            if (!response.ok) {
+                if (response.status === 429 && data?.error) {
+                    setToast({ message: data.error, type: 'info' });
+                    if (isDemo) {
+                        trackEvent('demo_rate_limited', {
+                            is_demo: true,
+                            char_count: inputLength,
+                        });
+                        openAuthGate('demo_rate_limited');
+                    }
+                }
+                if (isDemo && data?.code === 'captcha_required') {
+                    setCaptchaRequired(true);
+                    setPendingDemoText(textToUse);
+                }
+                if (isDemo) {
+                    trackEvent('demo_generate_error', {
+                        is_demo: true,
+                        reason: data?.code || 'unknown',
+                        message: data?.error || 'Erro ao gerar cards',
+                        char_count: inputLength,
+                    });
+                }
+                throw new Error(data.error || 'Erro ao gerar cards');
+            }
+
+            if (isDemo) {
+                setCaptchaRequired(false);
+                setPendingDemoText(null);
+            }
 
             const newCardsFormatted = data.cards.map((c: {
                 question: string;
@@ -219,25 +362,34 @@ export default function GeneratorClient() {
                     type: 'info'
                 });
             }
-            trackEvent('generate_cards_success', {
-                plan: currentPlan,
-                card_count: data.cards?.length,
-                card_count_requested: cardCount,
-                image_cards_requested: generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
+            trackEvent(isDemo ? 'demo_generation_success' : 'generate_cards_success', {
+                plan: isDemo ? 'demo' : currentPlan,
+                cards_generated: data.cards?.length,
+                card_count_requested: isDemo ? limits.maxCardsPerGen : cardCount,
+                image_cards_requested: isDemo ? 0 : generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
                 image_cards_generated: data.imageGeneration?.generated ?? 0,
-                input_chars: inputLength,
+                char_count: inputLength,
                 language,
                 difficulty,
                 has_files: hasFiles,
                 file_count: uploadedFiles.length,
+                is_demo: isDemo,
             });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
-            trackEvent('generate_cards_failed', {
-                plan: currentPlan,
+            if (isDemo) {
+                trackEvent('demo_generate_error', {
+                    is_demo: true,
+                    reason: 'exception',
+                    message: err instanceof Error ? err.message : 'unknown',
+                    char_count: inputLength,
+                });
+            }
+            trackEvent(isDemo ? 'demo_generation_failed' : 'generate_cards_failed', {
+                plan: isDemo ? 'demo' : currentPlan,
                 input_chars: inputLength,
                 error: err instanceof Error ? err.message : 'unknown',
-                image_cards_requested: generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
+                image_cards_requested: isDemo ? 0 : generateImages ? Math.min(cardCount, limits.maxImageCardsPerGen) : 0,
                 language,
                 difficulty,
                 has_files: hasFiles,
@@ -248,7 +400,37 @@ export default function GeneratorClient() {
         }
     };
 
+    const handleCaptchaRetry = () => {
+        const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+        if (!siteKey) {
+            setToast({ message: 'Verificação indisponível. Tente novamente mais tarde.', type: 'info' });
+            return;
+        }
+        if (!captchaContainerRef.current || !window.turnstile) {
+            setToast({ message: 'Carregando verificação, tente novamente.', type: 'info' });
+            return;
+        }
+
+        if (!captchaWidgetIdRef.current) {
+            captchaWidgetIdRef.current = window.turnstile.render(captchaContainerRef.current, {
+                sitekey: siteKey,
+                size: 'invisible',
+                callback: (token: string) => {
+                    setCaptchaRequired(false);
+                    const text = pendingDemoText || inputText;
+                    handleGenerate(text, token);
+                },
+            });
+        }
+
+        window.turnstile.execute(captchaWidgetIdRef.current);
+    };
+
     const handleSaveLibrary = async () => {
+        if (isDemo) {
+            openAuthGate('demo_save');
+            return;
+        }
         if (cards.length === 0 || !user || isSaving) return;
 
         if (!limits.historySaved) {
@@ -285,6 +467,10 @@ export default function GeneratorClient() {
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleFileUpload = () => {
+        if (isDemo) {
+            openAuthGate('demo_file_upload');
+            return;
+        }
         if (!limits.allowFile && !limits.allowOCR) {
             setShowUpgradeModal(true);
             return;
@@ -483,6 +669,10 @@ export default function GeneratorClient() {
     };
 
     const exportToApkg = async () => {
+        if (isDemo) {
+            openAuthGate('demo_export_apkg');
+            return;
+        }
         if (cards.length === 0 || isExportingApkg) return;
         setIsExportingApkg(true);
         try {
@@ -521,6 +711,10 @@ export default function GeneratorClient() {
     };
 
     const exportToAnki = () => {
+        if (isDemo) {
+            openAuthGate('demo_export_txt');
+            return;
+        }
         const content = cards.map(c => `${c.question}\t${c.answer}`).join('\n');
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -531,6 +725,10 @@ export default function GeneratorClient() {
     };
 
     const exportToCsv = () => {
+        if (isDemo) {
+            openAuthGate('demo_export_csv');
+            return;
+        }
         const header = "Question,Answer\n";
         const content = cards.map(c => `"${c.question.replace(/"/g, '""')}","${c.answer.replace(/"/g, '""')}"`).join('\n');
         const blob = new Blob([header + content], { type: 'text/csv;charset=utf-8' });
@@ -541,7 +739,22 @@ export default function GeneratorClient() {
         link.click();
     };
 
-    if (!user) return <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-brand" /></div>;
+    const ENEM_EXAMPLE_TEXT = `No Brasil, o Exame Nacional do Ensino Médio (ENEM) avalia competências e habilidades dos estudantes ao final da educação básica. Além de medir o domínio de conteúdos, o ENEM busca avaliar a capacidade de interpretar textos, resolver problemas e aplicar conhecimentos em situações reais. Isso incentiva um ensino mais contextualizado e interdisciplinar. As provas incluem Linguagens, Ciências Humanas, Ciências da Natureza e Matemática, além da redação, que exige argumentação clara, coesão e proposta de intervenção para um problema social.`;
+
+    const handleGenerateEnemExample = async () => {
+        if (isDemo) {
+            trackEvent('demo_generate_click', {
+                is_demo: true,
+                char_count: ENEM_EXAMPLE_TEXT.length,
+                source: 'enem_example'
+            });
+            setInputText(ENEM_EXAMPLE_TEXT);
+            await handleGenerate(ENEM_EXAMPLE_TEXT);
+            return;
+        }
+        setInputText(ENEM_EXAMPLE_TEXT);
+        await handleGenerate(ENEM_EXAMPLE_TEXT);
+    };
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-20">
@@ -553,9 +766,31 @@ export default function GeneratorClient() {
                 onClose={() => setShowUpgradeModal(false)}
             />
 
+            <AuthGateModal
+                isOpen={showAuthGateModal}
+                onClose={() => setShowAuthGateModal(false)}
+                onSignupClick={() => {
+                    setSignupModalAction(true);
+                    trackEvent('signup_start', { source: 'demo_modal' });
+                }}
+                onLoginClick={() => {
+                    setSignupModalAction(true);
+                }}
+                onDismiss={() => {
+                    if (!signupModalAction) {
+                        trackEvent('signup_abandoned', { source: 'demo_modal' });
+                    }
+                }}
+            />
+
             {/* Coluna Esquerda: Input e Configs */}
             <div className="lg:col-span-5 space-y-6">
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
+                    {isDemo && (
+                        <div className="mb-4 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
+                            Você está no modo demo • 1 geração/dia • 5 cards • 2.000 caracteres
+                        </div>
+                    )}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <div className="bg-brand/10 p-1.5 rounded-sm">
@@ -563,10 +798,10 @@ export default function GeneratorClient() {
                             </div>
                             <h2 className="text-lg font-bold text-foreground">Entrada de Conteúdo</h2>
                         </div>
-                        <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm ${currentPlan === 'free' ? 'bg-gray-100 text-foreground/40' : 'bg-brand text-white'}`}>
-                            Plano {limits.name}
+                        <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm ${isDemo || currentPlan === 'free' ? 'bg-gray-100 text-foreground/40' : 'bg-brand text-white'}`}>
+                            {isDemo ? 'Modo Demo' : `Plano ${limits.name}`}
                         </div>
-                    </div>multiple
+                    </div>
                             
 
                     <div className="relative">
@@ -581,7 +816,14 @@ export default function GeneratorClient() {
                         <textarea
                             id="content-input"
                             value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                if (isDemo && !demoInputStarted && next.trim().length > 0) {
+                                    setDemoInputStarted(true);
+                                    trackEvent('demo_input_started', { is_demo: true, char_count: next.length });
+                                }
+                                setInputText(next);
+                            }}
                             placeholder="Cole seu texto, resumo ou notas aqui..."
                             className={`w-full h-80 p-4 pb-16 bg-gray-50 border rounded-sm focus:ring-1 outline-none transition-all resize-none font-medium text-foreground/80 placeholder:text-foreground/30 ${error ? 'border-red-500 focus:ring-red-500 bg-red-50/10' : 'border-border focus:ring-brand focus:border-brand'
                                 }`}
@@ -626,7 +868,25 @@ export default function GeneratorClient() {
                         <div className="mt-3 flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 p-2 border border-red-100 rounded-sm">
                             <AlertCircle className="h-4 w-4" />
                             {error}
-                            <button onClick={() => setShowUpgradeModal(true)} className="ml-auto underline">Upgrade</button>
+                            <button
+                                onClick={() => (isDemo ? openAuthGate('demo_limit') : setShowUpgradeModal(true))}
+                                className="ml-auto underline"
+                            >
+                                {isDemo ? 'Criar conta' : 'Upgrade'}
+                            </button>
+                        </div>
+                    )}
+
+                    {captchaRequired && (
+                        <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 text-amber-700 text-xs font-bold bg-amber-50 p-2 border border-amber-100 rounded-sm">
+                            <span>Verificação necessária para continuar no demo.</span>
+                            <button
+                                onClick={handleCaptchaRetry}
+                                className="sm:ml-auto underline text-amber-700"
+                            >
+                                Verificar e tentar novamente
+                            </button>
+                            <div ref={captchaContainerRef} className="hidden" />
                         </div>
                     )}
 
@@ -650,7 +910,7 @@ export default function GeneratorClient() {
                         <div>
                             <label htmlFor="card-count" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Qtd. de Cards {limits.customCardCount ? '' : '(Limite)'}</label>
                             <div className="relative text-foreground">
-                                {limits.customCardCount ? (
+                                {limits.customCardCount && !isDemo ? (
                                     <input
                                         id="card-count"
                                         type="number"
@@ -663,7 +923,12 @@ export default function GeneratorClient() {
                                 ) : (
                                     <div className="w-full bg-gray-100 border border-border px-3 py-2 rounded-sm text-sm font-bold text-foreground/40 flex items-center justify-between">
                                         <span>{limits.maxCardsPerGen} cards</span>
-                                        <button onClick={() => setShowUpgradeModal(true)} className="text-[10px] text-brand underline hover:text-brand/80">Upgrade</button>
+                                        <button
+                                            onClick={() => (isDemo ? openAuthGate('demo_card_limit') : setShowUpgradeModal(true))}
+                                            className="text-[10px] text-brand underline hover:text-brand/80"
+                                        >
+                                            {isDemo ? 'Criar conta' : 'Upgrade'}
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -731,6 +996,15 @@ export default function GeneratorClient() {
                             </div>
                         )}
                     </div>
+
+                    <button
+                        onClick={handleGenerateEnemExample}
+                        disabled={isGenerating}
+                        className="w-full mt-3 py-3 rounded-sm font-bold text-foreground transition-all flex items-center justify-center gap-2 border border-border bg-white hover:bg-gray-50"
+                    >
+                        <Sparkles className="h-4 w-4 text-brand" />
+                        Testar com um exemplo pronto (ENEM)
+                    </button>
 
                     <button
                         onClick={handleGenerateClick}
@@ -979,6 +1253,48 @@ export default function GeneratorClient() {
                     </div>
                 )}
             </div>
+
+            {isDemo && cards.length > 0 && (
+                <div className="border border-brand/30 bg-brand/5 rounded-sm p-4 text-sm font-medium text-foreground space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <span>Pronto! Salve, exporte e gere mais flashcards com uma conta grátis.</span>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                                onClick={() => openAuthGate('demo_cta_save_export')}
+                                className="px-4 py-2 rounded-sm bg-brand text-white font-bold text-xs"
+                            >
+                                Salvar e Exportar (Criar conta grátis)
+                            </button>
+                            <button
+                                onClick={() => openAuthGate('demo_cta_more_cards')}
+                                className="px-4 py-2 rounded-sm border border-brand text-brand font-bold text-xs"
+                            >
+                                Gerar mais 10 (crie conta)
+                            </button>
+                        </div>
+                    </div>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-foreground/70">
+                        <li>✅ Exportar Anki (.apkg)</li>
+                        <li>✅ Exportar CSV</li>
+                        <li>✅ Histórico salvo</li>
+                        <li>✅ Mais limites e gerações</li>
+                    </ul>
+                </div>
+            )}
+
+            {isDemo && (
+                <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-border px-4 py-3 shadow-[0_-8px_20px_-12px_rgba(0,0,0,0.2)]">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <span className="text-xs font-bold text-foreground/70">Você está no modo demo. Salve e exporte criando uma conta gratuita.</span>
+                        <button
+                            onClick={() => openAuthGate('demo_sticky_cta')}
+                            className="px-4 py-2 rounded-sm bg-brand text-white font-bold text-xs"
+                        >
+                            Criar conta para exportar
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {toast && (
                 <Toast

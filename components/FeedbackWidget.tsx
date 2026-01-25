@@ -9,6 +9,7 @@ import { trackEvent } from '@/lib/analytics';
 
 export default function FeedbackWidget() {
     const pathname = usePathname();
+    const isAppPage = pathname?.startsWith('/app');
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [email, setEmail] = useState('');
@@ -47,7 +48,7 @@ export default function FeedbackWidget() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="fixed bottom-6 right-6 z-[200] bg-brand text-white px-4 py-2 rounded-sm font-bold text-xs shadow-lg shadow-brand/20 flex items-center gap-2 hover:bg-brand/90 transition-colors"
+                className={`fixed ${isAppPage ? 'bottom-24' : 'bottom-6'} right-6 z-[200] bg-brand text-white px-4 py-2 rounded-sm font-bold text-xs shadow-lg shadow-brand/20 flex items-center gap-2 hover:bg-brand/90 transition-colors`}
             >
                 <MessageSquare className="h-4 w-4" />
                 Feedback

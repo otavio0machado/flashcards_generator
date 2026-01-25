@@ -27,7 +27,7 @@ export default function OpenGraphImage() {
                     letterSpacing: '-0.02em',
                 }}
             >
-                Flashcards Generator
+                Gerar Flashcards automaticamente (Anki)
                 <span
                     style={{
                         display: 'block',
@@ -37,7 +37,7 @@ export default function OpenGraphImage() {
                         opacity: 0.9,
                     }}
                 >
-                    Estude melhor com IA
+                    Cole seu texto e gere cards em segundos
                 </span>
             </div>
         ),

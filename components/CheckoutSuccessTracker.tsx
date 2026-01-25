@@ -10,7 +10,7 @@ export default function CheckoutSuccessTracker() {
     useEffect(() => {
         const success = searchParams.get('success');
         if (success === 'true') {
-            trackEvent('checkout_completed');
+            trackEvent('checkout_success');
         }
     }, [searchParams]);
 

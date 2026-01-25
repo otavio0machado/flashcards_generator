@@ -32,7 +32,7 @@ export default function LoginPage() {
             if (data?.user?.id) {
                 identifyUser(data.user.id, { email });
             }
-            trackEvent('login_completed');
+            trackEvent('login_success');
             router.push('/app');
             router.refresh();
         }
