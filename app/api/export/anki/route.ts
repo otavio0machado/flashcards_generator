@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import AnkiExport from 'anki-apkg-export';
+import { gunzipSync } from 'zlib';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -98,7 +99,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Não autorizado. Faça login para exportar.' }, { status: 401 });
         }
 
-        const body = await req.json().catch(() => ({}));
+        const contentEncoding = req.headers.get('content-encoding') || '';
+        let body: Record<string, unknown> = {};
+        if (contentEncoding.toLowerCase().includes('gzip')) {
+            const raw = Buffer.from(await req.arrayBuffer());
+            const decompressed = gunzipSync(raw);
+            body = JSON.parse(decompressed.toString('utf-8')) as Record<string, unknown>;
+        } else {
+            body = await req.json().catch(() => ({}));
+        }
         const title = typeof body?.title === 'string' ? body.title.trim() : 'Deck';
         const cards = Array.isArray(body?.cards) ? body.cards as ExportCard[] : [];
 

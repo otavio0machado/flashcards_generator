@@ -17,6 +17,7 @@ import {
     X,
     Globe
 } from 'lucide-react';
+import { gzip } from 'pako';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
@@ -823,18 +824,23 @@ export default function GeneratorClient() {
         if (cards.length === 0 || isExportingApkg) return;
         setIsExportingApkg(true);
         try {
+            const payload = {
+                title: deckTitle || `Deck ${new Date().toLocaleDateString()}`,
+                cards: cards.map((card) => ({
+                    question: card.question,
+                    answer: card.answer,
+                    question_image_url: card.question_image_url,
+                    answer_image_url: card.answer_image_url
+                }))
+            };
+            const compressedBody = gzip(JSON.stringify(payload));
             const response = await fetch('/api/export/anki', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: deckTitle || `Deck ${new Date().toLocaleDateString()}`,
-                    cards: cards.map((card) => ({
-                        question: card.question,
-                        answer: card.answer,
-                        question_image_url: card.question_image_url,
-                        answer_image_url: card.answer_image_url
-                    }))
-                })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Encoding': 'gzip'
+                },
+                body: compressedBody
             });
 
             if (!response.ok) {
