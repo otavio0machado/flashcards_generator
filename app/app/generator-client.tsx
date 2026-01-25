@@ -14,7 +14,8 @@ import {
     Check,
     Library,
     GripVertical,
-    X
+    X,
+    Globe
 } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
@@ -60,6 +61,39 @@ const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordproces
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 
+const TEMPLATE_OPTIONS = [
+    {
+        key: 'resumo',
+        label: 'Resumo → Flashcards',
+        placeholder: 'Cole um resumo estruturado para transformar em flashcards.'
+    },
+    {
+        key: 'questoes_erradas',
+        label: 'Questões erradas → Flashcards',
+        placeholder: 'Cole questões que você errou e as respostas corretas.'
+    },
+    {
+        key: 'apostila_topicos',
+        label: 'Apostila → Flashcards (tópicos)',
+        placeholder: 'Cole tópicos e subtópicos de uma apostila.'
+    },
+    {
+        key: 'lei_seca',
+        label: 'Lei seca → Flashcards (artigos)',
+        placeholder: 'Cole artigos/trechos da lei para memorizar.'
+    },
+    {
+        key: 'biologia_processos',
+        label: 'Biologia: processos → cards',
+        placeholder: 'Cole processos biológicos e etapas.'
+    },
+    {
+        key: 'matematica_formula',
+        label: 'Matemática: fórmula → definição + aplicação + pegadinha',
+        placeholder: 'Cole fórmulas e conceitos matemáticos.'
+    },
+];
+
 export default function GeneratorClient() {
     const [inputText, setInputText] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -80,7 +114,16 @@ export default function GeneratorClient() {
     const [cardCount, setCardCount] = useState(5);
     const [language, setLanguage] = useState('Português');
     const [difficulty, setDifficulty] = useState('Intermediário');
+    const [studyLevel, setStudyLevel] = useState<'ENEM' | 'Faculdade' | 'Concurso'>('ENEM');
+    const [studyGoal, setStudyGoal] = useState<'Memorizar' | 'Revisar rápido' | 'Aprofundar'>('Memorizar');
+    const [templateType, setTemplateType] = useState<string>('');
+    const [recentTexts, setRecentTexts] = useState<string[]>([]);
+    const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
+    const [stats, setStats] = useState<{ cardsWeek: number; decksToday: number } | null>(null);
     const [isExportingApkg, setIsExportingApkg] = useState(false);
+    const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
+    const [savedDeckPublic, setSavedDeckPublic] = useState(false);
+    const [publishingPublic, setPublishingPublic] = useState(false);
     const [generateImages, setGenerateImages] = useState(false);
     const [imageCount, setImageCount] = useState(1);
     const [showImageWarningModal, setShowImageWarningModal] = useState(false);
@@ -136,6 +179,10 @@ export default function GeneratorClient() {
 
     // Check character limits on input
     useEffect(() => {
+        if (isDemo && inputText.trim().length > 0 && inputText.trim().length < 200) {
+            setError('Cole um conteúdo maior (mín. 200 caracteres).');
+            return;
+        }
         if (inputText.length > limits.maxChars) {
             setError(`Limite do plano ${limits.name} atingido (${limits.maxChars} caracteres).`);
         } else {
@@ -167,6 +214,43 @@ export default function GeneratorClient() {
         const newFp = crypto.randomUUID();
         window.localStorage.setItem('demo_fingerprint', newFp);
         setDemoFingerprint(newFp);
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedRecent = window.localStorage.getItem('recent_texts');
+        if (storedRecent) {
+            try {
+                const parsed = JSON.parse(storedRecent);
+                if (Array.isArray(parsed)) {
+                    setRecentTexts(parsed.slice(0, 3));
+                }
+            } catch {
+                setRecentTexts([]);
+            }
+        }
+        const storedIntent = window.localStorage.getItem('demo_intent');
+        if (storedIntent) {
+            setSelectedIntent(storedIntent);
+        }
+    }, []);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) return;
+                const data = await response.json();
+                setStats({
+                    cardsWeek: Number(data?.cardsWeek || 0),
+                    decksToday: Number(data?.decksToday || 0)
+                });
+            } catch {
+                setStats(null);
+            }
+        };
+
+        fetchStats();
     }, []);
 
     useEffect(() => {
@@ -233,6 +317,31 @@ export default function GeneratorClient() {
         handleGenerate();
     };
 
+    const handleTemplateSelect = (key: string, placeholder: string) => {
+        setTemplateType(key);
+        if (!inputText.trim()) {
+            setInputText(placeholder);
+        }
+        trackEvent('template_selected', { template: key, is_demo: isDemo });
+    };
+
+    const storeRecentText = (text: string) => {
+        if (typeof window === 'undefined') return;
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        const updated = [trimmed, ...recentTexts.filter((item) => item !== trimmed)].slice(0, 3);
+        setRecentTexts(updated);
+        window.localStorage.setItem('recent_texts', JSON.stringify(updated));
+    };
+
+    const handleIntentSelect = (intent: string) => {
+        setSelectedIntent(intent);
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('demo_intent', intent);
+        }
+        trackEvent('demo_intent_selected', { intent, is_demo: true });
+    };
+
     const handleGenerate = async (overrideText?: string, captchaToken?: string) => {
         const textToUse = typeof overrideText === 'string' ? overrideText : inputText;
         const hasInput = textToUse.trim().length > 0;
@@ -255,6 +364,9 @@ export default function GeneratorClient() {
                         text: textToUse,
                         language,
                         difficulty,
+                        studyLevel,
+                        studyGoal,
+                        templateType,
                         captchaToken,
                     })
                 })
@@ -265,6 +377,9 @@ export default function GeneratorClient() {
                         formData.append('text', textToUse);
                         formData.append('language', language);
                         formData.append('difficulty', difficulty);
+                        formData.append('studyLevel', studyLevel);
+                        formData.append('studyGoal', studyGoal);
+                        formData.append('templateType', templateType);
                         formData.append('cardCount', cardCount.toString());
                         formData.append('generateImages', generateImages ? 'true' : 'false');
                         formData.append('imageCount', imageCount.toString());
@@ -356,6 +471,8 @@ export default function GeneratorClient() {
             }
             setInputText('');
             setUploadedFiles([]);
+            storeRecentText(textToUse);
+            setTemplateType('');
             if (data.imageGeneration?.failed) {
                 setToast({
                     message: `Algumas imagens nao puderam ser geradas (${data.imageGeneration.failed}).`,
@@ -449,10 +566,12 @@ export default function GeneratorClient() {
             }));
             const tags = parseTags(deckTagsInput);
             const description = deckDescription.trim();
-            await deckService.saveDeck(user.id, title, formattedCards, {
+            const savedDeck = await deckService.saveDeck(user.id, title, formattedCards, {
                 tags,
                 description: description || undefined
             });
+            setSavedDeckId(savedDeck?.id || null);
+            setSavedDeckPublic(false);
             setSaveSuccess(true);
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -461,6 +580,34 @@ export default function GeneratorClient() {
             setToast({ message: 'Erro ao salvar baralho', type: 'error' });
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handlePublicLink = async () => {
+        if (isDemo) {
+            openAuthGate('demo_public_link');
+            return;
+        }
+        if (!savedDeckId || publishingPublic) return;
+        setPublishingPublic(true);
+        try {
+            if (!savedDeckPublic) {
+                const { error } = await supabase
+                    .from('decks')
+                    .update({ is_public: true, published_at: new Date().toISOString() })
+                    .eq('id', savedDeckId);
+                if (error) throw error;
+                setSavedDeckPublic(true);
+            }
+
+            const publicUrl = `${window.location.origin}/marketplace/${savedDeckId}`;
+            await navigator.clipboard.writeText(publicUrl);
+            setToast({ message: 'Link público copiado!', type: 'success' });
+        } catch (err) {
+            console.error(err);
+            setToast({ message: 'Erro ao gerar link público.', type: 'error' });
+        } finally {
+            setPublishingPublic(false);
         }
     };
 
@@ -739,9 +886,79 @@ export default function GeneratorClient() {
         link.click();
     };
 
+    const exportToPdf = () => {
+        if (isDemo) {
+            openAuthGate('demo_export_pdf');
+            return;
+        }
+        if (cards.length === 0) return;
+        const win = window.open('', '_blank');
+        if (!win) return;
+        const title = deckTitle || 'Flashcards';
+        const html = `
+            <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 24px; }
+                        h1 { font-size: 22px; margin-bottom: 16px; }
+                        .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 12px; border-radius: 6px; }
+                        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #999; }
+                        .value { font-size: 14px; font-weight: 600; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${title}</h1>
+                    ${cards.map((card, index) => `
+                        <div class="card">
+                            <div class="label">Pergunta #${index + 1}</div>
+                            <div class="value">${card.question}</div>
+                            <div class="label" style="margin-top:8px;">Resposta</div>
+                            <div class="value">${card.answer}</div>
+                        </div>
+                    `).join('')}
+                </body>
+            </html>
+        `;
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        win.print();
+    };
+
+    const copyToObsidian = async () => {
+        if (isDemo) {
+            openAuthGate('demo_export_obsidian');
+            return;
+        }
+        if (cards.length === 0) return;
+        const title = deckTitle || 'Flashcards';
+        const md = [
+            '---',
+            `title: "${title.replace(/"/g, '\\"')}"`,
+            `tags: [flashcards]`,
+            '---',
+            '',
+            ...cards.flatMap((card) => [
+                `## ${card.question}`,
+                card.answer,
+                ''
+            ])
+        ].join('\n');
+
+        try {
+            await navigator.clipboard.writeText(md);
+            setToast({ message: 'Copiado no formato Obsidian!', type: 'success' });
+        } catch {
+            setToast({ message: 'Falha ao copiar. Tente novamente.', type: 'error' });
+        }
+    };
+
     const ENEM_EXAMPLE_TEXT = `No Brasil, o Exame Nacional do Ensino Médio (ENEM) avalia competências e habilidades dos estudantes ao final da educação básica. Além de medir o domínio de conteúdos, o ENEM busca avaliar a capacidade de interpretar textos, resolver problemas e aplicar conhecimentos em situações reais. Isso incentiva um ensino mais contextualizado e interdisciplinar. As provas incluem Linguagens, Ciências Humanas, Ciências da Natureza e Matemática, além da redação, que exige argumentação clara, coesão e proposta de intervenção para um problema social.`;
 
     const handleGenerateEnemExample = async () => {
+        setStudyLevel('ENEM');
+        setStudyGoal('Memorizar');
         if (isDemo) {
             trackEvent('demo_generate_click', {
                 is_demo: true,
@@ -785,6 +1002,19 @@ export default function GeneratorClient() {
 
             {/* Coluna Esquerda: Input e Configs */}
             <div className="lg:col-span-5 space-y-6">
+                {stats && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
+                            {stats.cardsWeek.toLocaleString('pt-BR')} flashcards gerados esta semana
+                        </div>
+                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
+                            Tempo médio para gerar: 18s
+                        </div>
+                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
+                            {stats.decksToday.toLocaleString('pt-BR')} decks criados hoje
+                        </div>
+                    </div>
+                )}
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
                     {isDemo && (
                         <div className="mb-4 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
@@ -804,7 +1034,43 @@ export default function GeneratorClient() {
                     </div>
                             
 
-                    <div className="relative">
+                    <div className="space-y-4">
+                        <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-2">Templates rápidos</div>
+                            <div className="flex flex-wrap gap-2">
+                                {TEMPLATE_OPTIONS.map((template) => (
+                                    <button
+                                        key={template.key}
+                                        type="button"
+                                        onClick={() => handleTemplateSelect(template.key, template.placeholder)}
+                                        className={`px-3 py-1.5 rounded-sm text-[11px] font-bold border transition-all ${templateType === template.key ? 'bg-brand text-white border-brand' : 'bg-white border-border text-foreground/60 hover:border-brand/40'}`}
+                                    >
+                                        {template.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {recentTexts.length > 0 && (
+                            <div>
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-2">Conteúdos recentes</div>
+                                <div className="flex flex-col gap-2">
+                                    {recentTexts.map((item, index) => (
+                                        <button
+                                            key={`${item.slice(0, 20)}-${index}`}
+                                            type="button"
+                                            onClick={() => setInputText(item)}
+                                            className="text-left text-[11px] font-bold text-foreground/60 bg-gray-50 border border-border rounded-sm px-3 py-2 hover:border-brand/40"
+                                        >
+                                            {item.slice(0, 120)}{item.length > 120 ? '...' : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="relative mt-4">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -891,6 +1157,38 @@ export default function GeneratorClient() {
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                        <div>
+                            <label htmlFor="study-level" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível</label>
+                            <div className="relative text-foreground">
+                                <select
+                                    id="study-level"
+                                    value={studyLevel}
+                                    onChange={(event) => setStudyLevel(event.target.value as typeof studyLevel)}
+                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                >
+                                    <option value="ENEM">ENEM</option>
+                                    <option value="Faculdade">Faculdade</option>
+                                    <option value="Concurso">Concurso</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="study-goal" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Objetivo</label>
+                            <div className="relative text-foreground">
+                                <select
+                                    id="study-goal"
+                                    value={studyGoal}
+                                    onChange={(event) => setStudyGoal(event.target.value as typeof studyGoal)}
+                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                >
+                                    <option value="Memorizar">Memorizar</option>
+                                    <option value="Revisar rápido">Revisar rápido</option>
+                                    <option value="Aprofundar">Aprofundar</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            </div>
+                        </div>
                         <div>
                             <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
                             <div className="relative text-foreground">
@@ -1022,7 +1320,7 @@ export default function GeneratorClient() {
                         ) : (
                             <>
                                 <Sparkles className="h-5 w-5" />
-                                Gerar Flashcards
+                                Gerar Flashcards Bons
                             </>
                         )}
                     </button>
@@ -1086,6 +1384,30 @@ export default function GeneratorClient() {
                                 <Download className="h-4 w-4 text-brand" />
                                 CSV
                             </button>
+                            <button
+                                onClick={exportToPdf}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
+                            >
+                                <Download className="h-4 w-4 text-brand" />
+                                PDF
+                            </button>
+                            <button
+                                onClick={copyToObsidian}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-border px-4 py-2 rounded-sm text-xs font-bold hover:bg-gray-50 hover:border-brand/40 transition-all text-foreground shadow-sm hover:shadow-md"
+                            >
+                                <Download className="h-4 w-4 text-brand" />
+                                Obsidian
+                            </button>
+                            {savedDeckId && (
+                                <button
+                                    onClick={handlePublicLink}
+                                    disabled={publishingPublic}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand text-white border border-brand px-4 py-2 rounded-sm text-xs font-bold hover:bg-brand/90 transition-all shadow-sm disabled:opacity-60"
+                                >
+                                    {publishingPublic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                                    Gerar link público
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -1279,6 +1601,21 @@ export default function GeneratorClient() {
                         <li>✅ Histórico salvo</li>
                         <li>✅ Mais limites e gerações</li>
                     </ul>
+                    <div className="border-t border-brand/20 pt-3">
+                        <div className="text-xs font-bold text-foreground/70 mb-2">Para que você está estudando?</div>
+                        <div className="flex flex-wrap gap-2">
+                            {['ENEM', 'Concurso', 'Faculdade', 'Idiomas', 'Outros'].map((intent) => (
+                                <button
+                                    key={intent}
+                                    type="button"
+                                    onClick={() => handleIntentSelect(intent)}
+                                    className={`px-3 py-1.5 rounded-sm text-[11px] font-bold border transition-all ${selectedIntent === intent ? 'bg-brand text-white border-brand' : 'bg-white border-border text-foreground/60 hover:border-brand/40'}`}
+                                >
+                                    {intent}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
 

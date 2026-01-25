@@ -12,14 +12,16 @@ interface CheckoutButtonProps {
     planName: string;
     className?: string;
     children: React.ReactNode;
+    onClick?: () => void;
 }
 
-export default function CheckoutButton({ priceId, planName, className, children }: CheckoutButtonProps) {
+export default function CheckoutButton({ priceId, planName, className, children, onClick }: CheckoutButtonProps) {
     const [loading, setLoading] = useState(false);
 
     const handleCheckout = async () => {
         try {
             setLoading(true);
+            onClick?.();
             trackEvent('upgrade_click', { plan: planName, price_id: priceId });
             trackEvent('checkout_start', { plan: planName, price_id: priceId });
 
