@@ -36,7 +36,7 @@ const isDocxMimeType = (mimeType: string) => mimeType.toLowerCase() === DOCX_MIM
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer), disableWorker: true });
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) } as any);
     const pdf = await loadingTask.promise;
     const pages: string[] = [];
 
