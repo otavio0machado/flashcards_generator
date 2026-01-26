@@ -106,21 +106,28 @@ export const aiService = {
         const responseSchema = {
             name: 'flashcards',
             schema: {
-                type: 'array',
-                items: {
-                    type: 'object',
-                    properties: {
-                        question: { type: 'string' },
-                        answer: { type: 'string' },
-                        tags: { type: 'array', items: { type: 'string' } },
-                        user_image_index: { type: 'number' },
-                        user_image_section: { type: 'string', enum: ['question', 'answer'] },
+                type: 'object',
+                properties: {
+                    cards: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                question: { type: 'string' },
+                                answer: { type: 'string' },
+                                tags: { type: 'array', items: { type: 'string' } },
+                                user_image_index: { type: 'number' },
+                                user_image_section: { type: 'string', enum: ['question', 'answer'] },
+                            },
+                            required: ['question', 'answer'],
+                            additionalProperties: false,
+                        },
                     },
-                    required: ['question', 'answer'],
-                    additionalProperties: false,
                 },
+                required: ['cards'],
+                additionalProperties: false,
             },
-            strict: true,
+            strict: false,
         };
 
         const response = await this.fetchWithRetry(
@@ -162,10 +169,11 @@ export const aiService = {
 
         try {
             const rawContent = data.choices?.[0]?.message?.content;
-            const parsedCards = JSON.parse(rawContent || '[]');
+            const parsed = JSON.parse(rawContent || '{}');
+            const parsedCards = Array.isArray(parsed) ? parsed : parsed?.cards;
 
             if (!Array.isArray(parsedCards)) {
-                console.warn('AI returned non-array response');
+                console.warn('AI returned invalid response');
                 return [];
             }
 

@@ -93,15 +93,17 @@ export const promptService = {
             12. ${enemInstructions}
             13. ${tagInstructions}
             14. Retorne APENAS um JSON puro no seguinte formato:
-               [
-                   {
-                       "question": "string",
-                       "answer": "string",
-                       "tags": ["tag1"], (opcional)
-                       "user_image_index": number (opcional),
-                       "user_image_section": "question" | "answer" (opcional)
-                   }
-               ]
+               {
+                   "cards": [
+                       {
+                           "question": "string",
+                           "answer": "string",
+                           "tags": ["tag1"], (opcional)
+                           "user_image_index": number (opcional),
+                           "user_image_section": "question" | "answer" (opcional)
+                       }
+                   ]
+               }
 
             TEXTO (se houver):
             <user_content>

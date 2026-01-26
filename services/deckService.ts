@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 
 export interface Card {
@@ -91,8 +92,8 @@ export const deckService = {
      * Verifica o limite do usuário baseado no plano e uso diário.
      * Auto-reseta o contador se for um novo dia.
      */
-    async checkUserLimit(userId: string) {
-        const { profile, plan, limits } = await this.getUserProfileAndPlan(userId);
+    async checkUserLimit(userId: string, client?: SupabaseClient) {
+        const { profile, plan, limits } = await this.getUserProfileAndPlan(userId, client);
 
         const today = new Date().toISOString().split('T')[0];
         let currentUsage = profile.daily_generations;
@@ -114,8 +115,9 @@ export const deckService = {
     /**
      * Helper to get user profile and plan limits
      */
-    async getUserProfileAndPlan(userId: string) {
-        const { data: profile, error } = await supabase
+    async getUserProfileAndPlan(userId: string, client?: SupabaseClient) {
+        const db = client ?? supabase;
+        const { data: profile, error } = await db
             .from('profiles')
             .select('plan_tier, daily_generations, last_reset_date')
             .eq('id', userId)
@@ -134,8 +136,8 @@ export const deckService = {
     /**
      * Asserts that the user has not exceeded their daily generation limit
      */
-    async assertUserCanGenerate(userId: string) {
-        const { currentUsage, limit, planName } = await this.checkUserLimit(userId);
+    async assertUserCanGenerate(userId: string, client?: SupabaseClient) {
+        const { currentUsage, limit, planName } = await this.checkUserLimit(userId, client);
 
         if (currentUsage >= limit) {
             throw new Error(`Você atingiu o limite de ${limit} gerações diárias do plano ${planName}.`);
@@ -147,8 +149,9 @@ export const deckService = {
     /**
      * Incrementa o uso diário usando a função RPC atômica criada no SQL.
      */
-    async incrementUsage(userId: string) {
-        const { error } = await supabase.rpc('increment_daily_usage', { p_user_id: userId });
+    async incrementUsage(userId: string, client?: SupabaseClient) {
+        const db = client ?? supabase;
+        const { error } = await db.rpc('increment_daily_usage', { p_user_id: userId });
         if (error) {
             console.error('[DeckService] Failed to increment usage:', error);
             // Non-blocking error for the user flow, but strictly should be logged

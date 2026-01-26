@@ -143,7 +143,7 @@ export async function POST(req: Request) {
         const baseText = sanitizeInput(options.text || '');
 
         // 5. Check Limits & Plan
-        const { limits, currentUsage, planTier } = await deckService.checkUserLimit(user.id);
+        const { limits, currentUsage, planTier } = await deckService.checkUserLimit(user.id, supabaseAdmin);
 
         if (currentUsage >= limits.dailyGens) {
             return NextResponse.json({ error: `Limite diário atingido (${limits.dailyGens}).` }, { status: 403 });
@@ -245,7 +245,7 @@ export async function POST(req: Request) {
         }
 
         // 10. Update Usage
-        await deckService.incrementUsage(user.id);
+        await deckService.incrementUsage(user.id, supabaseAdmin);
 
         const notification = planTier === 'free'
             ? 'Para salvar seu baralho e ter acesso ilimitado às gerações diárias, faça upgrade para o Pro.'
