@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
-import { PostHog } from 'posthog-node';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,23 +45,28 @@ export async function POST(req: Request) {
                     if (error) throw error;
 
                     if (event.type === 'checkout.session.completed') {
-                        const client = new PostHog(
-                            process.env.NEXT_PUBLIC_POSTHOG_KEY!,
-                            { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com' }
-                        );
+                        try {
+                            const { PostHog } = await import('posthog-node');
+                            const client = new PostHog(
+                                process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+                                { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com' }
+                            );
 
-                        client.capture({
-                            distinctId: userId,
-                            event: 'purchase_completed',
-                            properties: {
-                                plan: planName,
-                                price: (session.amount_total || 0) / 100,
-                                currency: session.currency,
-                                billing_cycle: 'monthly', // Assuming monthly for now based on context
-                                user_id: userId
-                            }
-                        });
-                        await client.shutdown();
+                            client.capture({
+                                distinctId: userId,
+                                event: 'purchase_completed',
+                                properties: {
+                                    plan: planName,
+                                    price: (session.amount_total || 0) / 100,
+                                    currency: session.currency,
+                                    billing_cycle: 'monthly',
+                                    user_id: userId
+                                }
+                            });
+                            await client.shutdown();
+                        } catch (err) {
+                            console.warn('PostHog not available:', err);
+                        }
                     }
                 }
                 break;
