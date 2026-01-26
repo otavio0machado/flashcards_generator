@@ -1,10 +1,12 @@
 import Stripe from 'stripe';
+import { getRequiredEnv } from './env-validation';
 
 let stripeInstance: Stripe | null = null;
 
 export const getStripe = (): Stripe => {
     if (!stripeInstance) {
-        stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+        const secretKey = getRequiredEnv('STRIPE_SECRET_KEY');
+        stripeInstance = new Stripe(secretKey, {
             typescript: true,
         });
     }

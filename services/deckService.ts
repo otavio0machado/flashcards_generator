@@ -6,6 +6,7 @@ export interface Card {
     front: string;
     back: string;
     order?: number;
+    tags?: string[];
     image_url?: string | null;
     question_image_url?: string | null;
     answer_image_url?: string | null;
@@ -72,7 +73,7 @@ export const deckService = {
             deck_id: deck.id,
             front: card.front,
             back: card.back,
-            tags: (card as any).tags || [], // Support for card-level tags
+            tags: card.tags || [],
             order: card.order ?? index,
             image_url: card.image_url ?? null,
             question_image_url: card.question_image_url ?? null,

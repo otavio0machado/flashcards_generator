@@ -104,15 +104,21 @@ export default function ExportModal({ isOpen, onClose, deck }: ExportModalProps)
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-modal-title"
+        >
             <div className="bg-white rounded-sm shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between p-6 border-b border-border">
-                    <h3 className="text-xl font-bold tracking-tight">Exportar Baralho</h3>
+                    <h3 id="export-modal-title" className="text-xl font-bold tracking-tight">Exportar Baralho</h3>
                     <button
                         onClick={onClose}
                         className="text-foreground/40 hover:text-foreground transition-colors"
+                        aria-label="Fechar modal"
                     >
-                        <X className="h-5 w-5" />
+                        <X className="h-5 w-5" aria-hidden="true" />
                     </button>
                 </div>
 

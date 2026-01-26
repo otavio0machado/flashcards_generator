@@ -6,12 +6,28 @@ import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
 export async function POST(req: Request) {
+    // Validação de variáveis de ambiente
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+        console.error('[Webhook/Stripe] STRIPE_WEBHOOK_SECRET não configurado');
+        return NextResponse.json(
+            { error: 'Webhook não configurado corretamente' },
+            { status: 500 }
+        );
+    }
+
     try {
         const body = await req.text();
-        const signature = (await headers()).get('stripe-signature')!;
+        const signature = (await headers()).get('stripe-signature');
+
+        if (!signature) {
+            console.error('[Webhook/Stripe] Assinatura ausente no header');
+            return NextResponse.json(
+                { error: 'Assinatura ausente' },
+                { status: 400 }
+            );
+        }
 
         let event: Stripe.Event;
 

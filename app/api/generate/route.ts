@@ -13,6 +13,7 @@ import { imageService } from '@/services/imageService';
 import { GenerateOptionsSchema } from '@/lib/validators';
 import { sanitizeInput } from '@/lib/utils';
 import { PLAN_LIMITS } from '@/constants/pricing';
+import { ErrorCodes } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ const isDocxMimeType = (mimeType: string) => mimeType.toLowerCase() === DOCX_MIM
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) } as any);
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
     const pdf = await loadingTask.promise;
     const pages: string[] = [];
 
@@ -44,7 +45,13 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
         const pageText = content.items
-            .map((item: any) => (typeof item?.str === 'string' ? item.str : ''))
+            .map((item) => {
+                // TextItem has 'str', TextMarkedContent does not
+                if ('str' in item && typeof item.str === 'string') {
+                    return item.str;
+                }
+                return '';
+            })
             .filter(Boolean)
             .join(' ');
         if (pageText.trim()) pages.push(pageText);
@@ -61,13 +68,20 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
     return (result?.value || '').trim();
 }
 
-async function ensureUserProfile(userId: string) {
+async function ensureUserProfile(userId: string): Promise<boolean> {
     try {
-        await supabaseAdmin
+        const { error } = await supabaseAdmin
             .from('profiles')
             .upsert({ id: userId, plan_tier: 'free' }, { onConflict: 'id', ignoreDuplicates: true });
+
+        if (error) {
+            console.error('[API/Generate] Erro ao garantir perfil:', error);
+            return false;
+        }
+        return true;
     } catch (error) {
-        console.error('[API/Generate] Failed to ensure profile:', error);
+        console.error('[API/Generate] Exceção ao garantir perfil:', error);
+        return false;
     }
 }
 
@@ -89,7 +103,7 @@ export async function POST(req: Request) {
         // 1. Auth Check
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
-            return NextResponse.json({ error: 'Não autorizado. Por favor, faça login.' }, { status: 401 });
+            return NextResponse.json({ error: 'Não autorizado. Por favor, faça login.', code: ErrorCodes.AUTH_REQUIRED }, { status: 401 });
         }
 
         // 1.1 Ensure Profile Exists (legacy users / missing trigger)
@@ -99,7 +113,7 @@ export async function POST(req: Request) {
         if (ratelimit) {
             const { success, limit, reset, remaining } = await ratelimit.limit(user.id);
             if (!success) {
-                return NextResponse.json({ error: 'Muitas requisições. Aguarde um momento.' }, {
+                return NextResponse.json({ error: 'Muitas requisições. Aguarde um momento.', code: ErrorCodes.RATE_LIMIT_EXCEEDED }, {
                     status: 429, headers: {
                         'X-RateLimit-Limit': limit.toString(),
                         'X-RateLimit-Remaining': remaining.toString(),
@@ -138,7 +152,7 @@ export async function POST(req: Request) {
         const validation = GenerateOptionsSchema.safeParse(rawBody);
 
         if (!validation.success) {
-            return NextResponse.json({ error: 'Dados inválidos.', details: validation.error.format() }, { status: 400 });
+            return NextResponse.json({ error: 'Dados inválidos.', code: ErrorCodes.VALIDATION_ERROR, details: validation.error.format() }, { status: 400 });
         }
 
         const options = validation.data;
@@ -148,25 +162,25 @@ export async function POST(req: Request) {
         const { limits, currentUsage, planTier } = await deckService.checkUserLimit(user.id, supabaseAdmin);
 
         if (currentUsage >= limits.dailyGens) {
-            return NextResponse.json({ error: `Limite diário atingido (${limits.dailyGens}).` }, { status: 403 });
+            return NextResponse.json({ error: `Limite diário atingido (${limits.dailyGens}).`, code: ErrorCodes.PLAN_LIMIT_EXCEEDED }, { status: 403 });
         }
 
         if (options.generateImages && !limits.allowImageGeneration) {
-            return NextResponse.json({ error: 'Seu plano não permite geração de imagens.' }, { status: 403 });
+            return NextResponse.json({ error: 'Seu plano não permite geração de imagens.', code: ErrorCodes.UPGRADE_REQUIRED }, { status: 403 });
         }
 
         if (options.enemMode && !limits.allowEnemMode) {
-            return NextResponse.json({ error: 'Seu plano não permite o Modo ENEM. Faça upgrade para Pro ou Ultimate.' }, { status: 403 });
+            return NextResponse.json({ error: 'Seu plano não permite o Modo ENEM. Faça upgrade para Pro ou Ultimate.', code: ErrorCodes.UPGRADE_REQUIRED }, { status: 403 });
         }
 
         if (options.autoTags && !limits.allowFolders) { // using allowFolders as proxy to Pro features
-            return NextResponse.json({ error: 'Seu plano não permite tags automáticas. Faça upgrade para Pro ou Ultimate.' }, { status: 403 });
+            return NextResponse.json({ error: 'Seu plano não permite tags automáticas. Faça upgrade para Pro ou Ultimate.', code: ErrorCodes.UPGRADE_REQUIRED }, { status: 403 });
         }
 
         // 6. Process Attachments
         const totalFiles = files.length;
         if (totalFiles > MAX_UPLOAD_FILES) {
-            return NextResponse.json({ error: `Máximo de ${MAX_UPLOAD_FILES} arquivos permitidos.` }, { status: 400 });
+            return NextResponse.json({ error: `Máximo de ${MAX_UPLOAD_FILES} arquivos permitidos.`, code: ErrorCodes.VALIDATION_ERROR }, { status: 400 });
         }
 
         const attachmentParts: { inline_data: { mime_type: string; data: string } }[] = [];
@@ -174,17 +188,17 @@ export async function POST(req: Request) {
 
         for (const file of files) {
             if (file.size > MAX_UPLOAD_BYTES) {
-                return NextResponse.json({ error: 'Arquivo muito grande (max 20MB).' }, { status: 413 });
+                return NextResponse.json({ error: 'Arquivo muito grande (max 20MB).', code: ErrorCodes.VALIDATION_ERROR }, { status: 413 });
             }
 
             const mimeType = file.type.toLowerCase();
             if (!isImageMimeType(mimeType) && !isPdfMimeType(mimeType) && !isDocxMimeType(mimeType)) {
-                return NextResponse.json({ error: 'Formato não suportado (apenas PDF, DOCX e Imagens).' }, { status: 400 });
+                return NextResponse.json({ error: 'Formato não suportado (apenas PDF, DOCX e Imagens).', code: ErrorCodes.VALIDATION_ERROR }, { status: 400 });
             }
 
-            if (isImageMimeType(mimeType) && !limits.allowOCR) return NextResponse.json({ error: 'Plano não permite OCR.' }, { status: 403 });
+            if (isImageMimeType(mimeType) && !limits.allowOCR) return NextResponse.json({ error: 'Plano não permite OCR.', code: ErrorCodes.UPGRADE_REQUIRED }, { status: 403 });
             if ((isPdfMimeType(mimeType) || isDocxMimeType(mimeType)) && !limits.allowFile) {
-                return NextResponse.json({ error: 'Plano não permite upload de arquivos.' }, { status: 403 });
+                return NextResponse.json({ error: 'Plano não permite upload de arquivos.', code: ErrorCodes.UPGRADE_REQUIRED }, { status: 403 });
             }
 
             const buffer = Buffer.from(await file.arrayBuffer());
@@ -207,11 +221,11 @@ export async function POST(req: Request) {
         const combinedText = [baseText, ...extractedTextParts].filter(Boolean).join('\n\n').trim();
 
         if (!combinedText && attachmentParts.length === 0) {
-            return NextResponse.json({ error: 'Forneça texto ou anexos.' }, { status: 400 });
+            return NextResponse.json({ error: 'Forneça texto ou anexos.', code: ErrorCodes.INVALID_INPUT }, { status: 400 });
         }
 
         if (combinedText.length > limits.maxChars) {
-            return NextResponse.json({ error: `Texto excede o limite do plano (${limits.maxChars} caracteres).` }, { status: 403 });
+            return NextResponse.json({ error: `Texto excede o limite do plano (${limits.maxChars} caracteres).`, code: ErrorCodes.PLAN_LIMIT_EXCEEDED }, { status: 403 });
         }
 
         // 7. Logic: Card Count Calculation
@@ -261,13 +275,14 @@ export async function POST(req: Request) {
             notification, // Return notification for client to display
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         console.error('[API/Generate] Error:', error);
 
-        if (error.message && (error.message.includes('AI Service') || error.message.includes('fetch'))) {
-            return NextResponse.json({ error: 'Erro de comunicação com o serviço de IA. Tente novamente.' }, { status: 502 });
+        if (errorMessage.includes('AI Service') || errorMessage.includes('fetch')) {
+            return NextResponse.json({ error: 'Erro de comunicação com o serviço de IA. Tente novamente.', code: ErrorCodes.SERVICE_UNAVAILABLE }, { status: 502 });
         }
 
-        return NextResponse.json({ error: error.message || 'Erro interno no servidor.' }, { status: 500 });
+        return NextResponse.json({ error: errorMessage || 'Erro interno no servidor.', code: ErrorCodes.INTERNAL_ERROR }, { status: 500 });
     }
 }

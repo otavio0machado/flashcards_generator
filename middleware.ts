@@ -2,6 +2,18 @@ import { createServerClient, type CookieOptions } from '@supabase/auth-helpers-n
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(req: NextRequest) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    // Validação de variáveis de ambiente
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('[Middleware] Variáveis de ambiente Supabase não configuradas');
+        return NextResponse.json(
+            { error: 'Configuração do servidor incompleta' },
+            { status: 500 }
+        );
+    }
+
     let res = NextResponse.next({
         request: {
             headers: req.headers,
@@ -9,8 +21,8 @@ export async function middleware(req: NextRequest) {
     });
 
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        supabaseUrl,
+        supabaseAnonKey,
         {
             cookies: {
                 get(name: string) {

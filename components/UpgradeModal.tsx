@@ -15,21 +15,31 @@ export default function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upgrade-modal-title"
+        >
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={onClose}
+                aria-hidden="true"
+            ></div>
             <div className="bg-white border-2 border-brand w-full max-w-md p-8 rounded-sm relative z-10 shadow-2xl animate-in fade-in zoom-in duration-200">
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-foreground/20 hover:text-foreground transition-colors"
+                    aria-label="Fechar modal"
                 >
-                    <X className="h-5 w-5" />
+                    <X className="h-5 w-5" aria-hidden="true" />
                 </button>
 
-                <div className="bg-brand/10 w-16 h-16 rounded-full flex items-center justify-center mb-6 mx-auto">
+                <div className="bg-brand/10 w-16 h-16 rounded-full flex items-center justify-center mb-6 mx-auto" aria-hidden="true">
                     <Zap className="h-8 w-8 text-brand" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Acelere seus estudos com o Plano Pro</h2>
+                <h2 id="upgrade-modal-title" className="text-2xl font-bold text-center mb-2 text-foreground">Acelere seus estudos com o Plano Pro</h2>
                 <div className="space-y-4 mb-8">
                     <ul className="space-y-2 text-sm text-foreground/80 font-medium bg-gray-50 p-4 rounded-sm border border-border">
                         <li className="flex items-center gap-2">

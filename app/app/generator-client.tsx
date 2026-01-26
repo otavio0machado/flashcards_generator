@@ -139,6 +139,21 @@ export default function GeneratorClient() {
     const [signupModalAction, setSignupModalAction] = useState(false);
     const captchaContainerRef = useRef<HTMLDivElement | null>(null);
     const captchaWidgetIdRef = useRef<string | null>(null);
+    const objectUrlsRef = useRef<Set<string>>(new Set());
+
+    // Cleanup object URLs when component unmounts
+    useEffect(() => {
+        return () => {
+            objectUrlsRef.current.forEach(url => {
+                try {
+                    URL.revokeObjectURL(url);
+                } catch {
+                    // URL already revoked or invalid
+                }
+            });
+            objectUrlsRef.current.clear();
+        };
+    }, []);
 
     // New Features States
     const [enemMode, setEnemMode] = useState(false);
@@ -456,6 +471,7 @@ export default function GeneratorClient() {
 
                     if (IMAGE_MIME_TYPES.has(file.type)) {
                         const objectUrl = URL.createObjectURL(file);
+                        objectUrlsRef.current.add(objectUrl);
 
                         if (c.user_image_section === 'question') {
                             qImg = objectUrl;
@@ -913,6 +929,7 @@ export default function GeneratorClient() {
         link.href = url;
         link.download = `anki-deck-${Date.now()}.txt`;
         link.click();
+        URL.revokeObjectURL(url);
     };
 
     const exportToCsv = () => {
@@ -928,6 +945,7 @@ export default function GeneratorClient() {
         link.href = url;
         link.download = 'flashcards.csv';
         link.click();
+        URL.revokeObjectURL(url);
     };
 
     const exportToPdf = () => {

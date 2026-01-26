@@ -147,30 +147,50 @@ function getCookieValue(req: Request, name: string) {
         ?.split('=')[1];
 }
 
-async function verifyCaptcha(token: string | undefined, ip: string) {
+async function verifyCaptcha(token: string | undefined, ip: string): Promise<{ success: boolean; error?: string }> {
     const secret = process.env.TURNSTILE_SECRET_KEY;
+    const isProduction = process.env.NODE_ENV === 'production';
+
     if (!secret) {
-        // Fail closed in production for security, open in dev for convenience
-        if (process.env.NODE_ENV === 'production') {
-            console.error('Security: TURNSTILE_SECRET_KEY missing in production. Blocking verification.');
-            return false;
+        if (isProduction) {
+            console.error('[Captcha] TURNSTILE_SECRET_KEY não configurado em produção - bloqueando requisição');
+            return { success: false, error: 'captcha_not_configured' };
         }
-        return true;
+        console.warn('[Captcha] TURNSTILE_SECRET_KEY não configurado - ignorando verificação em desenvolvimento');
+        return { success: true };
     }
-    if (!token) return false;
 
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            secret,
-            response: token,
-            remoteip: ip,
-        }),
-    });
+    if (!token) {
+        return { success: false, error: 'captcha_token_missing' };
+    }
 
-    const data = await response.json().catch(() => ({}));
-    return Boolean(data?.success);
+    try {
+        const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                secret,
+                response: token,
+                remoteip: ip,
+            }),
+        });
+
+        if (!response.ok) {
+            console.error(`[Captcha] Erro na verificação: HTTP ${response.status}`);
+            return { success: false, error: 'captcha_verification_failed' };
+        }
+
+        const data = await response.json();
+        if (!data?.success) {
+            console.warn('[Captcha] Verificação falhou:', data?.['error-codes'] || 'motivo desconhecido');
+            return { success: false, error: 'captcha_invalid' };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('[Captcha] Erro ao verificar captcha:', error);
+        return { success: false, error: 'captcha_verification_error' };
+    }
 }
 
 function withDemoCookies(req: Request, response: NextResponse, fingerprint: string, setLastAttempt: boolean) {
@@ -229,10 +249,10 @@ async function enforceDemoRateLimit(ipHash: string, fingerprint: string, req: Re
                 { status: 403 }
             );
         }
-        const captchaOk = await verifyCaptcha(captchaToken, ip);
-        if (!captchaOk) {
+        const captchaResult = await verifyCaptcha(captchaToken, ip);
+        if (!captchaResult.success) {
             return NextResponse.json(
-                { error: 'Verificação necessária para continuar no demo.', code: 'captcha_required' },
+                { error: 'Verificação necessária para continuar no demo.', code: captchaResult.error || 'captcha_required' },
                 { status: 403 }
             );
         }

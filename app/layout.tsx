@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import AnalyticsPageView from "@/components/AnalyticsPageView";
 import FeedbackWidget from "@/components/FeedbackWidget";
+import CookieConsent from "@/components/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,7 +74,7 @@ export default function RootLayout({
     var root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     root.setAttribute('data-theme', theme);
-  } catch (e) {}
+  } catch (e) { /* localStorage pode não estar disponível em alguns contextos */ }
 })();`}
         </Script>
         <AnalyticsProvider>
@@ -83,6 +84,7 @@ export default function RootLayout({
           </Suspense>
           <main>{children}</main>
           <FeedbackWidget />
+          <CookieConsent />
           <Toaster />
         </AnalyticsProvider>
       </body>

@@ -4,9 +4,56 @@ import { GeneratedCard } from './aiService';
 const MAX_IMAGE_TOPIC_CHARS = 300;
 const IMAGE_STYLE_SUFFIX = ', educational flat vector illustration, clean white background, high resolution, minimalist scientific style';
 
+// Configurações de otimização
+const MAX_CONCURRENT_REQUESTS = 3; // Limita requisições paralelas
+const REQUEST_TIMEOUT_MS = 30000; // 30 segundos de timeout
+const BATCH_DELAY_MS = 100; // Delay entre batches para evitar rate limiting
+
 interface ImageGenerationResult {
     mimeType: string;
     data: string;
+}
+
+/**
+ * Helper para executar fetch com timeout
+ */
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = REQUEST_TIMEOUT_MS): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        return response;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+/**
+ * Processa items em batches com limite de concorrência
+ */
+async function processBatched<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    concurrency: number = MAX_CONCURRENT_REQUESTS
+): Promise<R[]> {
+    const results: R[] = [];
+
+    for (let i = 0; i < items.length; i += concurrency) {
+        const batch = items.slice(i, i + concurrency);
+        const batchResults = await Promise.all(batch.map(processor));
+        results.push(...batchResults);
+
+        // Delay entre batches para evitar rate limiting
+        if (i + concurrency < items.length) {
+            await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+        }
+    }
+
+    return results;
 }
 
 export const imageService = {
@@ -21,10 +68,10 @@ export const imageService = {
         const stats = { requested: cardsToProcess.length, generated: 0, failed: 0 };
         const updatedCards = [...cards];
 
-        console.log(`[ImageService] Starting parallel generation for ${stats.requested} images...`);
+        console.log(`[ImageService] Starting batched generation for ${stats.requested} images (max ${MAX_CONCURRENT_REQUESTS} concurrent)...`);
 
-        // Execute in parallel
-        await Promise.all(cardsToProcess.map(async ({ card, index }) => {
+        // Execute em batches com limite de concorrência
+        await processBatched(cardsToProcess, async ({ card, index }) => {
             try {
                 const visualPrompt = await this.convertToVisualPrompt(card.question, card.answer);
 
@@ -50,7 +97,7 @@ export const imageService = {
                 console.error(`[ImageService] Error processing card ${index}:`, error);
                 stats.failed++;
             }
-        }));
+        }, MAX_CONCURRENT_REQUESTS);
 
         return { updatedCards, stats };
     },
@@ -71,7 +118,7 @@ RULES:
             const userMessage = `Flashcard Question: ${question}\nFlashcard Answer: ${topic}`;
 
             // Using Pollinations for prompt enhancement (free text generation)
-            const response = await fetch(`https://text.pollinations.ai/`, {
+            const response = await fetchWithTimeout(`https://text.pollinations.ai/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -82,7 +129,7 @@ RULES:
                     model: 'openai',
                     seed: Math.floor(Math.random() * 10000)
                 })
-            });
+            }, REQUEST_TIMEOUT_MS);
 
             if (!response.ok) return null;
 
@@ -99,10 +146,13 @@ RULES:
 
     async generateImage(visualPrompt: string): Promise<ImageGenerationResult | null> {
         const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) return null;
+        if (!apiKey) {
+            console.warn('[ImageService] OPENAI_API_KEY não configurada - geração de imagem desabilitada');
+            return null;
+        }
 
         try {
-            const response = await fetch('https://api.openai.com/v1/images/generations', {
+            const response = await fetchWithTimeout('https://api.openai.com/v1/images/generations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,7 +166,7 @@ RULES:
                     response_format: 'b64_json',
                     quality: 'standard'
                 })
-            });
+            }, REQUEST_TIMEOUT_MS);
 
             if (!response.ok) {
                 console.error('[ImageService] OpenAI DALL-E error:', response.status);
