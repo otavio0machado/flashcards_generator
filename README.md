@@ -2,7 +2,7 @@
 
 ![Flashcards Generator](https://placehold.co/1200x400/2563eb/ffffff?text=Flashcards+Generator)
 
-**Flashcards Generator** é uma plataforma inteligente que utiliza Inteligência Artificial (Google Gemini) para transformar textos, resumos e anotações em flashcards de estudo otimizados. Ideal para estudantes, concurseiros e qualquer pessoa que deseje acelerar seu aprendizado através da repetição espaçada.
+**Flashcards Generator** é uma plataforma inteligente que utiliza Inteligência Artificial (OpenAI) para transformar textos, resumos e anotações em flashcards de estudo otimizados. Ideal para estudantes, concurseiros e qualquer pessoa que deseje acelerar seu aprendizado através da repetição espaçada.
 
 ## 🚀 Visão Geral
 
@@ -12,14 +12,14 @@ O projeto foi construído com foco em performance, modernidade e experiência do
 - **Framework Web**: [Next.js 16](https://nextjs.org/) (App Router)
 - **UI & Estilização**: [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/)
 - **Backend & Database**: [Supabase](https://supabase.com/) (Auth, DB), [Upstash Redis](https://upstash.com/) (Rate Limiting)
-- **IA Generativa**: [Google Gemini API](https://ai.google.dev/)
+- **IA Generativa**: [OpenAI API](https://platform.openai.com/)
 - **Pagamentos**: [Stripe](https://stripe.com/)
 - **Monitoramento**: [PostHog](https://posthog.com/), [Sentry](https://sentry.io/)
 
 ### Requisitos de Sistema
 - Node.js 20+
 - Python 3.10+ (para scripts de verificação)
-- Conta no Supabase, Upstash, Google AI (Gemini) e Stripe.
+- Conta no Supabase, Upstash, OpenAI e Stripe.
 
 ---
 
@@ -56,8 +56,9 @@ SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
 UPSTASH_REDIS_REST_URL=seu_upstash_url
 UPSTASH_REDIS_REST_TOKEN=seu_upstash_token
 
-# Google AI (Gemini)
-GEMINI_API_KEY=sua_gemini_key
+# OpenAI
+OPENAI_API_KEY=sua_openai_key
+OPENAI_TEXT_MODEL=gpt-4.1-mini
 
 # Stripe (Opcional para dev, necessário para pagamentos)
 STRIPE_SECRET_KEY=sua_stripe_secret

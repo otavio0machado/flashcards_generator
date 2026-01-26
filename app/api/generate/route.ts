@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // Domain Services
 import { deckService } from '@/services/deckService';
@@ -19,6 +20,7 @@ const MAX_UPLOAD_FILES = 4;
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const PDF_MIME_TYPE = 'application/pdf';
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 // Rate limiter
 const ratelimit = process.env.UPSTASH_REDIS_REST_URL ? new Ratelimit({
@@ -30,6 +32,42 @@ const ratelimit = process.env.UPSTASH_REDIS_REST_URL ? new Ratelimit({
 // Helpers
 const isImageMimeType = (mimeType: string) => IMAGE_MIME_TYPES.has(mimeType.toLowerCase());
 const isPdfMimeType = (mimeType: string) => mimeType.toLowerCase() === PDF_MIME_TYPE;
+const isDocxMimeType = (mimeType: string) => mimeType.toLowerCase() === DOCX_MIME_TYPE;
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer), disableWorker: true });
+    const pdf = await loadingTask.promise;
+    const pages: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent();
+        const pageText = content.items
+            .map((item: any) => (typeof item?.str === 'string' ? item.str : ''))
+            .filter(Boolean)
+            .join(' ');
+        if (pageText.trim()) pages.push(pageText);
+    }
+
+    return pages.join('\n\n');
+}
+
+async function extractDocxText(buffer: Buffer): Promise<string> {
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    return (result?.value || '').trim();
+}
+
+async function ensureUserProfile(userId: string) {
+    try {
+        await supabaseAdmin
+            .from('profiles')
+            .upsert({ id: userId, plan_tier: 'free' }, { onConflict: 'id', ignoreDuplicates: true });
+    } catch (error) {
+        console.error('[API/Generate] Failed to ensure profile:', error);
+    }
+}
 
 export async function POST(req: Request) {
     try {
@@ -51,6 +89,9 @@ export async function POST(req: Request) {
         if (authError || !user) {
             return NextResponse.json({ error: 'Não autorizado. Por favor, faça login.' }, { status: 401 });
         }
+
+        // 1.1 Ensure Profile Exists (legacy users / missing trigger)
+        await ensureUserProfile(user.id);
 
         // 2. Rate Limiting
         if (ratelimit) {
@@ -99,17 +140,13 @@ export async function POST(req: Request) {
         }
 
         const options = validation.data;
-        const sanitizedText = sanitizeInput(options.text || '');
+        const baseText = sanitizeInput(options.text || '');
 
         // 5. Check Limits & Plan
         const { limits, currentUsage, planTier } = await deckService.checkUserLimit(user.id);
 
         if (currentUsage >= limits.dailyGens) {
             return NextResponse.json({ error: `Limite diário atingido (${limits.dailyGens}).` }, { status: 403 });
-        }
-
-        if (sanitizedText.length > limits.maxChars) {
-            return NextResponse.json({ error: `Texto excede o limite do plano (${limits.maxChars} caracteres).` }, { status: 403 });
         }
 
         if (options.generateImages && !limits.allowImageGeneration) {
@@ -131,6 +168,7 @@ export async function POST(req: Request) {
         }
 
         const attachmentParts: { inline_data: { mime_type: string; data: string } }[] = [];
+        const extractedTextParts: string[] = [];
 
         for (const file of files) {
             if (file.size > MAX_UPLOAD_BYTES) {
@@ -138,24 +176,40 @@ export async function POST(req: Request) {
             }
 
             const mimeType = file.type.toLowerCase();
-            if (!isImageMimeType(mimeType) && !isPdfMimeType(mimeType)) {
-                return NextResponse.json({ error: 'Formato não suportado (apenas PDF e Imagens).' }, { status: 400 });
+            if (!isImageMimeType(mimeType) && !isPdfMimeType(mimeType) && !isDocxMimeType(mimeType)) {
+                return NextResponse.json({ error: 'Formato não suportado (apenas PDF, DOCX e Imagens).' }, { status: 400 });
             }
 
             if (isImageMimeType(mimeType) && !limits.allowOCR) return NextResponse.json({ error: 'Plano não permite OCR.' }, { status: 403 });
-            if (isPdfMimeType(mimeType) && !limits.allowFile) return NextResponse.json({ error: 'Plano não permite upload de arquivos.' }, { status: 403 });
+            if ((isPdfMimeType(mimeType) || isDocxMimeType(mimeType)) && !limits.allowFile) {
+                return NextResponse.json({ error: 'Plano não permite upload de arquivos.' }, { status: 403 });
+            }
 
             const buffer = Buffer.from(await file.arrayBuffer());
-            attachmentParts.push({
-                inline_data: {
-                    mime_type: mimeType,
-                    data: buffer.toString('base64'),
-                }
-            });
+            if (isImageMimeType(mimeType)) {
+                attachmentParts.push({
+                    inline_data: {
+                        mime_type: mimeType,
+                        data: buffer.toString('base64'),
+                    }
+                });
+            } else if (isPdfMimeType(mimeType)) {
+                const extracted = await extractPdfText(buffer);
+                if (extracted) extractedTextParts.push(extracted);
+            } else if (isDocxMimeType(mimeType)) {
+                const extracted = await extractDocxText(buffer);
+                if (extracted) extractedTextParts.push(extracted);
+            }
         }
 
-        if (!sanitizedText && attachmentParts.length === 0) {
+        const combinedText = [baseText, ...extractedTextParts].filter(Boolean).join('\n\n').trim();
+
+        if (!combinedText && attachmentParts.length === 0) {
             return NextResponse.json({ error: 'Forneça texto ou anexos.' }, { status: 400 });
+        }
+
+        if (combinedText.length > limits.maxChars) {
+            return NextResponse.json({ error: `Texto excede o limite do plano (${limits.maxChars} caracteres).` }, { status: 403 });
         }
 
         // 7. Logic: Card Count Calculation
@@ -166,7 +220,7 @@ export async function POST(req: Request) {
 
         // 8. Generate Flashcards (AI Service)
         const cards = await aiService.generateFlashcards({
-            userText: sanitizedText,
+            userText: combinedText,
             attachments: attachmentParts,
             config: {
                 ...options,

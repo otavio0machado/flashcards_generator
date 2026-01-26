@@ -399,38 +399,68 @@ export async function POST(req: Request) {
             </user_content>
         `;
 
-        const geminiResponse = await fetchWithRetry(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            const response = NextResponse.json({ error: 'OPENAI_API_KEY não configurada.', code: 'demo_generate_error' }, { status: 500 });
+            return withDemoCookies(req, response, fingerprint, true);
+        }
+
+        const responseSchema = {
+            name: 'flashcards',
+            schema: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        question: { type: 'string' },
+                        answer: { type: 'string' },
+                    },
+                    required: ['question', 'answer'],
+                    additionalProperties: false,
+                },
+            },
+            strict: true,
+        };
+
+        const openAiResponse = await fetchWithRetry(
+            'https://api.openai.com/v1/chat/completions',
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`,
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        responseMimeType: 'application/json',
-                    },
+                    model: process.env.OPENAI_TEXT_MODEL || 'gpt-4.1-mini',
+                    temperature: 0.7,
+                    response_format: { type: 'json_schema', json_schema: responseSchema },
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [{ type: 'text', text: prompt }],
+                        },
+                    ],
                 }),
             }
         );
 
-        if (!geminiResponse) {
+        if (!openAiResponse) {
             const response = NextResponse.json({ error: 'Limite de requisições atingido. Tente novamente.', code: 'demo_generate_error' }, { status: 429 });
             return withDemoCookies(req, response, fingerprint, true);
         }
 
-        if (!geminiResponse.ok) {
-            const errorData = await geminiResponse.json().catch(() => ({}));
-            console.error('Erro Gemini (demo):', errorData);
+        if (!openAiResponse.ok) {
+            const errorData = await openAiResponse.json().catch(() => ({}));
+            console.error('Erro OpenAI (demo):', errorData);
             const response = NextResponse.json({ error: 'Erro ao processar com a IA. Tente novamente.', code: 'demo_generate_error' }, { status: 502 });
             return withDemoCookies(req, response, fingerprint, true);
         }
 
-        const data = await geminiResponse.json();
+        const data = await openAiResponse.json();
         let cards: GeneratedCard[] = [];
 
         try {
-            const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            const rawContent = data.choices?.[0]?.message?.content;
             const parsedCards = JSON.parse(rawContent || '[]');
             cards = Array.isArray(parsedCards)
                 ? parsedCards

@@ -81,23 +81,70 @@ export const aiService = {
             autoTags: req.config.autoTags
         });
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            throw new Error('GEMINI_API_KEY is not configured');
+            throw new Error('OPENAI_API_KEY is not configured');
         }
 
+        const imageParts = req.attachments
+            .filter((attachment) => attachment.inline_data?.mime_type?.toLowerCase().startsWith('image/'))
+            .map((attachment) => ({
+                type: 'image_url',
+                image_url: {
+                    url: `data:${attachment.inline_data.mime_type};base64,${attachment.inline_data.data}`,
+                }
+            }));
+
+        const unsupportedAttachments = req.attachments.filter(
+            (attachment) => !attachment.inline_data?.mime_type?.toLowerCase().startsWith('image/')
+        );
+
+        if (unsupportedAttachments.length > 0) {
+            throw new Error('Arquivos PDF não são suportados pela IA atual. Use texto ou imagens.');
+        }
+
+        const responseSchema = {
+            name: 'flashcards',
+            schema: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        question: { type: 'string' },
+                        answer: { type: 'string' },
+                        tags: { type: 'array', items: { type: 'string' } },
+                        user_image_index: { type: 'number' },
+                        user_image_section: { type: 'string', enum: ['question', 'answer'] },
+                    },
+                    required: ['question', 'answer'],
+                    additionalProperties: false,
+                },
+            },
+            strict: true,
+        };
+
         const response = await this.fetchWithRetry(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            'https://api.openai.com/v1/chat/completions',
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`,
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }, ...req.attachments] }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        responseMimeType: "application/json"
-                    }
-                })
+                    model: process.env.OPENAI_TEXT_MODEL || 'gpt-4.1-mini',
+                    temperature: 0.7,
+                    response_format: { type: 'json_schema', json_schema: responseSchema },
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                ...imageParts,
+                            ],
+                        },
+                    ],
+                }),
             }
         );
 
@@ -107,14 +154,14 @@ export const aiService = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error('Gemini API Error:', errorData);
+            console.error('OpenAI API Error:', errorData);
             throw new Error(`AI Service returned error: ${response.status}`);
         }
 
         const data = await response.json();
 
         try {
-            const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            const rawContent = data.choices?.[0]?.message?.content;
             const parsedCards = JSON.parse(rawContent || '[]');
 
             if (!Array.isArray(parsedCards)) {
