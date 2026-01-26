@@ -30,6 +30,16 @@ export const deckService = {
      * Salva um baralho e seus respectivos cards em batch.
      */
     async saveDeck(userId: string, title: string, cards: Card[], metadata: DeckMetadata = {}) {
+        // Enforce Plan Limits
+        const { limits, planName } = await this.checkUserLimit(userId);
+        if (!limits.historySaved) {
+            throw new Error(`O plano ${planName} não permite salvar histórico de baralhos.`);
+        }
+
+        if ((metadata.categoryId || (metadata.tags && metadata.tags.length > 0)) && !limits.allowFolders) {
+            throw new Error('Organização por pastas e tags é exclusiva dos planos Pro e Ultimate.');
+        }
+
         const tags = metadata.tags ?? [];
         const deckPayload: Record<string, unknown> = {
             user_id: userId,
@@ -45,6 +55,8 @@ export const deckService = {
             deckPayload.category_id = metadata.categoryId;
         }
 
+
+
         // 1. Criar o Deck
         const { data: deck, error: deckError } = await supabase
             .from('decks')
@@ -59,6 +71,7 @@ export const deckService = {
             deck_id: deck.id,
             front: card.front,
             back: card.back,
+            tags: (card as any).tags || [], // Support for card-level tags
             order: card.order ?? index,
             image_url: card.image_url ?? null,
             question_image_url: card.question_image_url ?? null,

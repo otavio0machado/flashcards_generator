@@ -11,6 +11,7 @@ import StreakBadge from '@/components/StreakBadge';
 import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/study-activity';
 import ThemeToggle from '@/components/ThemeToggle';
 import Logo from '@/components/Logo';
+import { trackEvent } from '@/lib/analytics';
 
 export default function Navbar() {
   const router = useRouter();
@@ -189,6 +190,7 @@ export default function Navbar() {
                 >
                   <Link
                     href="/auth/signup"
+                    onClick={() => trackEvent('signup_started', { location: 'navbar' })}
                     className="bg-brand text-white px-4 py-2 rounded-sm text-sm font-bold hover:bg-brand/90 transition-all shadow-sm block"
                   >
                     Criar Conta

@@ -29,10 +29,27 @@ export default function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                     <Zap className="h-8 w-8 text-brand" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Desbloqueie mais poder com os Planos Pro e Ultimate</h2>
-                <p className="text-center text-foreground/60 font-medium mb-8 leading-relaxed">
-                    O plano gratuito tem limites de 3 gerações diárias e 5 cards. Assine o Pro ou Ultimate para fazer upload de PDFs/DOCX, salvar seu histórico e gerar até 30 cards por vez. Geracao de imagens e upload de imagens estao disponiveis no Ultimate.
-                </p>
+                <h2 className="text-2xl font-bold text-center mb-2 text-foreground">Acelere seus estudos com o Plano Pro</h2>
+                <div className="space-y-4 mb-8">
+                    <ul className="space-y-2 text-sm text-foreground/80 font-medium bg-gray-50 p-4 rounded-sm border border-border">
+                        <li className="flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-brand" />
+                            <span>Histórico salvo de todos os baralhos</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-brand" />
+                            <span>15 gerações por dia (vs 3 no Grátis)</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-brand" />
+                            <span>Pastas por matéria e Modo ENEM</span>
+                        </li>
+                    </ul>
+                    <div className="text-center">
+                        <span className="text-3xl font-black text-brand">R$ 9,90</span>
+                        <span className="text-sm font-bold text-foreground/40">/mês</span>
+                    </div>
+                </div>
 
                 <div className="space-y-4">
                     <button
@@ -42,7 +59,7 @@ export default function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                         }}
                         className="w-full bg-brand text-white py-4 font-bold rounded-sm hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
                     >
-                        Ver Planos e Preços
+                        Liberar Pro agora
                     </button>
                     <button
                         onClick={onClose}

@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -11,7 +11,7 @@ import { aiService } from '@/services/aiService';
 import { imageService } from '@/services/imageService';
 import { GenerateOptionsSchema } from '@/lib/validators';
 import { sanitizeInput } from '@/lib/utils';
-import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
+import { PLAN_LIMITS } from '@/constants/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,13 +30,6 @@ const ratelimit = process.env.UPSTASH_REDIS_REST_URL ? new Ratelimit({
 // Helpers
 const isImageMimeType = (mimeType: string) => IMAGE_MIME_TYPES.has(mimeType.toLowerCase());
 const isPdfMimeType = (mimeType: string) => mimeType.toLowerCase() === PDF_MIME_TYPE;
-const normalizeBase64Data = (data: string) => {
-    const trimmed = data.trim();
-    if (trimmed.startsWith('data:')) {
-        return trimmed.split(',')[1] || trimmed;
-    }
-    return trimmed;
-};
 
 export async function POST(req: Request) {
     try {
@@ -90,11 +83,12 @@ export async function POST(req: Request) {
                 cardCount: formData.get('cardCount'),
                 imageCount: formData.get('imageCount'),
                 generateImages: formData.get('generateImages'),
+                enemMode: formData.get('enemMode'),
+                autoTags: formData.get('autoTags'),
             };
             files = formData.getAll('files').filter((entry): entry is File => entry instanceof File);
         } else {
             rawBody = await req.json().catch(() => ({}));
-            // Provide empty array if inline files are present in JSON to process later (not fully implemented in this refactor step for JSON-only uploads, focusing on multipart primarily logic)
         }
 
         // 4. Validate Input
@@ -108,7 +102,7 @@ export async function POST(req: Request) {
         const sanitizedText = sanitizeInput(options.text || '');
 
         // 5. Check Limits & Plan
-        const { limits, currentUsage } = await deckService.checkUserLimit(user.id);
+        const { limits, currentUsage, planTier } = await deckService.checkUserLimit(user.id);
 
         if (currentUsage >= limits.dailyGens) {
             return NextResponse.json({ error: `Limite diário atingido (${limits.dailyGens}).` }, { status: 403 });
@@ -122,8 +116,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Seu plano não permite geração de imagens.' }, { status: 403 });
         }
 
+        if (options.enemMode && !limits.allowEnemMode) {
+            return NextResponse.json({ error: 'Seu plano não permite o Modo ENEM. Faça upgrade para Pro ou Ultimate.' }, { status: 403 });
+        }
+
+        if (options.autoTags && !limits.allowFolders) { // using allowFolders as proxy to Pro features
+            return NextResponse.json({ error: 'Seu plano não permite tags automáticas. Faça upgrade para Pro ou Ultimate.' }, { status: 403 });
+        }
+
         // 6. Process Attachments
-        const totalFiles = files.length; // + options.inlineFiles.length if we supported inline
+        const totalFiles = files.length;
         if (totalFiles > MAX_UPLOAD_FILES) {
             return NextResponse.json({ error: `Máximo de ${MAX_UPLOAD_FILES} arquivos permitidos.` }, { status: 400 });
         }
@@ -151,7 +153,6 @@ export async function POST(req: Request) {
                 }
             });
         }
-        // Handle inline JSON files similarly if needed...
 
         if (!sanitizedText && attachmentParts.length === 0) {
             return NextResponse.json({ error: 'Forneça texto ou anexos.' }, { status: 400 });
@@ -170,7 +171,9 @@ export async function POST(req: Request) {
             config: {
                 ...options,
                 cardCount: requestedCardCount,
-                aiOptimized: limits.aiOptimized
+                aiOptimized: limits.aiOptimized,
+                enemMode: !!options.enemMode,
+                autoTags: !!options.autoTags
             }
         });
 
@@ -190,17 +193,21 @@ export async function POST(req: Request) {
         // 10. Update Usage
         await deckService.incrementUsage(user.id);
 
+        const notification = planTier === 'free'
+            ? 'Para salvar seu baralho e ter acesso ilimitado às gerações diárias, faça upgrade para o Pro.'
+            : undefined;
+
         return NextResponse.json({
             cards: finalCards,
             usage: currentUsage + 1,
             limit: limits.dailyGens,
-            imageGeneration: imageStats
+            imageGeneration: imageStats,
+            notification, // Return notification for client to display
         });
 
     } catch (error: any) {
         console.error('[API/Generate] Error:', error);
 
-        // Return 502 for upstream API failures (Gemini/OpenAI) if we can distinguish
         if (error.message && (error.message.includes('AI Service') || error.message.includes('fetch'))) {
             return NextResponse.json({ error: 'Erro de comunicação com o serviço de IA. Tente novamente.' }, { status: 502 });
         }

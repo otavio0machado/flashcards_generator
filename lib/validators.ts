@@ -41,6 +41,12 @@ export const GenerateOptionsSchema = z.object({
     generateImages: z.union([z.boolean(), z.string()])
         .transform((val) => val === true || val === 'true' || val === '1')
         .default(false),
+    enemMode: z.union([z.boolean(), z.string()])
+        .transform((val) => val === true || val === 'true' || val === '1')
+        .default(false),
+    autoTags: z.union([z.boolean(), z.string()])
+        .transform((val) => val === true || val === 'true' || val === '1')
+        .default(false),
 });
 
 export type CreateDeckInput = z.infer<typeof CreateDeckSchema>;

@@ -5,6 +5,7 @@ import { promptService } from './promptService';
 export interface GeneratedCard {
     question: string;
     answer: string;
+    tags?: string[];
     image_url?: string | null;
     user_image_index?: number;
     user_image_section?: 'question' | 'answer';
@@ -28,6 +29,8 @@ export interface GenerationRequest {
         studyGoal: string;
         templateType: string;
         aiOptimized: boolean;
+        enemMode: boolean;
+        autoTags: boolean;
     };
 }
 
@@ -73,7 +76,9 @@ export const aiService = {
             studyLevel: req.config.studyLevel,
             studyGoal: req.config.studyGoal,
             templateType: req.config.templateType,
-            aiOptimized: req.config.aiOptimized
+            aiOptimized: req.config.aiOptimized,
+            enemMode: req.config.enemMode,
+            autoTags: req.config.autoTags
         });
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -121,6 +126,7 @@ export const aiService = {
                 .map((card: any) => ({
                     question: typeof card?.question === 'string' ? card.question : '',
                     answer: typeof card?.answer === 'string' ? card.answer : '',
+                    tags: Array.isArray(card?.tags) ? card.tags : [],
                     user_image_index: typeof card?.user_image_index === 'number' ? card.user_image_index : undefined,
                     user_image_section: ['question', 'answer'].includes(card?.user_image_section) ? card.user_image_section : undefined
                 }))

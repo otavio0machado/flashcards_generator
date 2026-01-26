@@ -1,3 +1,4 @@
+
 import { sanitizeInput } from '@/lib/utils';
 
 interface PromptContext {
@@ -10,6 +11,8 @@ interface PromptContext {
     studyGoal?: string;
     templateType?: string;
     aiOptimized?: boolean;
+    enemMode?: boolean;
+    autoTags?: boolean;
 }
 
 export const promptService = {
@@ -52,6 +55,22 @@ export const promptService = {
             ? "Crie cards mais profundos, focando em conceitos-chave e aplicações práticas, evitando perguntas muito superficiais."
             : "Crie cards simples e diretos.";
 
+        const enemInstructions = ctx.enemMode
+            ? `
+            MODO ENEM ATIVADO:
+            Cada flashcard deve ser estruturado para preparação de alto nível para o ENEM.
+            A 'answer' (resposta) DEVE obrigatoriamente conter os seguintes tópicos formatados em Markdown:
+            1. **Conceito Principal**: Definição clara.
+            2. **Pegadinha Comum**: Explique erros frequentes ou o que os alunos costumam confundir.
+            3. **Exemplo Contextualizado**: Uma aplicação prática ou no cotidiano.
+            4. **Mini-Questão**: Uma pergunta curta estilo ENEM para testar o conceito.
+            `
+            : "";
+
+        const tagInstructions = ctx.autoTags
+            ? `Inclua um campo "tags" com uma lista de 1 a 3 tags strings relevantes para cada card (ex: "Biologia", "Citologia").`
+            : "";
+
         return `
             Você é um especialista em educação e memorização espaçada (SRS).
             Você recebeu ${ctx.attachmentCount} anexo(s) numerados de 0 a ${Math.max(0, ctx.attachmentCount - 1)}.
@@ -71,11 +90,14 @@ export const promptService = {
                - Se a pergunta é "O que é isto?" (mostrando a imagem), user_image_section = "question".
                - Se a resposta explica o diagrama, user_image_section = "answer".
                - Se nenhum anexo se aplicar diretamente a um card específico, não inclua esses campos.
-            12. Retorne APENAS um JSON puro no seguinte formato:
+            12. ${enemInstructions}
+            13. ${tagInstructions}
+            14. Retorne APENAS um JSON puro no seguinte formato:
                [
                    {
                        "question": "string",
                        "answer": "string",
+                       "tags": ["tag1"], (opcional)
                        "user_image_index": number (opcional),
                        "user_image_section": "question" | "answer" (opcional)
                    }

@@ -14,6 +14,8 @@ export interface PlanLimit {
     popular?: boolean;
     historySaved: boolean;
     aiOptimized: boolean;
+    allowEnemMode: boolean;
+    allowFolders: boolean;
     prioritySupport: boolean;
     customCardCount: boolean;
 }
@@ -32,6 +34,8 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         description: 'Para estudantes ocasionais.',
         historySaved: false,
         aiOptimized: false,
+        allowEnemMode: false,
+        allowFolders: false,
         prioritySupport: false,
         customCardCount: false
     },
@@ -49,6 +53,8 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         popular: true,
         historySaved: true,
         aiOptimized: true,
+        allowEnemMode: true,
+        allowFolders: true,
         prioritySupport: false,
         customCardCount: false
     },
@@ -65,6 +71,8 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
         description: 'Para heavy users e pesquisadores.',
         historySaved: true,
         aiOptimized: true,
+        allowEnemMode: true,
+        allowFolders: true,
         prioritySupport: true,
         customCardCount: true
     }

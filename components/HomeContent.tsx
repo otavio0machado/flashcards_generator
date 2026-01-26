@@ -24,7 +24,7 @@ export default function HomeContent() {
     const scroll90Tracked = useRef(false);
 
     useEffect(() => {
-        trackEvent('landing_view');
+        trackEvent('landing_viewed');
     }, []);
 
     useEffect(() => {
@@ -60,9 +60,13 @@ export default function HomeContent() {
         }
     }, [heroVariant]);
 
-    const handleHeroCta = () => trackEvent('cta_click_hero');
+    const handleHeroCta = () => trackEvent('cta_generate_clicked', { location: 'hero' });
     const handlePricingCta = (plan: 'free' | 'pro' | 'ultimate') => {
-        trackEvent(`cta_click_pricing_${plan}`);
+        if (plan === 'free') {
+            trackEvent('signup_started', { plan, location: 'pricing' });
+        } else {
+            trackEvent('checkout_started', { plan, location: 'pricing' });
+        }
     };
 
     return (
@@ -102,7 +106,7 @@ export default function HomeContent() {
                                     </Link>
                                     <Link
                                         href="#demo"
-                                        onClick={() => trackEvent('cta_click_hero', { type: 'example' })}
+                                        onClick={() => trackEvent('cta_generate_clicked', { type: 'example' })}
                                         className="w-full sm:w-auto bg-white border border-border text-foreground px-8 py-4 rounded-sm text-lg font-bold hover:bg-gray-50 transition-all"
                                     >
                                         Ver exemplo

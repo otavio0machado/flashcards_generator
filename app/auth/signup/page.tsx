@@ -45,7 +45,7 @@ export default function SignupPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        trackEvent('signup_start', { method: 'password' });
+        trackEvent('signup_started', { method: 'password' });
 
         // Validation
         if (email !== confirmEmail) {
@@ -94,7 +94,7 @@ export default function SignupPage() {
         if (loginData?.user?.id) {
             identifyUser(loginData.user.id, { email, name });
         }
-        trackEvent('signup_complete', { method: 'password' });
+        trackEvent('signup_completed', { method: 'password' });
         setSuccess(true);
         setLoading(false);
     };

@@ -140,6 +140,12 @@ export default function GeneratorClient() {
     const captchaContainerRef = useRef<HTMLDivElement | null>(null);
     const captchaWidgetIdRef = useRef<string | null>(null);
 
+    // New Features States
+    const [enemMode, setEnemMode] = useState(false);
+    const [selectedFolder, setSelectedFolder] = useState('');
+
+    const FOLDERS = ['Biologia', 'Química', 'Física', 'Matemática', 'História', 'Geografia', 'Português', 'Literatura', 'Inglês', 'Espanhol', 'Filosofia', 'Sociologia'];
+
     const demoLimits = {
         ...PLAN_LIMITS.free,
         name: 'Demo',
@@ -282,7 +288,7 @@ export default function GeneratorClient() {
     const openAuthGate = (reason?: string) => {
         setSignupModalAction(false);
         setShowAuthGateModal(true);
-        trackEvent('paywall_view', { reason, is_demo: true });
+        trackEvent('paywall_viewed', { reason, is_demo: true });
         trackEvent('signup_view', { source: reason || 'demo', is_demo: true });
     };
 
@@ -384,6 +390,8 @@ export default function GeneratorClient() {
                         formData.append('cardCount', cardCount.toString());
                         formData.append('generateImages', generateImages ? 'true' : 'false');
                         formData.append('imageCount', imageCount.toString());
+                        formData.append('enemMode', enemMode ? 'true' : 'false');
+                        formData.append('autoTags', limits.allowFolders ? 'true' : 'false');
 
                         uploadedFiles.forEach(file => {
                             formData.append('files', file);
@@ -396,6 +404,10 @@ export default function GeneratorClient() {
             const data = await response.json();
 
             if (!response.ok) {
+                if (response.status === 403) {
+                    setShowUpgradeModal(true);
+                }
+
                 if (response.status === 429 && data?.error) {
                     setToast({ message: data.error, type: 'info' });
                     if (isDemo) {
@@ -455,7 +467,7 @@ export default function GeneratorClient() {
                         }
                     }
                 }
-                
+
                 return {
                     id: Math.random().toString(36).substr(2, 9),
                     question: c.question,
@@ -480,7 +492,16 @@ export default function GeneratorClient() {
                     type: 'info'
                 });
             }
-            trackEvent(isDemo ? 'demo_generation_success' : 'generate_cards_success', {
+
+            if (data.notification) {
+                setTimeout(() => {
+                    setToast({
+                        message: data.notification,
+                        type: 'info'
+                    });
+                }, 1000); // Small delay to separate from success toast if any
+            }
+            trackEvent(isDemo ? 'demo_generation_success' : 'generation_completed', {
                 plan: isDemo ? 'demo' : currentPlan,
                 cards_generated: data.cards?.length,
                 card_count_requested: isDemo ? limits.maxCardsPerGen : cardCount,
@@ -493,6 +514,13 @@ export default function GeneratorClient() {
                 file_count: uploadedFiles.length,
                 is_demo: isDemo,
             });
+
+            if (currentPlan === 'free' && !isDemo) {
+                setToast({
+                    message: 'Para salvar seu baralho e ter acesso ilimitado, faça upgrade para o Pro.',
+                    type: 'info' // Using 'info' or specific type if available
+                });
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao gerar cards');
             if (isDemo) {
@@ -565,7 +593,17 @@ export default function GeneratorClient() {
                 question_image_url: c.question_image_url,
                 answer_image_url: c.answer_image_url
             }));
-            const tags = parseTags(deckTagsInput);
+
+            let tags = parseTags(deckTagsInput);
+            if (selectedFolder) {
+                if (!limits.allowFolders) {
+                    setShowUpgradeModal(true);
+                    setIsSaving(false);
+                    return;
+                }
+                tags = [...tags, selectedFolder];
+            }
+
             const description = deckDescription.trim();
             const savedDeck = await deckService.saveDeck(user.id, title, formattedCards, {
                 tags,
@@ -683,14 +721,14 @@ export default function GeneratorClient() {
         if (docxCount > 0) {
             setToast({ message: 'Conteúdo dos arquivos DOCX extraído!', type: 'success' });
         }
-        
+
         setUploadedFiles(newFiles);
-        
+
         const imageCount = newFiles.filter(f => IMAGE_MIME_TYPES.has(f.type)).length;
         const pdfCount = newFiles.filter(f => f.type === PDF_MIME_TYPE).length;
 
         if (imageCount > 0 || pdfCount > 0) {
-             setToast({
+            setToast({
                 message: `${newFiles.length} arquivo(s) anexado(s).`,
                 type: 'success'
             });
@@ -1038,7 +1076,7 @@ export default function GeneratorClient() {
                             {isDemo ? 'Modo Demo' : `Plano ${limits.name}`}
                         </div>
                     </div>
-                            
+
 
                     <div className="space-y-4">
                         <div>
@@ -1118,7 +1156,7 @@ export default function GeneratorClient() {
 
                     {uploadedFiles.length > 0 && (
                         <div className="mt-3 space-y-2">
-                             {uploadedFiles.map((file, idx) => (
+                            {uploadedFiles.map((file, idx) => (
                                 <div key={idx} className="flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
                                     <div className="flex items-center gap-2 min-w-0">
                                         <span className="text-brand">Anexo {idx + 1}:</span>
@@ -1132,7 +1170,7 @@ export default function GeneratorClient() {
                                         Remover
                                     </button>
                                 </div>
-                             ))}
+                            ))}
                         </div>
                     )}
 
@@ -1294,11 +1332,32 @@ export default function GeneratorClient() {
                         {generateImages && limits.allowImageGeneration && (
                             <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-sm">
                                 <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                                    <span className="font-bold">⚡ Recurso Premium:</span> A geração de imagens por IA utiliza tecnologia avançada (DALL-E 3) com custo elevado por imagem. 
+                                    <span className="font-bold">⚡ Recurso Premium:</span> A geração de imagens por IA utiliza tecnologia avançada (DALL-E 3) com custo elevado por imagem.
                                     Use de forma consciente, priorizando cards que realmente se beneficiam de recursos visuais, como diagramas, anatomia, mapas e conceitos abstratos.
                                 </p>
                             </div>
                         )}
+                    </div>
+                    <div className={`mt-3 flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowEnemMode ? 'bg-gray-50 border-border' : 'bg-gray-100 border-border/60'}`}>
+                        <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowEnemMode ? 'text-foreground' : 'text-foreground/40'}`}>
+                            <input
+                                type="checkbox"
+                                checked={enemMode}
+                                onChange={() => {
+                                    if (!limits.allowEnemMode) {
+                                        setShowUpgradeModal(true);
+                                        return;
+                                    }
+                                    setEnemMode(!enemMode);
+                                }}
+                                className="h-4 w-4 accent-brand"
+                                disabled={!limits.allowEnemMode}
+                            />
+                            Ativar Modo ENEM (Conceito + Pegadinha + Exemplo)
+                        </label>
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowEnemMode ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
+                            Pro
+                        </span>
                     </div>
 
                     <button
@@ -1432,6 +1491,32 @@ export default function GeneratorClient() {
                                 className="w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-sm font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none resize-none"
                                 placeholder="Sobre o que é este baralho?"
                             />
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="deck-folder" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                Pasta / Matéria {limits.allowFolders ? '' : '(Pro)'}
+                            </label>
+                            <div className="relative">
+                                <select
+                                    id="deck-folder"
+                                    value={selectedFolder}
+                                    onChange={(e) => {
+                                        if (!limits.allowFolders) {
+                                            setShowUpgradeModal(true);
+                                            return;
+                                        }
+                                        setSelectedFolder(e.target.value);
+                                    }}
+                                    className={`w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer ${!limits.allowFolders ? 'opacity-50' : ''}`}
+                                    disabled={!limits.allowFolders}
+                                >
+                                    <option value="">Selecione uma pasta...</option>
+                                    {FOLDERS.map(f => (
+                                        <option key={f} value={f}>{f}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <label htmlFor="deck-tags" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">

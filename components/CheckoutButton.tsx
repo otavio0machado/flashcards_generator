@@ -23,7 +23,7 @@ export default function CheckoutButton({ priceId, planName, className, children,
             setLoading(true);
             onClick?.();
             trackEvent('upgrade_click', { plan: planName, price_id: priceId });
-            trackEvent('checkout_start', { plan: planName, price_id: priceId });
+            trackEvent('checkout_started', { plan: planName, price_id: priceId });
 
             const response = await fetch('/api/stripe/checkout', {
                 method: 'POST',
