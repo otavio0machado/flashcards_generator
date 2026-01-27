@@ -10,6 +10,7 @@ import AnalyticsPageView from "@/components/AnalyticsPageView";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import CookieConsent from "@/components/CookieConsent";
 import InstallPrompt from "@/components/InstallPrompt";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -122,6 +123,7 @@ export default function RootLayout({
           <FeedbackWidget />
           <CookieConsent />
           <InstallPrompt />
+          <OfflineIndicator />
           <Toaster />
         </AnalyticsProvider>
       </body>

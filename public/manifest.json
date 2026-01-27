@@ -63,18 +63,18 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/desktop.png",
+      "src": "/screenshots/screenshot-desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Flashcards Generator - Desktop"
+      "label": "Flashcards Generator - Crie flashcards com IA"
     },
     {
-      "src": "/screenshots/mobile.png",
+      "src": "/screenshots/screenshot-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Flashcards Generator - Mobile"
+      "label": "Flashcards Generator - Estude em qualquer lugar"
     }
   ],
   "shortcuts": [

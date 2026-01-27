@@ -6,8 +6,9 @@ import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { trackEvent } from '@/lib/analytics';
-import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight } from 'lucide-react';
+import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell } from 'lucide-react';
 import Link from 'next/link';
+import NotificationSettings from '@/components/NotificationSettings';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -274,6 +275,30 @@ export default function SettingsPage() {
                                 Gerenciar Assinatura
                             </button>
                         )}
+                    </m.div>
+
+                    {/* Notifications */}
+                    <m.div
+                        custom={3}
+                        initial="hidden"
+                        animate="visible"
+                        variants={cardVariants}
+                        className="bg-white border border-border rounded-sm p-6 shadow-sm"
+                    >
+                        <div className="flex items-center gap-4 mb-6">
+                            <m.div
+                                whileHover={{ scale: 1.05 }}
+                                className="bg-purple-50 p-3 rounded-full"
+                            >
+                                <Bell className="h-6 w-6 text-purple-600" />
+                            </m.div>
+                            <div>
+                                <h2 className="text-lg font-bold text-foreground">Notificações</h2>
+                                <p className="text-sm text-foreground/60 font-medium">Configure lembretes de estudo.</p>
+                            </div>
+                        </div>
+
+                        <NotificationSettings />
                     </m.div>
                 </div>
             </div>
