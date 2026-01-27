@@ -211,3 +211,78 @@ h6 {
 .dark .placeholder\:text-gray-400::placeholder {
   color: #8A93A0;
 }
+
+/* Landing Page Animations */
+@keyframes scrollBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-scroll-bounce {
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+/* Step connector lines for How It Works section */
+.step-connector {
+  position: relative;
+}
+
+.step-connector::after {
+  content: "";
+  position: absolute;
+  top: 2rem;
+  left: calc(100% + 1rem);
+  width: calc(100% - 2rem);
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-brand) 0%, transparent 100%);
+  opacity: 0.2;
+}
+
+.step-connector:last-child::after {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .step-connector::after {
+    display: none;
+  }
+}
+
+/* CTA arrow animation */
+.cta-arrow-shift {
+  transition: transform 0.2s ease-out;
+}
+
+.group:hover .cta-arrow-shift {
+  transform: translateX(4px);
+}
+
+/* Comparison table styles */
+.comparison-table {
+  @apply w-full text-sm;
+}
+
+.comparison-table th,
+.comparison-table td {
+  @apply py-3 px-4 text-left border-b border-border;
+}
+
+.comparison-table th {
+  @apply font-bold text-foreground/80 bg-gray-50;
+}
+
+.dark .comparison-table th {
+  background-color: var(--surface-muted);
+}
+
+.comparison-table td {
+  @apply text-foreground/70;
+}
+
+.comparison-table tr:last-child td {
+  @apply border-b-0;
+}

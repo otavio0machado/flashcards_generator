@@ -16,8 +16,49 @@ import {
     Zap,
     Globe,
     Plus,
-    Check
+    Check,
+    Shield,
+    ChevronDown,
+    Sparkles,
+    BookOpen,
+    Briefcase,
+    GraduationCap,
+    Clock,
+    Users,
+    Timer,
+    Layers,
+    Lock,
+    Activity
 } from 'lucide-react';
+
+// Helper: Section Label component
+function SectionLabel({ text }: { text: string }) {
+    return (
+        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3 text-center">
+            {text}
+        </p>
+    );
+}
+
+// Helper: Inline CTA component
+function InlineCta({ location }: { location: string }) {
+    const handleClick = () => {
+        trackEvent('cta_generate_clicked', { location });
+    };
+
+    return (
+        <div className="mt-12 text-center">
+            <Link
+                href="/app"
+                onClick={handleClick}
+                className="group inline-flex items-center gap-2 bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all shadow-lg shadow-brand/20"
+            >
+                Testar grátis agora
+                <ArrowRight className="h-5 w-5 cta-arrow-shift" />
+            </Link>
+        </div>
+    );
+}
 
 export default function HomeContent() {
     const scroll50Tracked = useRef(false);
@@ -71,8 +112,9 @@ export default function HomeContent() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="flex flex-col min-h-screen">
-                <section className="relative pt-16 pb-24 overflow-hidden">
+            <div className="flex flex-col min-h-screen pb-16 sm:pb-0">
+                {/* Hero Section */}
+                <section id="hero" className="relative pt-16 pb-28 overflow-hidden">
                     <m.div
                         animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.08, 0.2, 0.08] }}
                         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -87,11 +129,11 @@ export default function HomeContent() {
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                             <div>
-                                <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">Flashcards Generator</p>
-                                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground mb-4 leading-tight">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-4">Flashcards Generator</p>
+                                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground mb-6 leading-tight">
                                     {heroHeadline}
                                 </h1>
-                                <p className="text-lg text-foreground/70 font-medium mb-6">
+                                <p className="text-lg text-foreground/70 font-medium mb-8">
                                     Perfeito para ENEM, concursos e faculdade. Gere perguntas e respostas automaticamente e exporte para o Anki.
                                 </p>
 
@@ -99,10 +141,10 @@ export default function HomeContent() {
                                     <Link
                                         href="/app"
                                         onClick={handleHeroCta}
-                                        className="w-full sm:w-auto bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
+                                        className="group w-full sm:w-auto bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 flex items-center justify-center gap-2"
                                     >
                                         Testar grátis agora
-                                        <ArrowRight className="h-5 w-5" />
+                                        <ArrowRight className="h-5 w-5 cta-arrow-shift" />
                                     </Link>
                                     <Link
                                         href="#demo"
@@ -112,14 +154,17 @@ export default function HomeContent() {
                                         Ver exemplo
                                     </Link>
                                 </div>
-                                <p className="text-xs text-foreground/50 font-bold mt-2">
+                                <p className="text-xs text-foreground/50 font-bold mt-3">
                                     Sem cartão • 3 gerações por dia no plano grátis
                                 </p>
 
-                                <div className="mt-6 flex flex-wrap gap-3 text-[11px] font-bold text-foreground/60">
+                                <div className="mt-8 flex flex-wrap gap-3 text-[11px] font-bold text-foreground/60">
                                     <span className="bg-white border border-border px-3 py-1 rounded-sm">Criado por um desenvolvedor independente</span>
                                     <span className="bg-white border border-border px-3 py-1 rounded-sm">Suporte rápido</span>
-                                    <span className="bg-white border border-border px-3 py-1 rounded-sm">Seus dados protegidos</span>
+                                    <span className="bg-white border border-border px-3 py-1 rounded-sm flex items-center gap-1.5">
+                                        <Shield className="h-3 w-3 text-brand" />
+                                        Seus dados protegidos
+                                    </span>
                                 </div>
                             </div>
 
@@ -128,7 +173,7 @@ export default function HomeContent() {
                                 <div className="bg-gray-50 border border-border rounded-sm p-4 mb-4">
                                     <div className="text-[10px] font-bold text-foreground/60 uppercase mb-2">Texto colado</div>
                                     <p className="text-sm text-foreground/70">
-                                        “A Revolução Industrial aumentou a produção, mas trouxe jornadas longas, trabalho infantil e urbanização acelerada...”
+                                        "A Revolução Industrial aumentou a produção, mas trouxe jornadas longas, trabalho infantil e urbanização acelerada..."
                                     </p>
                                 </div>
                                 <div className="space-y-3">
@@ -147,10 +192,18 @@ export default function HomeContent() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Scroll indicator - desktop only */}
+                        <div className="hidden lg:flex justify-center mt-12">
+                            <a href="#how-it-works" className="animate-scroll-bounce text-foreground/30 hover:text-brand transition-colors">
+                                <ChevronDown className="h-8 w-8" />
+                            </a>
+                        </div>
                     </div>
                 </section>
 
-                <section className="py-20 bg-white border-y border-border">
+                {/* How It Works Section */}
+                <section id="how-it-works" className="py-24 bg-white border-y border-border">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <m.div
                             initial={{ opacity: 0, y: 20 }}
@@ -158,6 +211,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
+                            <SectionLabel text="COMO FUNCIONA" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Como funciona (em 10 segundos)</h2>
                             <p className="text-base text-foreground/60 font-medium">Cole, gere e exporte.</p>
                         </m.div>
@@ -175,7 +229,7 @@ export default function HomeContent() {
                                     viewport={{ once: true }}
                                     transition={{ duration: 0.5, delay: index * 0.2 }}
                                     whileHover={{ y: -5 }}
-                                    className="text-center group"
+                                    className="text-center group step-connector"
                                 >
                                     <div className="w-16 h-16 bg-brand/5 border border-brand/20 flex items-center justify-center rounded-sm mx-auto mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
                                         <step.icon className="h-8 w-8 text-brand group-hover:text-white transition-colors" />
@@ -187,13 +241,29 @@ export default function HomeContent() {
                                 </m.div>
                             ))}
                         </div>
+
+                        <InlineCta location="how_it_works" />
                     </div>
                 </section>
 
-                <section id="demo" className="py-20">
+                {/* Demo Section */}
+                <section id="demo" className="py-24">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-12"
+                        >
+                            <SectionLabel text="VEJA NA PRÁTICA" />
+                        </m.div>
+
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                            <div>
+                            <m.div
+                                initial={{ opacity: 0, x: -30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                            >
                                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Veja o resultado real antes de criar conta</h2>
                                 <p className="text-foreground/60 font-medium mb-6">
                                     Cole um texto e veja 3 flashcards prontos em segundos.
@@ -201,21 +271,39 @@ export default function HomeContent() {
                                 <Link
                                     href="/app"
                                     onClick={handleHeroCta}
-                                    className="inline-flex bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all"
+                                    className="group inline-flex items-center gap-2 bg-brand text-white px-8 py-4 rounded-sm text-lg font-bold hover:bg-brand/90 transition-all"
                                 >
                                     Testar grátis agora
+                                    <ArrowRight className="h-5 w-5 cta-arrow-shift" />
                                 </Link>
-                            </div>
-                            <div className="bg-white border border-border rounded-sm shadow-xl p-6">
+                            </m.div>
+                            <m.div
+                                initial={{ opacity: 0, x: 30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                className="bg-white border border-border rounded-sm shadow-xl p-6"
+                            >
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60 mb-3">Antes → Depois</div>
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="bg-gray-50 border border-border rounded-sm p-4">
                                         <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Antes</div>
-                                        <p className="text-sm text-foreground/70 mt-2">“Fotossíntese converte luz em energia química, produzindo glicose e oxigênio.”</p>
+                                        <p className="text-sm text-foreground/70 mt-2">"Fotossíntese converte luz em energia química, produzindo glicose e oxigênio."</p>
                                     </div>
+
+                                    {/* Visual transformation indicator */}
+                                    <div className="flex items-center justify-center py-2">
+                                        <div className="flex-1 h-px bg-border"></div>
+                                        <div className="mx-4 flex items-center gap-2 text-brand">
+                                            <Sparkles className="h-5 w-5" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">Transformação</span>
+                                            <Sparkles className="h-5 w-5" />
+                                        </div>
+                                        <div className="flex-1 h-px bg-border"></div>
+                                    </div>
+
                                     <div className="bg-gray-50 border border-border rounded-sm p-4">
                                         <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Depois</div>
-                                        <ul className="space-y-2 text-sm">
+                                        <ul className="space-y-2 text-sm mt-2">
                                             <li><strong>Pergunta:</strong> O que é fotossíntese?</li>
                                             <li><strong>Resposta:</strong> Processo que transforma luz em energia química.</li>
                                             <li><strong>Pergunta:</strong> Qual produto principal?</li>
@@ -223,44 +311,49 @@ export default function HomeContent() {
                                         </ul>
                                     </div>
                                 </div>
-                            </div>
+                            </m.div>
                         </div>
                     </div>
                 </section>
 
-                <section className="py-20 bg-white border-y border-border">
+                {/* Features Section */}
+                <section className="py-24 bg-white border-y border-border">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-12"
+                        >
+                            <SectionLabel text="RECURSOS" />
+                        </m.div>
+
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                             <div>
                                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">Pare de perder tempo montando material.</h2>
                                 <ul className="space-y-6">
-                                    <li className="flex gap-4">
-                                        <div className="mt-1 flex-shrink-0">
-                                            <CheckCircle2 className="h-6 w-6 text-brand" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-lg">Perguntas e respostas automáticas</h4>
-                                            <p className="text-foreground/60">Transforma conteúdo em perguntas e respostas em segundos.</p>
-                                        </div>
-                                    </li>
-                                    <li className="flex gap-4">
-                                        <div className="mt-1 flex-shrink-0">
-                                            <Zap className="h-6 w-6 text-brand" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-lg">Memorize mais rápido</h4>
-                                            <p className="text-foreground/60">Revisão eficiente com flashcards objetivos.</p>
-                                        </div>
-                                    </li>
-                                    <li className="flex gap-4">
-                                        <div className="mt-1 flex-shrink-0">
-                                            <Globe className="h-6 w-6 text-brand" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-lg">Funciona para resumos, apostilas e PDFs</h4>
-                                            <p className="text-foreground/60">Com conta, você também faz upload e salva histórico.</p>
-                                        </div>
-                                    </li>
+                                    {[
+                                        { icon: CheckCircle2, title: "Perguntas e respostas automáticas", text: "Transforma conteúdo em perguntas e respostas em segundos." },
+                                        { icon: Zap, title: "Memorize mais rápido", text: "Revisão eficiente com flashcards objetivos." },
+                                        { icon: Globe, title: "Funciona para resumos, apostilas e PDFs", text: "Com conta, você também faz upload e salva histórico." },
+                                    ].map((item, index) => (
+                                        <m.li
+                                            key={index}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            whileInView={{ opacity: 1, x: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ delay: index * 0.15 }}
+                                            className="flex gap-4"
+                                        >
+                                            <div className="mt-1 flex-shrink-0">
+                                                <item.icon className="h-6 w-6 text-brand" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-lg">{item.title}</h4>
+                                                <p className="text-foreground/60">{item.text}</p>
+                                            </div>
+                                        </m.li>
+                                    ))}
                                 </ul>
                             </div>
                             <div className="relative">
@@ -282,28 +375,91 @@ export default function HomeContent() {
                                 </div>
                             </div>
                         </div>
+
+                        <InlineCta location="features" />
                     </div>
                 </section>
 
-                <section className="py-20">
+                {/* Use Cases Section */}
+                <section className="py-24">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-8 text-center">Para quem é</h2>
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-12"
+                        >
+                            <SectionLabel text="PARA QUEM" />
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-8">Para quem é</h2>
+                        </m.div>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {[
-                                { title: 'ENEM', text: 'Revisões rápidas e perguntas objetivas.' },
-                                { title: 'Concursos', text: 'Lei seca, resumos e pegadinhas.' },
-                                { title: 'Faculdade', text: 'Apostilas, artigos e provas.' },
-                            ].map((item) => (
-                                <div key={item.title} className="bg-white border border-border rounded-sm p-6 text-center">
+                                { icon: BookOpen, title: 'ENEM', text: 'Revisões rápidas e perguntas objetivas.' },
+                                { icon: Briefcase, title: 'Concursos', text: 'Lei seca, resumos e pegadinhas.' },
+                                { icon: GraduationCap, title: 'Faculdade', text: 'Apostilas, artigos e provas.' },
+                            ].map((item, index) => (
+                                <m.div
+                                    key={item.title}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.1 }}
+                                    whileHover={{ y: -5 }}
+                                    className="bg-white border border-border rounded-sm p-6 text-center"
+                                >
+                                    <div className="w-12 h-12 bg-brand/5 border border-brand/20 flex items-center justify-center rounded-sm mx-auto mb-4">
+                                        <item.icon className="h-6 w-6 text-brand" />
+                                    </div>
                                     <h3 className="text-lg font-bold mb-2">{item.title}</h3>
                                     <p className="text-foreground/60 text-sm">{item.text}</p>
-                                </div>
+                                </m.div>
+                            ))}
+                        </div>
+
+                        <InlineCta location="use_cases" />
+                    </div>
+                </section>
+
+                {/* Metrics Section */}
+                <section className="py-24 bg-white border-y border-border">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-12"
+                        >
+                            <SectionLabel text="NOSSOS NÚMEROS" />
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Tecnologia que entrega</h2>
+                        </m.div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            {[
+                                { icon: Timer, value: '10s', label: 'Tempo médio de geração' },
+                                { icon: Layers, value: '3', label: 'Formatos de exportação' },
+                                { icon: Lock, value: '100%', label: 'Dados protegidos' },
+                                { icon: Activity, value: '24/7', label: 'Disponibilidade' },
+                            ].map((metric, index) => (
+                                <m.div
+                                    key={metric.label}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    whileInView={{ opacity: 1, scale: 1 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="bg-gray-50 border border-border rounded-sm p-6 text-center"
+                                >
+                                    <metric.icon className="h-8 w-8 text-brand mx-auto mb-3" />
+                                    <div className="text-3xl font-black text-foreground mb-1">{metric.value}</div>
+                                    <div className="text-sm text-foreground/60 font-medium">{metric.label}</div>
+                                </m.div>
                             ))}
                         </div>
                     </div>
                 </section>
 
-                <section id="pricing" className="py-20 bg-white border-y border-border">
+                {/* Pricing Section */}
+                <section id="pricing" className="py-24 border-b border-border">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <m.div
                             initial={{ opacity: 0, y: 20 }}
@@ -311,6 +467,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-16"
                         >
+                            <SectionLabel text="PREÇOS" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Planos claros e sem pegadinha</h2>
                             <p className="text-base text-foreground/60 font-medium">Teste completo com preview e faça upgrade quando fizer sentido.</p>
                         </m.div>
@@ -352,7 +509,7 @@ export default function HomeContent() {
                                 viewport={{ once: true }}
                                 whileHover={{ scale: 1.04, y: -6 }}
                                 transition={{ type: "spring", stiffness: 300 }}
-                                className="bg-white border-2 border-brand p-8 rounded-sm shadow-xl flex flex-col h-[110%] relative z-10"
+                                className="bg-brand/[0.02] border-2 border-brand p-8 rounded-sm shadow-xl flex flex-col h-[110%] relative z-10"
                             >
                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full">
                                     Recomendado
@@ -423,36 +580,137 @@ export default function HomeContent() {
                                 </CheckoutButton>
                             </m.div>
                         </div>
+
+                        {/* Comparison Table */}
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="mt-16 overflow-x-auto"
+                        >
+                            <table className="comparison-table min-w-full bg-white border border-border rounded-sm">
+                                <thead>
+                                    <tr>
+                                        <th className="rounded-tl-sm">Recurso</th>
+                                        <th>Básico</th>
+                                        <th className="bg-brand/5 text-brand">Pro</th>
+                                        <th className="rounded-tr-sm">Ultimate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="font-medium">Gerações/dia</td>
+                                        <td>3</td>
+                                        <td className="bg-brand/[0.02]">10</td>
+                                        <td>20</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium">Cards/geração</td>
+                                        <td>5</td>
+                                        <td className="bg-brand/[0.02]">15</td>
+                                        <td>30</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium">Caracteres</td>
+                                        <td>2.000</td>
+                                        <td className="bg-brand/[0.02]">20.000</td>
+                                        <td>100.000</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium">Upload PDF/DOCX</td>
+                                        <td>—</td>
+                                        <td className="bg-brand/[0.02]">—</td>
+                                        <td><Check className="h-4 w-4 text-brand inline" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium">Geração de imagens</td>
+                                        <td>—</td>
+                                        <td className="bg-brand/[0.02]">—</td>
+                                        <td><Check className="h-4 w-4 text-brand inline" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium">IA otimizada</td>
+                                        <td>—</td>
+                                        <td className="bg-brand/[0.02]"><Check className="h-4 w-4 text-brand inline" /></td>
+                                        <td><Check className="h-4 w-4 text-brand inline" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="font-medium rounded-bl-sm">Suporte prioritário</td>
+                                        <td>—</td>
+                                        <td className="bg-brand/[0.02]">—</td>
+                                        <td className="rounded-br-sm"><Check className="h-4 w-4 text-brand inline" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </m.div>
+
                         <div className="mt-8 text-center text-xs font-bold text-foreground/50">
                             ✅ Cancele quando quiser • ✅ Sem pegadinhas • ✅ Acelera semanas de estudo
                         </div>
                     </div>
                 </section>
 
-                <section className="py-20 bg-white border-t border-border">
+                {/* FAQ Section */}
+                <section className="py-24 bg-white border-b border-border">
                     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center mb-10">
-                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Perguntas Frequentes</h2>
+                        <m.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-10"
+                        >
+                            <SectionLabel text="PERGUNTAS FREQUENTES" />
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Dúvidas? A gente responde.</h2>
                             <p className="text-foreground/60 font-medium">Respostas diretas para quem quer testar rápido.</p>
+                        </m.div>
+
+                        {/* FAQ Group: Planos e Pagamento */}
+                        <div className="mb-8">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/50 mb-4">Planos e Pagamento</h3>
+                            <div className="space-y-4">
+                                <FaqItem question="O plano grátis é realmente grátis?" answer="Sim. Você pode testar sem pagar e sem cartão." index={0} />
+                                <FaqItem question="Preciso de cartão para testar?" answer="Não. Só pedimos cartão no upgrade." index={1} />
+                                <FaqItem question="Posso cancelar quando quiser?" answer="Sim, sem fidelidade." index={2} />
+                            </div>
                         </div>
-                        <div className="space-y-4">
-                            <FaqItem question="O plano grátis é realmente grátis?" answer="Sim. Você pode testar sem pagar e sem cartão." />
-                            <FaqItem question="Preciso de cartão para testar?" answer="Não. Só pedimos cartão no upgrade." />
-                            <FaqItem question="Consigo exportar para Anki?" answer="Sim. Exportação para Anki disponível." />
-                            <FaqItem question="O que significa ‘IA otimizada’?" answer="Prompt melhor para gerar cards mais claros e úteis." />
-                            <FaqItem question="Posso usar no celular?" answer="Sim, a versão mobile é responsiva." />
-                            <FaqItem question="No Ultimate eu posso subir PDF e imagem?" answer="Sim, com upload de PDF/DOCX e imagens." />
-                            <FaqItem question="Posso cancelar quando quiser?" answer="Sim, sem fidelidade." />
+
+                        {/* FAQ Group: Funcionalidades */}
+                        <div>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/50 mb-4">Funcionalidades</h3>
+                            <div className="space-y-4">
+                                <FaqItem question="Consigo exportar para Anki?" answer="Sim. Exportação para Anki disponível." index={3} />
+                                <FaqItem question="O que significa 'IA otimizada'?" answer="Prompt melhor para gerar cards mais claros e úteis." index={4} />
+                                <FaqItem question="Posso usar no celular?" answer="Sim, a versão mobile é responsiva." index={5} />
+                                <FaqItem question="No Ultimate eu posso subir PDF e imagem?" answer="Sim, com upload de PDF/DOCX e imagens." index={6} />
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section className="py-12">
+                {/* Trust Section */}
+                <section className="py-16">
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                            <div className="bg-white border border-border rounded-sm p-4 text-sm font-bold text-foreground/70">Criado por um desenvolvedor independente</div>
-                            <div className="bg-white border border-border rounded-sm p-4 text-sm font-bold text-foreground/70">Suporte rápido</div>
-                            <div className="bg-white border border-border rounded-sm p-4 text-sm font-bold text-foreground/70">Seus dados são protegidos</div>
+                            {[
+                                { icon: Users, text: "Criado por um desenvolvedor independente" },
+                                { icon: Clock, text: "Suporte rápido" },
+                                { icon: Shield, text: "Seus dados são protegidos" },
+                            ].map((item, index) => (
+                                <m.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="bg-white border border-border rounded-sm p-4 flex items-center justify-center gap-3"
+                                >
+                                    <item.icon className="h-5 w-5 text-brand flex-shrink-0" />
+                                    <span className="text-sm font-bold text-foreground/70">{item.text}</span>
+                                </m.div>
+                            ))}
+                        </div>
+                        <div className="mt-4 text-center text-xs font-bold text-foreground/50">
+                            🔒 Seus dados nunca são compartilhados com terceiros
                         </div>
                         <div className="mt-4 text-center text-xs font-bold text-foreground/50">
                             <Link href="/privacy" className="underline">Privacidade</Link> • <Link href="/terms" className="underline">Termos</Link>
@@ -460,7 +718,8 @@ export default function HomeContent() {
                     </div>
                 </section>
 
-                <section className="py-20 bg-brand text-white overflow-hidden relative">
+                {/* Final CTA Section */}
+                <section className="py-24 bg-brand text-white overflow-hidden relative">
                     <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
 
@@ -469,24 +728,28 @@ export default function HomeContent() {
                         <Link
                             href="/app"
                             onClick={handleHeroCta}
-                            className="inline-flex bg-white theme-static-light text-brand px-10 py-4 rounded-sm text-lg font-bold hover:bg-gray-50 transition-all shadow-xl"
+                            className="group inline-flex items-center gap-2 bg-white theme-static-light text-brand px-10 py-4 rounded-sm text-lg font-bold hover:bg-gray-50 transition-all shadow-xl"
                         >
                             Testar grátis agora
+                            <ArrowRight className="h-5 w-5 cta-arrow-shift" />
                         </Link>
                         <p className="text-xs text-white/80 font-bold mt-3">Sem cartão • 3 gerações/dia grátis</p>
                     </div>
                 </section>
 
-                <div className="fixed bottom-3 left-3 right-3 z-40 sm:hidden">
+                {/* Mobile Sticky CTA */}
+                <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-border shadow-lg p-3">
                     <Link
                         href="/app"
                         onClick={handleHeroCta}
-                        className="w-full bg-brand text-white py-3 rounded-sm font-bold text-center shadow-lg"
+                        className="group w-full bg-brand text-white py-3 rounded-sm font-bold text-center shadow-lg flex items-center justify-center gap-2"
                     >
                         Testar grátis agora
+                        <ArrowRight className="h-5 w-5 cta-arrow-shift" />
                     </Link>
                 </div>
 
+                {/* Footer */}
                 <footer className="bg-white border-t border-border py-12">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
@@ -528,9 +791,15 @@ function PricingItem({ text, highlight, dark }: { text: string; highlight?: bool
     );
 }
 
-function FaqItem({ question, answer }: { question: string; answer: string }) {
+function FaqItem({ question, answer, index }: { question: string; answer: string; index: number }) {
     return (
-        <div className="border border-border rounded-sm bg-gray-50/50 overflow-hidden">
+        <m.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.05 }}
+            className="border border-border rounded-sm bg-gray-50/50 overflow-hidden"
+        >
             <details
                 className="group"
                 onToggle={(event) => {
@@ -549,6 +818,6 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
                     {answer}
                 </div>
             </details>
-        </div>
+        </m.div>
     );
 }

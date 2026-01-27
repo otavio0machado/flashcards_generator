@@ -2,12 +2,22 @@
 
 import React, { useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock, Tag } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock, Tag, ArrowRight } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
+
+function SectionLabel({ text }: { text: string }) {
+    return (
+        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
+            {text}
+        </p>
+    );
+}
 
 interface Card {
     id: string;
@@ -242,23 +252,35 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             : undefined;
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
-            <Link
-                href="/decks"
-                className="inline-flex items-center gap-2 text-foreground/40 hover:text-brand transition-colors font-bold text-sm mb-8 group"
-            >
-                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                Voltar para Biblioteca
-            </Link>
+        <LazyMotion features={domAnimation}>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
+                <m.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
+                    <Link
+                        href="/decks"
+                        className="inline-flex items-center gap-2 text-foreground/40 hover:text-brand transition-colors font-bold text-sm mb-8 group"
+                    >
+                        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                        Voltar para Biblioteca
+                    </Link>
+                </m.div>
 
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-12">
-                <div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-brand/10 p-2 rounded-sm text-brand">
-                            <Layers className="h-5 w-5" />
+                <m.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-12"
+                >
+                    <div>
+                        <SectionLabel text="VISUALIZANDO BARALHO" />
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-brand/10 p-2 rounded-sm text-brand">
+                                <Layers className="h-5 w-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visualizando Baralho</span>
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Visualizando Baralho</span>
-                    </div>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">{deck.title}</h1>
                     {deck.description && (
                         <p className="text-foreground/60 font-medium max-w-2xl mb-4">
@@ -340,7 +362,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         )}
                     </button>
                 </div>
-            </div>
+            </m.div>
 
             {isOwner && (
                 <div className="bg-white border border-border rounded-sm p-6 shadow-sm mb-10">
@@ -466,5 +488,6 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                 />
             )}
         </div>
+        </LazyMotion>
     );
 }

@@ -2,13 +2,23 @@
 
 import React, { useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { trackEvent } from '@/lib/analytics';
 import { deckService } from '@/services/deckService';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag, Star, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag, Star, BadgeCheck, ArrowRight } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, Category } from '@/lib/category-utils';
+
+function SectionLabel({ text }: { text: string }) {
+    return (
+        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
+            {text}
+        </p>
+    );
+}
 
 interface Card {
     id: string;
@@ -134,20 +144,31 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
         : undefined;
 
     return (
-        <div className="relative overflow-hidden noise-bg">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-brand/10 via-brand/5 to-transparent" />
-            <div className="pointer-events-none absolute -right-10 top-24 h-64 w-64 rounded-full bg-brand/10 blur-3xl" />
+        <LazyMotion features={domAnimation}>
+            <div className="relative overflow-hidden noise-bg">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-brand/10 via-brand/5 to-transparent" />
+                <div className="pointer-events-none absolute -right-10 top-24 h-64 w-64 rounded-full bg-brand/10 blur-3xl" />
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32 relative z-10">
-                <Link
-                    href="/marketplace"
-                    className="inline-flex items-center gap-2 text-foreground/40 hover:text-brand transition-colors font-bold text-sm mb-8 group"
-                >
-                    <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                    Voltar para o Marketplace
-                </Link>
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32 relative z-10">
+                    <m.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                    >
+                        <Link
+                            href="/marketplace"
+                            className="inline-flex items-center gap-2 text-foreground/40 hover:text-brand transition-colors font-bold text-sm mb-8 group"
+                        >
+                            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                            Voltar para o Marketplace
+                        </Link>
+                    </m.div>
 
-                <div className="mb-12 rounded-sm border border-border bg-white/80 backdrop-blur-sm shadow-sm">
+                    <m.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mb-12 rounded-sm border border-border bg-white/80 backdrop-blur-sm shadow-sm"
+                    >
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 p-6 md:p-8">
                         <div>
                             <div className="flex items-center gap-3 mb-4">
@@ -236,7 +257,7 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                             </button>
                         </div>
                     </div>
-                </div>
+                </m.div>
 
                 {mode === 'overview' ? (
                     <div className="grid grid-cols-1 gap-6">
@@ -287,5 +308,6 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                 )}
             </div>
         </div>
+        </LazyMotion>
     );
 }
