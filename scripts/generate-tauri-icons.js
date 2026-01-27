@@ -4,7 +4,10 @@ const path = require('path');
 const fs = require('fs');
 
 const iconsDir = path.join(__dirname, '../src-tauri/icons');
-const sourceIcon = path.join(__dirname, '../public/logo.png');
+// Try to find the best source icon
+const iconSourcePath = path.join(__dirname, '../public/icon-source.png');
+const startLogoPath = path.join(__dirname, '../public/logo.png');
+const sourceIcon = fs.existsSync(iconSourcePath) ? iconSourcePath : startLogoPath;
 
 // Ensure directory exists
 if (!fs.existsSync(iconsDir)) {
@@ -26,10 +29,10 @@ function createIco(pngBuffers) {
     const headerSize = 6;
     const dirEntrySize = 16;
     const dirSize = dirEntrySize * iconCount;
-    
+
     let offset = headerSize + dirSize;
     const dirEntries = [];
-    
+
     for (const { buffer, size } of pngBuffers) {
         dirEntries.push({
             width: size >= 256 ? 0 : size,
@@ -43,15 +46,15 @@ function createIco(pngBuffers) {
         });
         offset += buffer.length;
     }
-    
+
     const totalSize = offset;
     const ico = Buffer.alloc(totalSize);
-    
+
     // Write header
     ico.writeUInt16LE(0, 0);  // Reserved
     ico.writeUInt16LE(1, 2);  // Type (1 = ICO)
     ico.writeUInt16LE(iconCount, 4);  // Image count
-    
+
     // Write directory entries
     let pos = 6;
     for (const entry of dirEntries) {
@@ -65,13 +68,13 @@ function createIco(pngBuffers) {
         ico.writeUInt32LE(entry.imageOffset, pos + 12);
         pos += 16;
     }
-    
+
     // Write image data
     for (const { buffer } of pngBuffers) {
         buffer.copy(ico, pos);
         pos += buffer.length;
     }
-    
+
     return ico;
 }
 
@@ -83,7 +86,7 @@ async function generateIcons() {
     // Check if source exists
     if (!fs.existsSync(sourceIcon)) {
         console.log('⚠️  Source logo.png not found, creating placeholder icons...');
-        
+
         // Create a simple SVG as placeholder
         const svg = `
         <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
@@ -108,7 +111,7 @@ async function generateIcons() {
     // Generate ICO with multiple sizes
     const icoSizes = [16, 32, 48, 256];
     const pngBuffers = [];
-    
+
     for (const size of icoSizes) {
         const buffer = await sharp(sourceBuffer)
             .resize(size, size)
@@ -116,7 +119,7 @@ async function generateIcons() {
             .toBuffer();
         pngBuffers.push({ buffer, size });
     }
-    
+
     const icoBuffer = createIco(pngBuffers);
     fs.writeFileSync(path.join(iconsDir, 'icon.ico'), icoBuffer);
     console.log('✅ icon.ico');

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef } from 'react';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
+import { useTauri } from '@/lib/tauri';
 import { STRIPE_PRICES } from '@/constants/config';
 import CheckoutButton from '@/components/CheckoutButton';
 import Logo from '@/components/Logo';
@@ -63,10 +65,36 @@ function InlineCta({ location }: { location: string }) {
 export default function HomeContent() {
     const scroll50Tracked = useRef(false);
     const scroll90Tracked = useRef(false);
+    const { isTauri } = useTauri();
+    const router = useRouter();
 
     useEffect(() => {
-        trackEvent('landing_viewed');
-    }, []);
+        if (isTauri) {
+            // Check if user has seen onboarding
+            const hasSeenWelcome = localStorage.getItem('desktop_onboarding_complete');
+
+            if (hasSeenWelcome !== 'true') {
+                router.replace('/desktop/welcome');
+            } else {
+                router.replace('/app');
+            }
+        }
+    }, [isTauri, router]);
+
+    useEffect(() => {
+        if (!isTauri) {
+            trackEvent('landing_viewed');
+        }
+    }, [isTauri]);
+
+    // If active desktop app, show loader instead of landing page while redirecting
+    if (isTauri) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+            </div>
+        );
+    }
 
     useEffect(() => {
         const handleScroll = () => {
