@@ -70,6 +70,29 @@ export default function HomeContent() {
 
     useEffect(() => {
         if (isTauri) {
+            // Close splashscreen and show main window
+            import('@tauri-apps/api/webviewWindow').then(async ({ WebviewWindow }) => {
+                try {
+                    const currentWindow = WebviewWindow.getCurrent();
+                    await currentWindow.show();
+                    await currentWindow.setFocus();
+
+                    // Small delay to ensure render
+                    setTimeout(async () => {
+                        try {
+                            const splash = await WebviewWindow.getByLabel('splashscreen');
+                            if (splash) {
+                                await splash.close();
+                            }
+                        } catch (err) {
+                            console.warn('Could not close splashscreen:', err);
+                        }
+                    }, 500);
+                } catch (err) {
+                    console.error('Window manipulation error:', err);
+                }
+            });
+
             // Check if user has seen onboarding
             const hasSeenWelcome = localStorage.getItem('desktop_onboarding_complete');
 

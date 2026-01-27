@@ -13,6 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "Flashcards Generator",
         "width": 1200,
         "height": 800,
@@ -20,7 +21,20 @@
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "title": "Flashcards Generator Splash",
+        "url": "splashscreen.html",
+        "width": 300,
+        "height": 300,
+        "center": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "visible": true
       }
     ],
     "security": {
