@@ -28,6 +28,7 @@ export interface GenerationRequest {
         studyLevel: string;
         studyGoal: string;
         templateType: string;
+        cardStyle: 'basic' | 'short_answer' | 'image_occlusion';
         aiOptimized: boolean;
         enemMode: boolean;
         autoTags: boolean;
@@ -76,6 +77,7 @@ export const aiService = {
             studyLevel: req.config.studyLevel,
             studyGoal: req.config.studyGoal,
             templateType: req.config.templateType,
+            cardStyle: req.config.cardStyle,
             aiOptimized: req.config.aiOptimized,
             enemMode: req.config.enemMode,
             autoTags: req.config.autoTags
