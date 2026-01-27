@@ -135,11 +135,6 @@ const isDesktop = process.env.NEXT_PUBLIC_IS_DESKTOP === 'true';
 const nextConfig: NextConfig = {
   // Turbopack config (Next.js 16+)
   turbopack: {},
-  // Desktop Build Configuration
-  output: isDesktop ? 'export' : undefined,
-  // When building for desktop, ignore .ts route files (API routes) by only looking for .tsx 
-  // This allows static export without deleting API files.
-  pageExtensions: isDesktop ? ['tsx'] : ['ts', 'tsx', 'js', 'jsx'],
 
   async headers() {
     return [
@@ -150,14 +145,10 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ['anki-apkg-export'],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: isDesktop,
     remotePatterns: [
       {
         protocol: 'https',

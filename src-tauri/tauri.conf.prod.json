@@ -5,8 +5,8 @@
   "identifier": "com.flashcardsgenerator.app",
   "build": {
     "beforeDevCommand": "",
-    "beforeBuildCommand": "node scripts/build-desktop-wrapper.js",
-    "frontendDist": "../out"
+    "beforeBuildCommand": "",
+    "frontendDist": "https://www.flashcards-generator.com"
   },
   "app": {
     "withGlobalTauri": true,
