@@ -35,7 +35,7 @@ const platforms: Platform[] = [
         name: 'Windows',
         icon: Monitor,
         description: 'Windows 10 ou superior',
-        downloadUrl: `${GITHUB_RELEASES_BASE}/Flashcards%20Generator_1.0.0_x64-setup.exe`,
+        downloadUrl: `${GITHUB_RELEASES_BASE}/Flashcards.Generator_1.0.0_x64-setup.exe`,
         available: true,
         fileType: '.exe',
         size: '~80 MB',
