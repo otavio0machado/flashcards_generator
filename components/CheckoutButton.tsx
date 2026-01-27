@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { m } from 'framer-motion';
 import { trackEvent } from '@/lib/analytics';
+import { getApiUrl } from '@/lib/api-config';
 
 
 interface CheckoutButtonProps {
@@ -25,7 +26,7 @@ export default function CheckoutButton({ priceId, planName, className, children,
             trackEvent('upgrade_click', { plan: planName, price_id: priceId });
             trackEvent('checkout_started', { plan: planName, price_id: priceId });
 
-            const response = await fetch('/api/stripe/checkout', {
+            const response = await fetch(getApiUrl('api/stripe/checkout'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

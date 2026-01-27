@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/lib/api-config';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { trackEvent } from '@/lib/analytics';
 import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function SettingsPage() {
         try {
             setLoadingPortal(true);
             trackEvent('manage_subscription_clicked', { source: 'settings_page' });
-            const response = await fetch('/api/stripe/portal', {
+            const response = await fetch(getApiUrl('api/stripe/portal'), {
                 method: 'POST',
             });
 

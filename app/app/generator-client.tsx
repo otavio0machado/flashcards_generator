@@ -22,6 +22,7 @@ import { gzip } from 'pako';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/lib/api-config';
 import { deckService } from '@/services/deckService';
 import UpgradeModal from '@/components/UpgradeModal';
 import AuthGateModal from '@/components/AuthGateModal';
@@ -436,7 +437,7 @@ export default function GeneratorClient() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('/api/stats');
+                const response = await fetch(getApiUrl('api/stats'));
                 if (!response.ok) return;
                 const data = await response.json();
                 setStats({
@@ -562,7 +563,7 @@ export default function GeneratorClient() {
 
         try {
             const response = isDemo
-                ? await fetch('/api/demo/generate', {
+                ? await fetch(getApiUrl('api/demo/generate'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -579,7 +580,7 @@ export default function GeneratorClient() {
                         captchaToken,
                     })
                 })
-                : await fetch('/api/generate', {
+                : await fetch(getApiUrl('api/generate'), {
                     method: 'POST',
                     body: (() => {
                         const formData = new FormData();
@@ -1570,80 +1571,80 @@ export default function GeneratorClient() {
                     <div className="mt-6">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-2">Passo 2 • Ajustes principais</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="study-level" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível</label>
-                            <div className="relative text-foreground">
-                                <select
-                                    id="study-level"
-                                    value={studyLevel}
-                                    onChange={(event) => setStudyLevel(event.target.value as typeof studyLevel)}
-                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
-                                >
-                                    <option value="ENEM">ENEM</option>
-                                    <option value="Faculdade">Faculdade</option>
-                                    <option value="Concurso">Concurso</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            <div>
+                                <label htmlFor="study-level" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível</label>
+                                <div className="relative text-foreground">
+                                    <select
+                                        id="study-level"
+                                        value={studyLevel}
+                                        onChange={(event) => setStudyLevel(event.target.value as typeof studyLevel)}
+                                        className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                    >
+                                        <option value="ENEM">ENEM</option>
+                                        <option value="Faculdade">Faculdade</option>
+                                        <option value="Concurso">Concurso</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label htmlFor="study-goal" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Objetivo</label>
-                            <div className="relative text-foreground">
-                                <select
-                                    id="study-goal"
-                                    value={studyGoal}
-                                    onChange={(event) => setStudyGoal(event.target.value as typeof studyGoal)}
-                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
-                                >
-                                    <option value="Memorizar">Memorizar</option>
-                                    <option value="Revisar rápido">Revisar rápido</option>
-                                    <option value="Aprofundar">Aprofundar</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            <div>
+                                <label htmlFor="study-goal" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Objetivo</label>
+                                <div className="relative text-foreground">
+                                    <select
+                                        id="study-goal"
+                                        value={studyGoal}
+                                        onChange={(event) => setStudyGoal(event.target.value as typeof studyGoal)}
+                                        className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                    >
+                                        <option value="Memorizar">Memorizar</option>
+                                        <option value="Revisar rápido">Revisar rápido</option>
+                                        <option value="Aprofundar">Aprofundar</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label htmlFor="card-style" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Estilo do card</label>
-                            <div className="relative text-foreground">
-                                <select
-                                    id="card-style"
-                                    value={cardStyle}
-                                    onChange={(event) => setCardStyle(event.target.value as typeof cardStyle)}
-                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
-                                >
-                                    <option value="basic">Pergunta e resposta</option>
-                                    <option value="short_answer">Resposta curta</option>
-                                    <option value="image_occlusion">Oclusão (imagem)</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            <div>
+                                <label htmlFor="card-style" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Estilo do card</label>
+                                <div className="relative text-foreground">
+                                    <select
+                                        id="card-style"
+                                        value={cardStyle}
+                                        onChange={(event) => setCardStyle(event.target.value as typeof cardStyle)}
+                                        className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                    >
+                                        <option value="basic">Pergunta e resposta</option>
+                                        <option value="short_answer">Resposta curta</option>
+                                        <option value="image_occlusion">Oclusão (imagem)</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label htmlFor="card-count" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Qtd. de Cards {limits.customCardCount ? '' : '(Limite)'}</label>
-                            <div className="relative text-foreground">
-                                {limits.customCardCount && !isDemo ? (
-                                    <input
-                                        id="card-count"
-                                        type="number"
-                                        min={1}
-                                        max={limits.maxCardsPerGen}
-                                        value={cardCount}
-                                        onChange={(e) => setCardCount(Math.max(1, Math.min(limits.maxCardsPerGen, parseInt(e.target.value) || 1)))}
-                                        className="w-full bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
-                                    />
-                                ) : (
-                                    <div className="w-full bg-gray-100 border border-border px-3 py-2 rounded-sm text-sm font-bold text-foreground/40 flex items-center justify-between">
-                                        <span>{limits.maxCardsPerGen} cards</span>
-                                        <button
-                                            onClick={() => (isDemo ? openAuthGate('demo_card_limit') : setShowUpgradeModal(true))}
-                                            className="text-[10px] text-brand underline hover:text-brand/80"
-                                        >
-                                            {isDemo ? 'Criar conta' : 'Upgrade'}
-                                        </button>
-                                    </div>
-                                )}
+                            <div>
+                                <label htmlFor="card-count" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Qtd. de Cards {limits.customCardCount ? '' : '(Limite)'}</label>
+                                <div className="relative text-foreground">
+                                    {limits.customCardCount && !isDemo ? (
+                                        <input
+                                            id="card-count"
+                                            type="number"
+                                            min={1}
+                                            max={limits.maxCardsPerGen}
+                                            value={cardCount}
+                                            onChange={(e) => setCardCount(Math.max(1, Math.min(limits.maxCardsPerGen, parseInt(e.target.value) || 1)))}
+                                            className="w-full bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
+                                        />
+                                    ) : (
+                                        <div className="w-full bg-gray-100 border border-border px-3 py-2 rounded-sm text-sm font-bold text-foreground/40 flex items-center justify-between">
+                                            <span>{limits.maxCardsPerGen} cards</span>
+                                            <button
+                                                onClick={() => (isDemo ? openAuthGate('demo_card_limit') : setShowUpgradeModal(true))}
+                                                className="text-[10px] text-brand underline hover:text-brand/80"
+                                            >
+                                                {isDemo ? 'Criar conta' : 'Upgrade'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
                         </div>
                     </div>
                     <details className="mt-4 border border-border rounded-sm bg-gray-50">
