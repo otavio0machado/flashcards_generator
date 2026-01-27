@@ -7,10 +7,11 @@ import Navbar from "@/components/Navbar";
 import { Toaster } from "sonner";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
 import AnalyticsPageView from "@/components/AnalyticsPageView";
-import FeedbackWidget from "@/components/FeedbackWidget";
-import CookieConsent from "@/components/CookieConsent";
-import InstallPrompt from "@/components/InstallPrompt";
-import OfflineIndicator from "@/components/OfflineIndicator";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
+import { TauriProvider } from "@/lib/tauri";
+import TauriConditionalComponents from "@/components/TauriConditionalComponents";
+import TauriMainWrapper from "@/components/TauriMainWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -99,7 +100,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning data-theme="light">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16 pb-20 md:pb-0`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {
@@ -115,16 +116,17 @@ export default function RootLayout({
 })();`}
         </Script>
         <AnalyticsProvider>
-          <Navbar />
-          <Suspense fallback={null}>
-            <AnalyticsPageView />
-          </Suspense>
-          <main>{children}</main>
-          <FeedbackWidget />
-          <CookieConsent />
-          <InstallPrompt />
-          <OfflineIndicator />
-          <Toaster />
+          <TauriProvider>
+            <Navbar />
+            <DesktopSidebar />
+            <Suspense fallback={null}>
+              <AnalyticsPageView />
+            </Suspense>
+            <TauriMainWrapper>{children}</TauriMainWrapper>
+            <BottomNav />
+            <TauriConditionalComponents />
+            <Toaster />
+          </TauriProvider>
         </AnalyticsProvider>
       </body>
     </html>

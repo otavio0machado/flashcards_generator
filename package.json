@@ -5,8 +5,16 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:static": "next build && next export",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:prod": "tauri build -c src-tauri/tauri.conf.prod.json",
+    "tauri:build:windows": "tauri build -c src-tauri/tauri.conf.prod.json --target x86_64-pc-windows-msvc",
+    "tauri:build:mac": "tauri build -c src-tauri/tauri.conf.prod.json --target universal-apple-darwin",
+    "tauri:icons": "node scripts/generate-tauri-icons.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -15,6 +23,8 @@
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/auth-helpers-react": "^0.15.0",
     "@supabase/supabase-js": "^2.91.0",
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-shell": "^2.3.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
     "anki-apkg-export": "^4.0.3",
@@ -37,6 +47,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.0",
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.9.6",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
@@ -48,6 +59,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
     "jsdom": "^27.4.0",
+    "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",

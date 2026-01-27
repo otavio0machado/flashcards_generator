@@ -19,17 +19,20 @@ export default function Logo({
   const imageClasses = getClassNames('object-contain', imageClassName);
 
   return (
-    <div className={getClassNames('relative', className)}>
+    <div
+      className={getClassNames('relative', className)}
+      style={{ background: 'transparent', boxShadow: 'none' }}
+    >
       <Image
-        src="/logo.png"
+        src="/logo-dark.png"
         alt={alt}
         fill
         sizes="(max-width: 768px) 140px, 160px"
-        className={getClassNames(imageClasses, 'dark:hidden')}
+        className={getClassNames(imageClasses, 'block', 'dark:hidden')}
         priority={priority}
       />
       <Image
-        src="/logo-dark.png"
+        src="/logo.png"
         alt={alt}
         fill
         sizes="(max-width: 768px) 140px, 160px"

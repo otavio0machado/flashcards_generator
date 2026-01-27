@@ -12,10 +12,12 @@ import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/st
 import ThemeToggle from '@/components/ThemeToggle';
 import Logo from '@/components/Logo';
 import { trackEvent } from '@/lib/analytics';
+import { useTauri } from '@/lib/tauri';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isTauri, isDesktop } = useTauri();
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -116,6 +118,11 @@ export default function Navbar() {
 
     return 'Usuario';
   })();
+  
+  // Hide Navbar in Tauri desktop (we have sidebar instead)
+  if (isTauri && isDesktop) {
+    return null;
+  }
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
@@ -145,6 +152,9 @@ export default function Navbar() {
             )}
             <Link href="/marketplace" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Marketplace
+            </Link>
+            <Link href="/download" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
+              Download
             </Link>
             <Link href="/guia" className="text-sm font-medium text-foreground/70 hover:text-brand transition-colors">
               Tutorial
@@ -248,6 +258,9 @@ export default function Navbar() {
             </Link>
             <Link href="/marketplace" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Marketplace
+            </Link>
+            <Link href="/download" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
+              Download
             </Link>
             <Link href="/app" onClick={closeMobileMenu} className="block px-3 py-4 rounded-sm text-sm font-semibold text-foreground/70 hover:text-brand hover:bg-gray-50 transition-colors">
               Gerador (App)

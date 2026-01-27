@@ -1,16 +1,26 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 html {
   scroll-behavior: smooth;
   background-color: var(--background);
 }
 
+/* Safe area for iOS notch and home indicator */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 @theme {
-  --color-brand: #CC3F00;
+  --color-brand: #E74802;
   --color-brand-foreground: #FFFFFF;
   --color-background: #FAFAFA;
   --color-foreground: #1A1A1A;
   --color-border: #E5E5E5;
+  --color-text-secondary: #5F6368;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -37,12 +47,13 @@ html {
 
 .dark {
   color-scheme: dark;
-  --color-background: #0D0F12;
-  --color-foreground: #F5F5F5;
-  --color-border: #2A2F35;
-  --color-brand: #FF4F00;
+  --color-background: #0E1114;
+  --color-foreground: #F2F2F2;
+  --color-border: #232A30;
+  --color-brand: #E74802;
   --color-brand-foreground: #FFFFFF;
-  --surface: #14181D;
+  --color-text-secondary: #A1A1A1;
+  --surface: #151A1E;
   --surface-muted: #171C21;
   --surface-strong: #1C2229;
   --surface-stronger: #232B35;

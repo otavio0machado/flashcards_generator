@@ -49,3 +49,6 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/worker-*.js
 public/worker-*.js.map
+
+# Rust/Tauri build artifacts
+src-tauri/target/
