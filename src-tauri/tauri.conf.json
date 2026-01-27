@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "",
-    "frontendDist": "https://www.flashcards-generator.com"
+    "frontendDist": "https://flashcardsgenerator.com.br"
   },
   "app": {
     "withGlobalTauri": true,
@@ -38,7 +38,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' https://*.flashcardsgenerator.com.br https://*.supabase.co https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.flashcardsgenerator.com.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.flashcardsgenerator.com.br https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.openai.com;"
     }
   },
   "plugins": {},
