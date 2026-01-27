@@ -24,6 +24,7 @@ export default function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
+    const [isWindows, setIsWindows] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
@@ -32,9 +33,13 @@ export default function InstallPrompt() {
             || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
         setIsStandalone(standalone);
 
-        // Detect iOS
-        const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        // Detect OS
+        const ua = navigator.userAgent.toLowerCase();
+        const iOS = /iPad|iPhone|iPod/.test(ua);
+        const windows = ua.includes('windows');
+
         setIsIOS(iOS);
+        setIsWindows(windows);
 
         // Check if user dismissed the prompt before
         const dismissed = localStorage.getItem('pwa-prompt-dismissed');
@@ -46,16 +51,18 @@ export default function InstallPrompt() {
             return;
         }
 
-        // Handle beforeinstallprompt event
+        // Handle beforeinstallprompt event (PWA for Android/Desktop PWA)
         const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            
-            // Show prompt after a delay (let user explore first)
-            setTimeout(() => {
-                setShowPrompt(true);
-                trackEvent('pwa_install_prompt_shown', { platform: 'android' });
-            }, 30000); // Show after 30 seconds
+
+            // If not windows (because windows handles its own exe prompt), show PWA prompt
+            if (!windows) {
+                setTimeout(() => {
+                    setShowPrompt(true);
+                    trackEvent('pwa_install_prompt_shown', { platform: 'android' });
+                }, 30000);
+            }
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -65,7 +72,15 @@ export default function InstallPrompt() {
             setTimeout(() => {
                 setShowPrompt(true);
                 trackEvent('pwa_install_prompt_shown', { platform: 'ios' });
-            }, 60000); // Show after 60 seconds on iOS
+            }, 60000);
+        }
+
+        // For Windows, show .exe download prompt after delay
+        if (windows && !standalone) {
+            setTimeout(() => {
+                setShowPrompt(true);
+                trackEvent('desktop_install_prompt_shown', { platform: 'windows' });
+            }, 15000); // Faster prompt for desktop (15s)
         }
 
         return () => {
@@ -74,19 +89,27 @@ export default function InstallPrompt() {
     }, []);
 
     const handleInstall = async () => {
+        if (isWindows) {
+            trackEvent('desktop_install_clicked', { platform: 'windows' });
+            // Direct download link
+            window.location.href = 'https://github.com/otavio0machado/flashcards_generator/releases/download/v1.0.0/Flashcards.Generator_1.0.0_x64-setup.exe';
+            handleDismiss(); // Close prompt after click
+            return;
+        }
+
         if (!deferredPrompt) return;
 
         trackEvent('pwa_install_clicked', { platform: 'android' });
-        
+
         await deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        
+
         if (outcome === 'accepted') {
             trackEvent('pwa_installed', { platform: 'android' });
         } else {
             trackEvent('pwa_install_dismissed', { platform: 'android' });
         }
-        
+
         setDeferredPrompt(null);
         setShowPrompt(false);
     };
@@ -94,7 +117,7 @@ export default function InstallPrompt() {
     const handleDismiss = () => {
         localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
         setShowPrompt(false);
-        trackEvent('pwa_prompt_dismissed', { platform: isIOS ? 'ios' : 'android' });
+        trackEvent('pwa_prompt_dismissed', { platform: isIOS ? 'ios' : isWindows ? 'windows' : 'android' });
     };
 
     // Don't show if already installed
@@ -121,7 +144,7 @@ export default function InstallPrompt() {
                                     <div>
                                         <h3 className="font-bold text-sm">Instalar Flashcards</h3>
                                         <p className="text-[10px] font-medium text-foreground/50">
-                                            Acesse mais rápido
+                                            {isWindows ? 'Versão Desktop Oficial' : 'Acesse mais rápido'}
                                         </p>
                                     </div>
                                 </div>
@@ -165,7 +188,9 @@ export default function InstallPrompt() {
                                 ) : (
                                     <div className="space-y-3">
                                         <p className="text-sm text-foreground/70 font-medium">
-                                            Instale o app para estudar offline e receber lembretes!
+                                            {isWindows
+                                                ? 'Baixe o app oficial para Windows para melhor performance.'
+                                                : 'Instale o app para estudar offline e receber lembretes!'}
                                         </p>
                                         <div className="flex gap-2">
                                             <button
@@ -179,7 +204,7 @@ export default function InstallPrompt() {
                                                 className="flex-1 bg-brand text-white py-2.5 rounded-sm text-xs font-bold hover:bg-brand/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand/20"
                                             >
                                                 <Download className="h-3.5 w-3.5" />
-                                                Instalar
+                                                {isWindows ? 'Baixar .EXE' : 'Instalar'}
                                             </button>
                                         </div>
                                     </div>
