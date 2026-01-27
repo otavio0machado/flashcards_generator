@@ -35,7 +35,7 @@ const platforms: Platform[] = [
         name: 'Windows',
         icon: Monitor,
         description: 'Windows 10 ou superior',
-        downloadUrl: `${GITHUB_RELEASES_BASE}/Flashcards-Generator_1.0.0_x64-setup.exe`,
+        downloadUrl: `${GITHUB_RELEASES_BASE}/Flashcards%20Generator_1.0.0_x64-setup.exe`,
         available: true,
         fileType: '.exe',
         size: '~80 MB',
@@ -196,10 +196,10 @@ export default function DownloadPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 * index }}
                                     className={`relative p-6 rounded-xl border transition-colors ${isRecommended
-                                            ? 'bg-surface border-brand shadow-lg shadow-brand/10'
-                                            : platform.available
-                                                ? 'bg-surface border-border hover:border-brand/50'
-                                                : 'bg-surface-muted border-border opacity-60'
+                                        ? 'bg-surface border-brand shadow-lg shadow-brand/10'
+                                        : platform.available
+                                            ? 'bg-surface border-border hover:border-brand/50'
+                                            : 'bg-surface-muted border-border opacity-60'
                                         }`}
                                 >
                                     {isRecommended && (
@@ -215,8 +215,8 @@ export default function DownloadPage() {
 
                                     <div className="flex flex-col items-center text-center">
                                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 ${platform.available
-                                                ? 'bg-brand text-white'
-                                                : 'bg-border text-[var(--color-text-secondary)]'
+                                            ? 'bg-brand text-white'
+                                            : 'bg-border text-[var(--color-text-secondary)]'
                                             }`}>
                                             <platform.icon className="w-6 h-6" />
                                         </div>
