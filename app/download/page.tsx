@@ -253,6 +253,27 @@ export default function DownloadPage() {
                             );
                         })}
                     </div>
+
+                    {/* Installation Help (SmartScreen) */}
+                    <div className="mt-12 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl p-6">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg shrink-0">
+                                <Shield className="w-6 h-6 text-amber-700 dark:text-amber-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-200 mb-2">
+                                    Apareceu um aviso do Windows ("SmartScreen")?
+                                </h3>
+                                <p className="text-amber-800 dark:text-amber-300/90 text-sm mb-4">
+                                    Isso é comum em aplicativos novos que ainda não possuem milhares de downloads. O app é 100% seguro e livre de vírus.
+                                </p>
+                                <ol className="list-decimal list-inside space-y-2 text-sm text-amber-800 dark:text-amber-300/80 font-medium">
+                                    <li>Clique no link <span className="font-bold underline">Mais informações</span> (no pop-up azul)</li>
+                                    <li>Depois clique no botão <span className="font-bold">Executar assim mesmo</span></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
