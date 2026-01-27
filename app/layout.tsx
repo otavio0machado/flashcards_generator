@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
@@ -9,6 +9,7 @@ import AnalyticsProvider from "@/components/AnalyticsProvider";
 import AnalyticsPageView from "@/components/AnalyticsPageView";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import CookieConsent from "@/components/CookieConsent";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,11 +23,32 @@ const geistMono = Geist_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://flashcards-generator.com";
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "Flashcards Generator - Crie Cards para Anki em Segundos",
   description: "Gere flashcards para Anki e Quizlet em segundos com nossa IA. Cole seu texto e pare de perder horas resumindo. Memorizacao rapida e eficiente.",
   keywords: ["Criar flashcards online", "Gerador Anki IA", "Estudar rapido", "Flashcards com inteligencia artificial"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Flashcards",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: "Flashcards Generator - Estude com Eficiencia",
     description: "Crie decks de flashcards instantaneamente a partir de qualquer texto.",
@@ -50,7 +72,21 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      { rel: "mask-icon", url: "/favicon.svg", color: "#CC3F00" },
+    ],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#CC3F00",
+    "msapplication-tap-highlight": "no",
   },
 };
 
@@ -85,6 +121,7 @@ export default function RootLayout({
           <main>{children}</main>
           <FeedbackWidget />
           <CookieConsent />
+          <InstallPrompt />
           <Toaster />
         </AnalyticsProvider>
       </body>
