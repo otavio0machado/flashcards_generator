@@ -68,7 +68,7 @@ export default function PlansPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-10"
+                    className="text-center mb-6"
                 >
                     <h1 className="text-3xl font-bold text-[var(--foreground)] mb-3 tracking-tight">
                         Escolha seu plano
@@ -79,18 +79,17 @@ export default function PlansPage() {
                 </motion.div>
 
                 {/* Plans Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     {plans.map((plan, index) => (
                         <motion.div
                             key={plan.name}
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className={`relative p-6 rounded-xl border-2 bg-[var(--surface,var(--background))] ${
-                                plan.popular
-                                    ? 'border-brand shadow-lg shadow-brand/10'
-                                    : 'border-[var(--color-border)]'
-                            }`}
+                            className={`relative p-6 rounded-xl border-2 bg-[var(--surface,var(--background))] ${plan.popular
+                                ? 'border-brand shadow-lg shadow-brand/10'
+                                : 'border-[var(--color-border)]'
+                                }`}
                         >
                             {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-brand text-white text-xs font-semibold rounded-full">
@@ -114,11 +113,10 @@ export default function PlansPage() {
                             <ul className="space-y-2.5">
                                 {plan.features.map((feature, i) => (
                                     <li key={i} className="flex items-center gap-2.5">
-                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                            plan.popular
-                                                ? 'bg-brand/15 text-brand'
-                                                : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'
-                                        }`}>
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center ${plan.popular
+                                            ? 'bg-brand/15 text-brand'
+                                            : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'
+                                            }`}>
                                             <Check className="w-2.5 h-2.5" strokeWidth={3} />
                                         </div>
                                         <span className="text-sm text-[var(--foreground)]">
@@ -148,14 +146,14 @@ export default function PlansPage() {
                     transition={{ delay: 0.3 }}
                     className="text-center"
                 >
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <OnboardingProgressDots currentStep={2} />
                     </div>
 
                     <div className="flex flex-col items-center gap-3">
                         <button
                             onClick={handleNext}
-                            className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+                            className="inline-flex items-center gap-2.5 px-8 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors"
                         >
                             <span>Criar Conta</span>
                             <ArrowRight className="w-5 h-5" />

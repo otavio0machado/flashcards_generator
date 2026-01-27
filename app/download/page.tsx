@@ -134,7 +134,7 @@ export default function DownloadPage() {
                     </p>
                     <Link
                         href="/app"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors"
                     >
                         Ir para o App
                     </Link>
@@ -195,13 +195,12 @@ export default function DownloadPage() {
                                     initial={{ opacity: 0, y: 12 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 * index }}
-                                    className={`relative p-6 rounded-xl border transition-colors ${
-                                        isRecommended
+                                    className={`relative p-6 rounded-xl border transition-colors ${isRecommended
                                             ? 'bg-surface border-brand shadow-lg shadow-brand/10'
                                             : platform.available
-                                            ? 'bg-surface border-border hover:border-brand/50'
-                                            : 'bg-surface-muted border-border opacity-60'
-                                    }`}
+                                                ? 'bg-surface border-border hover:border-brand/50'
+                                                : 'bg-surface-muted border-border opacity-60'
+                                        }`}
                                 >
                                     {isRecommended && (
                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-brand text-white text-xs font-semibold rounded-full whitespace-nowrap">
@@ -215,11 +214,10 @@ export default function DownloadPage() {
                                     )}
 
                                     <div className="flex flex-col items-center text-center">
-                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 ${
-                                            platform.available
+                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 ${platform.available
                                                 ? 'bg-brand text-white'
                                                 : 'bg-border text-[var(--color-text-secondary)]'
-                                        }`}>
+                                            }`}>
                                             <platform.icon className="w-6 h-6" />
                                         </div>
 

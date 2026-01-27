@@ -75,7 +75,7 @@ export default function FeaturesPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-12"
+                    className="text-center mb-8"
                 >
                     <h1 className="text-3xl font-bold text-[var(--foreground)] mb-3 tracking-tight">
                         Recursos do aplicativo
@@ -90,7 +90,7 @@ export default function FeaturesPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12"
+                    className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8"
                 >
                     {features.map((feature, index) => (
                         <motion.div
@@ -120,14 +120,14 @@ export default function FeaturesPage() {
                     transition={{ delay: 0.4 }}
                     className="text-center"
                 >
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <OnboardingProgressDots currentStep={1} />
                     </div>
 
                     <div className="flex flex-col items-center gap-3">
                         <button
                             onClick={handleNext}
-                            className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+                            className="inline-flex items-center gap-2.5 px-8 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors"
                         >
                             <span>Ver Planos</span>
                             <ArrowRight className="w-5 h-5" />

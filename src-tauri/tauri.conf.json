@@ -2,11 +2,12 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Flashcards Generator",
   "version": "1.0.0",
-  "identifier": "com.flashcards-generator.app",
+  "identifier": "com.flashcardsgenerator.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": ""
+    "beforeBuildCommand": "",
+    "frontendDist": "https://flashcardsgenerator.app"
   },
   "app": {
     "withGlobalTauri": true,
@@ -26,12 +27,7 @@
       "csp": null
     }
   },
-  "plugins": {
-    "updater": {
-      "active": false,
-      "endpoints": []
-    }
-  },
+  "plugins": {},
   "bundle": {
     "active": true,
     "targets": "all",

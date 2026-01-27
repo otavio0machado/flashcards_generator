@@ -551,16 +551,16 @@ export default function HomeContent() {
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 whileHover={{ y: -6 }}
-                                className="bg-[#1A1A1A] border border-[#333] p-8 rounded-sm shadow-sm flex flex-col h-full text-white"
+                                className="bg-foreground border border-foreground/20 p-8 rounded-sm shadow-sm flex flex-col h-full text-background"
                             >
                                 <div className="mb-8">
                                     <h3 className="text-xl font-bold mb-2">Ultimate</h3>
                                     <div className="flex items-baseline gap-1 mb-4">
-                                        <span className="text-sm font-bold text-white/40">R$</span>
+                                        <span className="text-sm font-bold text-background/40">R$</span>
                                         <span className="text-4xl font-bold tracking-tighter italic">19,90</span>
-                                        <span className="text-sm font-bold text-white/40">/mês</span>
+                                        <span className="text-sm font-bold text-background/40">/mês</span>
                                     </div>
-                                    <p className="text-sm font-medium text-white/50">Pra quem estuda pesado.</p>
+                                    <p className="text-sm font-medium text-background/50">Pra quem estuda pesado.</p>
                                 </div>
                                 <ul className="space-y-3 mb-8 flex-1">
                                     <PricingItem text="até 20 gerações por dia" dark />
@@ -574,7 +574,7 @@ export default function HomeContent() {
                                     priceId={STRIPE_PRICES.ultimate}
                                     planName="ultimate"
                                     onClick={() => handlePricingCta('ultimate')}
-                                    className="w-full py-3 bg-white theme-static-light text-[#1A1A1A] text-center font-bold text-sm rounded-sm hover:bg-white/90 transition-all active:scale-95 transform"
+                                    className="w-full py-3 bg-background theme-static-light text-foreground text-center font-bold text-sm rounded-sm hover:bg-background/90 transition-all"
                                 >
                                     Assinar Ultimate
                                 </CheckoutButton>
@@ -781,10 +781,10 @@ export default function HomeContent() {
 function PricingItem({ text, highlight, dark }: { text: string; highlight?: boolean; dark?: boolean }) {
     return (
         <li className="flex items-center gap-3">
-            <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${dark ? 'bg-white/10' : 'bg-brand/10'}`}>
-                <Check className={`h-3 w-3 ${dark ? 'text-white' : 'text-brand'}`} />
+            <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${dark ? 'bg-background/10' : 'bg-brand/10'}`}>
+                <Check className={`h-3 w-3 ${dark ? 'text-background' : 'text-brand'}`} />
             </div>
-            <span className={`text-sm font-medium ${highlight ? 'font-bold' : ''} ${dark ? 'text-white/80' : 'text-foreground/70'}`}>
+            <span className={`text-sm font-medium ${highlight ? 'font-bold' : ''} ${dark ? 'text-background/80' : 'text-foreground/70'}`}>
                 {text}
             </span>
         </li>

@@ -66,19 +66,19 @@ export default function WelcomePage() {
                 className="max-w-xl w-full text-center"
             >
                 <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="mx-auto mb-10 w-20 h-20 bg-brand rounded-2xl flex items-center justify-center"
+                    className="mx-auto mb-8 w-16 h-16 bg-brand rounded-xl flex items-center justify-center"
                 >
-                    <Sparkles className="w-10 h-10 text-white" />
+                    <Sparkles className="w-8 h-8 text-white" />
                 </motion.div>
 
                 <motion.h1
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.15 }}
-                    className="text-4xl font-bold text-[var(--foreground)] mb-4 tracking-tight"
+                    className="text-3xl font-bold text-[var(--foreground)] mb-3 tracking-tight"
                 >
                     Bem-vindo ao Flashcards Generator
                 </motion.h1>
@@ -96,7 +96,7 @@ export default function WelcomePage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.25 }}
-                    className="text-base text-[var(--color-text-secondary)] mb-12 leading-relaxed max-w-md mx-auto"
+                    className="text-base text-[var(--color-text-secondary)] mb-8 leading-relaxed max-w-md mx-auto"
                 >
                     Transforme qualquer texto em flashcards de alta qualidade em segundos.
                 </motion.p>
@@ -105,7 +105,7 @@ export default function WelcomePage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="mb-8"
+                    className="mb-6"
                 >
                     <OnboardingProgressDots currentStep={0} />
                 </motion.div>
@@ -118,7 +118,7 @@ export default function WelcomePage() {
                 >
                     <button
                         onClick={handleNext}
-                        className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+                        className="inline-flex items-center gap-2.5 px-8 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-brand/90 focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors"
                     >
                         <span>Começar</span>
                         <ArrowRight className="w-5 h-5" />

@@ -17,11 +17,10 @@ export default function TauriMainWrapper({ children }: TauriMainWrapperProps) {
 
     return (
         <main
-            className={`min-h-screen transition-[margin-left] duration-300 ease-in-out ${
-                needsMargin
+            className={`min-h-screen transition-[margin-left] duration-300 ease-in-out ${needsMargin
                     ? sidebarCollapsed ? 'ml-16' : 'ml-64'
                     : ''
-            }`}
+                } ${isTauri ? 'desktop-density' : ''}`}
         >
             {children}
         </main>

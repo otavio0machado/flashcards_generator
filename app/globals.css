@@ -45,6 +45,34 @@ html {
   outline-offset: 2px;
 }
 
+/* Active States for Buttons (Swiss Style - Clear Feedback) */
+button:active:not(:disabled),
+a:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Disabled States */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Desktop Density Tokens (Tauri) */
+.desktop-density {
+  --spacing-page-y: 1.5rem;
+  --spacing-header-mb: 1.5rem;
+  --spacing-section-gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .desktop-density {
+    --spacing-page-y: 2rem;
+    --spacing-header-mb: 2rem;
+  }
+}
+
 .dark {
   color-scheme: dark;
   --color-background: #0E1114;
