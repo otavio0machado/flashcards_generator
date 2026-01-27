@@ -35,13 +35,27 @@ const isImageMimeType = (mimeType: string) => IMAGE_MIME_TYPES.has(mimeType.toLo
 const isPdfMimeType = (mimeType: string) => mimeType.toLowerCase() === PDF_MIME_TYPE;
 const isDocxMimeType = (mimeType: string) => mimeType.toLowerCase() === DOCX_MIME_TYPE;
 
-async function extractPdfText(buffer: Buffer): Promise<string> {
+async function extractPdfText(buffer: Buffer, selectedPages?: number[]): Promise<string> {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
     const pdf = await loadingTask.promise;
     const pages: string[] = [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    const totalPages = pdf.numPages;
+    let pagesToRead: number[] = [];
+
+    if (Array.isArray(selectedPages) && selectedPages.length > 0) {
+        pagesToRead = Array.from(new Set(selectedPages))
+            .map((page) => Math.max(1, Math.min(totalPages, Math.floor(page))))
+            .filter((page) => page >= 1 && page <= totalPages)
+            .sort((a, b) => a - b);
+    } else {
+        pagesToRead = Array.from({ length: totalPages }, (_, idx) => idx + 1);
+    }
+
+    if (pagesToRead.length === 0) return '';
+
+    for (const pageNum of pagesToRead) {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
         const pageText = content.items
@@ -126,10 +140,13 @@ export async function POST(req: Request) {
         // 3. Parse Request
         let rawBody: any = {};
         let files: File[] = [];
+        let fileIds: string[] = [];
+        let pdfPageSelections: Record<string, number[] | 'all'> = {};
 
         const contentType = req.headers.get('content-type') || '';
         if (contentType.includes('multipart/form-data')) {
             const formData = await req.formData();
+            const pdfPageSelectionsRaw = formData.get('pdfPageSelections');
             rawBody = {
                 text: formData.get('text'),
                 language: formData.get('language'),
@@ -137,6 +154,7 @@ export async function POST(req: Request) {
                 studyLevel: formData.get('studyLevel'),
                 studyGoal: formData.get('studyGoal'),
                 templateType: formData.get('templateType'),
+                cardStyle: formData.get('cardStyle'),
                 cardCount: formData.get('cardCount'),
                 imageCount: formData.get('imageCount'),
                 generateImages: formData.get('generateImages'),
@@ -144,6 +162,15 @@ export async function POST(req: Request) {
                 autoTags: formData.get('autoTags'),
             };
             files = formData.getAll('files').filter((entry): entry is File => entry instanceof File);
+            fileIds = formData.getAll('fileIds').filter((entry): entry is string => typeof entry === 'string');
+
+            if (typeof pdfPageSelectionsRaw === 'string' && pdfPageSelectionsRaw.trim()) {
+                try {
+                    pdfPageSelections = JSON.parse(pdfPageSelectionsRaw);
+                } catch (error) {
+                    console.warn('[API/Generate] Invalid pdfPageSelections JSON', error);
+                }
+            }
         } else {
             rawBody = await req.json().catch(() => ({}));
         }
@@ -186,7 +213,8 @@ export async function POST(req: Request) {
         const attachmentParts: { inline_data: { mime_type: string; data: string } }[] = [];
         const extractedTextParts: string[] = [];
 
-        for (const file of files) {
+        for (let index = 0; index < files.length; index += 1) {
+            const file = files[index];
             if (file.size > MAX_UPLOAD_BYTES) {
                 return NextResponse.json({ error: 'Arquivo muito grande (max 20MB).', code: ErrorCodes.VALIDATION_ERROR }, { status: 413 });
             }
@@ -210,7 +238,10 @@ export async function POST(req: Request) {
                     }
                 });
             } else if (isPdfMimeType(mimeType)) {
-                const extracted = await extractPdfText(buffer);
+                const fileId = fileIds[index] || file.name;
+                const selection = pdfPageSelections[fileId];
+                const selectedPages = Array.isArray(selection) ? selection : undefined;
+                const extracted = await extractPdfText(buffer, selectedPages);
                 if (extracted) extractedTextParts.push(extracted);
             } else if (isDocxMimeType(mimeType)) {
                 const extracted = await extractDocxText(buffer);

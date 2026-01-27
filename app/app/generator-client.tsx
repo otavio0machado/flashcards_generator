@@ -15,7 +15,8 @@ import {
     Library,
     GripVertical,
     X,
-    Globe
+    Globe,
+    FileText
 } from 'lucide-react';
 import { gzip } from 'pako';
 import Toast, { ToastType } from '@/components/Toast';
@@ -49,6 +50,24 @@ type ImageDropTarget = {
     section: 'question' | 'answer';
 };
 
+type PdfPagePreview = {
+    pageNumber: number;
+    dataUrl?: string;
+    width?: number;
+    height?: number;
+    isRendering?: boolean;
+};
+
+type PdfPreview = {
+    fileId: string;
+    fileName: string;
+    pageCount: number;
+    pages: PdfPagePreview[];
+    selectedPages: number[];
+    isLoading: boolean;
+    error?: string;
+};
+
 const IMAGE_MIME_TYPES = new Set([
     'image/jpeg',
     'image/jpg',
@@ -61,6 +80,7 @@ const PDF_MIME_TYPE = 'application/pdf';
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
+const PDF_PREVIEW_INITIAL_PAGES = 6;
 
 const TEMPLATE_OPTIONS = [
     {
@@ -98,6 +118,7 @@ const TEMPLATE_OPTIONS = [
 export default function GeneratorClient() {
     const [inputText, setInputText] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [pdfPreviews, setPdfPreviews] = useState<PdfPreview[]>([]);
     const [deckTitle, setDeckTitle] = useState('');
     const [deckDescription, setDeckDescription] = useState('');
     const [deckTagsInput, setDeckTagsInput] = useState('');
@@ -117,6 +138,7 @@ export default function GeneratorClient() {
     const [difficulty, setDifficulty] = useState('Intermediário');
     const [studyLevel, setStudyLevel] = useState<'ENEM' | 'Faculdade' | 'Concurso'>('ENEM');
     const [studyGoal, setStudyGoal] = useState<'Memorizar' | 'Revisar rápido' | 'Aprofundar'>('Memorizar');
+    const [cardStyle, setCardStyle] = useState<'basic' | 'short_answer' | 'image_occlusion'>('basic');
     const [templateType, setTemplateType] = useState<string>('');
     const [recentTexts, setRecentTexts] = useState<string[]>([]);
     const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
@@ -140,6 +162,10 @@ export default function GeneratorClient() {
     const captchaContainerRef = useRef<HTMLDivElement | null>(null);
     const captchaWidgetIdRef = useRef<string | null>(null);
     const objectUrlsRef = useRef<Set<string>>(new Set());
+    const pdfDocsRef = useRef<Map<string, any>>(new Map());
+    const pdfjsRef = useRef<any>(null);
+
+    const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
 
     // Cleanup object URLs when component unmounts
     useEffect(() => {
@@ -152,8 +178,158 @@ export default function GeneratorClient() {
                 }
             });
             objectUrlsRef.current.clear();
+            pdfDocsRef.current.clear();
+            pdfjsRef.current = null;
         };
     }, []);
+
+    const renderPdfPage = async (fileId: string, pageNumber: number) => {
+        const doc = pdfDocsRef.current.get(fileId);
+        if (!doc) return;
+
+        const preview = pdfPreviews.find((item) => item.fileId === fileId);
+        const page = preview?.pages.find((item) => item.pageNumber === pageNumber);
+        if (!page || page.dataUrl || page.isRendering) return;
+
+        setPdfPreviews((prev) =>
+            prev.map((item) => {
+                if (item.fileId !== fileId) return item;
+                const pages = item.pages.map((pageItem) =>
+                    pageItem.pageNumber === pageNumber
+                        ? { ...pageItem, isRendering: true }
+                        : pageItem
+                );
+                return { ...item, pages };
+            })
+        );
+
+        try {
+            const pageDoc = await doc.getPage(pageNumber);
+            const viewport = pageDoc.getViewport({ scale: 0.25 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (!context) return;
+            canvas.width = Math.floor(viewport.width);
+            canvas.height = Math.floor(viewport.height);
+            await pageDoc.render({ canvasContext: context, viewport }).promise;
+            const dataUrl = canvas.toDataURL('image/png');
+
+            setPdfPreviews((prev) =>
+                prev.map((item) => {
+                    if (item.fileId !== fileId) return item;
+                    const pages = item.pages.map((pageItem) =>
+                        pageItem.pageNumber === pageNumber
+                            ? {
+                                ...pageItem,
+                                dataUrl,
+                                width: canvas.width,
+                                height: canvas.height,
+                                isRendering: false
+                            }
+                            : pageItem
+                    );
+                    return { ...item, pages };
+                })
+            );
+        } catch (err) {
+            console.error('Erro ao renderizar página PDF:', err);
+            setPdfPreviews((prev) =>
+                prev.map((item) => {
+                    if (item.fileId !== fileId) return item;
+                    const pages = item.pages.map((pageItem) =>
+                        pageItem.pageNumber === pageNumber
+                            ? { ...pageItem, isRendering: false }
+                            : pageItem
+                    );
+                    return { ...item, pages };
+                })
+            );
+        }
+    };
+
+    useEffect(() => {
+        const pdfFileIds = new Set(
+            uploadedFiles.filter((file) => file.type === PDF_MIME_TYPE).map(getFileId)
+        );
+        setPdfPreviews((prev) => prev.filter((preview) => pdfFileIds.has(preview.fileId)));
+    }, [uploadedFiles]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const buildPdfPreview = async (file: File) => {
+            const fileId = getFileId(file);
+            setPdfPreviews((prev) => {
+                if (prev.some((item) => item.fileId === fileId)) return prev;
+                return [...prev, { fileId, fileName: file.name, pageCount: 0, pages: [], selectedPages: [], isLoading: true }];
+            });
+
+            try {
+                if (!pdfjsRef.current) {
+                    const pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.mjs');
+                    if (pdfjsModule.GlobalWorkerOptions && !pdfjsModule.GlobalWorkerOptions.workerSrc) {
+                        pdfjsModule.GlobalWorkerOptions.workerSrc = new URL(
+                            'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+                            import.meta.url
+                        ).toString();
+                    }
+                    pdfjsRef.current = pdfjsModule;
+                }
+
+                const arrayBuffer = await file.arrayBuffer();
+                const loadingTask = pdfjsRef.current.getDocument({ data: new Uint8Array(arrayBuffer) });
+                const pdf = await loadingTask.promise;
+                const pageCount = pdf.numPages;
+                pdfDocsRef.current.set(fileId, pdf);
+
+                const pages: PdfPagePreview[] = Array.from({ length: pageCount }, (_, idx) => ({
+                    pageNumber: idx + 1
+                }));
+
+                if (isCancelled) return;
+
+                setPdfPreviews((prev) =>
+                    prev.map((preview) =>
+                        preview.fileId === fileId
+                            ? {
+                                ...preview,
+                                pageCount,
+                                pages,
+                                selectedPages: Array.from({ length: pageCount }, (_, idx) => idx + 1),
+                                isLoading: false
+                            }
+                            : preview
+                    )
+                );
+
+                // Render sob demanda para evitar lentidão inicial
+            } catch (err) {
+                if (isCancelled) return;
+                console.error('Erro ao gerar preview PDF:', err);
+                setPdfPreviews((prev) =>
+                    prev.map((preview) =>
+                        preview.fileId === fileId
+                            ? { ...preview, isLoading: false, error: 'Falha ao carregar preview do PDF.' }
+                            : preview
+                    )
+                );
+            }
+        };
+
+        const pdfFiles = uploadedFiles.filter((file) => file.type === PDF_MIME_TYPE);
+        const knownIds = new Set(pdfPreviews.map((preview) => preview.fileId));
+        const newFiles = pdfFiles.filter((file) => !knownIds.has(getFileId(file)));
+
+        if (newFiles.length > 0) {
+            newFiles.forEach((file) => {
+                if (!isCancelled) buildPdfPreview(file);
+            });
+        }
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [uploadedFiles, pdfPreviews]);
 
     // New Features States
     const [enemMode, setEnemMode] = useState(false);
@@ -371,8 +547,18 @@ export default function GeneratorClient() {
 
         if ((!hasInput && !hasFiles) || error || (!user && !isDemo)) return;
 
+        const pdfPreviewsWithEmptySelection = pdfPreviews.filter(
+            (preview) => preview.selectedPages.length === 0
+        );
+
+        if (pdfPreviewsWithEmptySelection.length > 0) {
+            setToast({ message: 'Selecione pelo menos uma página em cada PDF.', type: 'error' });
+            return;
+        }
+
         setIsGenerating(true);
         const inputLength = textToUse.length;
+        const pdfPageSelections = getPdfPageSelections();
 
         try {
             const response = isDemo
@@ -389,6 +575,7 @@ export default function GeneratorClient() {
                         studyLevel,
                         studyGoal,
                         templateType,
+                        cardStyle,
                         captchaToken,
                     })
                 })
@@ -402,13 +589,16 @@ export default function GeneratorClient() {
                         formData.append('studyLevel', studyLevel);
                         formData.append('studyGoal', studyGoal);
                         formData.append('templateType', templateType);
+                        formData.append('cardStyle', cardStyle);
                         formData.append('cardCount', cardCount.toString());
                         formData.append('generateImages', generateImages ? 'true' : 'false');
                         formData.append('imageCount', imageCount.toString());
                         formData.append('enemMode', enemMode ? 'true' : 'false');
                         formData.append('autoTags', limits.allowFolders ? 'true' : 'false');
+                        formData.append('pdfPageSelections', JSON.stringify(pdfPageSelections));
 
                         uploadedFiles.forEach(file => {
+                            formData.append('fileIds', getFileId(file));
                             formData.append('files', file);
                         });
 
@@ -755,6 +945,66 @@ export default function GeneratorClient() {
         }
     };
 
+    const handleRemoveFile = (fileToRemove: File) => {
+        const fileId = getFileId(fileToRemove);
+        setUploadedFiles((prev) => prev.filter((file) => file !== fileToRemove));
+        setPdfPreviews((prev) => prev.filter((preview) => preview.fileId !== fileId));
+        pdfDocsRef.current.delete(fileId);
+    };
+
+    const togglePdfPageSelection = (fileId: string, pageNumber: number) => {
+        setPdfPreviews((prev) =>
+            prev.map((preview) => {
+                if (preview.fileId !== fileId) return preview;
+                const isSelected = preview.selectedPages.includes(pageNumber);
+                const nextSelected = isSelected
+                    ? preview.selectedPages.filter((page) => page !== pageNumber)
+                    : [...preview.selectedPages, pageNumber];
+                return { ...preview, selectedPages: nextSelected.sort((a, b) => a - b) };
+            })
+        );
+    };
+
+    const selectAllPdfPages = (fileId: string) => {
+        setPdfPreviews((prev) =>
+            prev.map((preview) =>
+                preview.fileId === fileId
+                    ? { ...preview, selectedPages: Array.from({ length: preview.pageCount }, (_, idx) => idx + 1) }
+                    : preview
+            )
+        );
+    };
+
+    const clearPdfPages = (fileId: string) => {
+        setPdfPreviews((prev) =>
+            prev.map((preview) => (preview.fileId === fileId ? { ...preview, selectedPages: [] } : preview))
+        );
+    };
+
+    const renderAllPdfPages = (fileId: string) => {
+        const preview = pdfPreviews.find((item) => item.fileId === fileId);
+        if (!preview) return;
+        preview.pages
+            .filter((page) => !page.dataUrl && !page.isRendering)
+            .forEach((page) => renderPdfPage(fileId, page.pageNumber));
+    };
+
+    const getPdfPageSelections = () => {
+        const selections: Record<string, number[] | 'all'> = {};
+        pdfPreviews.forEach((preview) => {
+            if (preview.selectedPages.length === 0) {
+                selections[preview.fileId] = [];
+                return;
+            }
+            if (preview.selectedPages.length === preview.pageCount) {
+                selections[preview.fileId] = 'all';
+                return;
+            }
+            selections[preview.fileId] = preview.selectedPages;
+        });
+        return selections;
+    };
+
     const parseTags = (value: string) => {
         const rawTags = value
             .split(',')
@@ -1064,20 +1314,14 @@ export default function GeneratorClient() {
 
             {/* Coluna Esquerda: Input e Configs */}
             <div className="lg:col-span-5 space-y-6">
-                {stats && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
-                            {stats.cardsWeek.toLocaleString('pt-BR')} flashcards gerados esta semana
-                        </div>
-                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
-                            Tempo médio para gerar: 18s
-                        </div>
-                        <div className="bg-white border border-border rounded-sm p-3 text-xs font-bold text-foreground/70">
-                            {stats.decksToday.toLocaleString('pt-BR')} decks criados hoje
-                        </div>
-                    </div>
-                )}
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
+                    <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
+                            <span className="px-2 py-0.5 rounded-sm bg-gray-100">Passo 1</span>
+                            <span>Fonte do conteúdo</span>
+                        </div>
+                        <div className="text-[11px] font-bold text-foreground/40">Passo 2: Ajustes • Passo 3: Revisão</div>
+                    </div>
                     {isDemo && (
                         <div className="mb-4 rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
                             Você está no modo demo • 1 geração/dia • 5 cards • 2.000 caracteres
@@ -1088,7 +1332,7 @@ export default function GeneratorClient() {
                             <div className="bg-brand/10 p-1.5 rounded-sm">
                                 <Sparkles className="h-4 w-4 text-brand" />
                             </div>
-                            <h2 className="text-lg font-bold text-foreground">Entrada de Conteúdo</h2>
+                            <h2 className="text-lg font-bold text-foreground">Fonte do Conteúdo</h2>
                         </div>
                         <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm ${isDemo || currentPlan === 'free' ? 'bg-gray-100 text-foreground/40' : 'bg-brand text-white'}`}>
                             {isDemo ? 'Modo Demo' : `Plano ${limits.name}`}
@@ -1097,9 +1341,11 @@ export default function GeneratorClient() {
 
 
                     <div className="space-y-4">
-                        <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-2">Templates rápidos</div>
-                            <div className="flex flex-wrap gap-2">
+                        <details>
+                            <summary className="cursor-pointer select-none px-3 py-2 rounded-sm border border-border bg-white text-[11px] font-bold text-foreground/70 hover:border-brand/40">
+                                Templates rápidos
+                            </summary>
+                            <div className="mt-3 flex flex-wrap gap-2">
                                 {TEMPLATE_OPTIONS.map((template) => (
                                     <button
                                         key={template.key}
@@ -1111,7 +1357,7 @@ export default function GeneratorClient() {
                                     </button>
                                 ))}
                             </div>
-                        </div>
+                        </details>
 
                         {recentTexts.length > 0 && (
                             <div>
@@ -1175,20 +1421,123 @@ export default function GeneratorClient() {
                     {uploadedFiles.length > 0 && (
                         <div className="mt-3 space-y-2">
                             {uploadedFiles.map((file, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
+                                <div key={`${file.name}-${idx}`} className="flex items-center justify-between text-xs font-bold bg-gray-50 border border-border rounded-sm px-3 py-2">
                                     <div className="flex items-center gap-2 min-w-0">
                                         <span className="text-brand">Anexo {idx + 1}:</span>
                                         <span className="truncate text-foreground/70">{file.name}</span>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                                        onClick={() => handleRemoveFile(file)}
                                         className="text-[10px] uppercase tracking-wider text-foreground/40 hover:text-brand transition-colors"
                                     >
                                         Remover
                                     </button>
                                 </div>
                             ))}
+
+                            {pdfPreviews.length > 0 && (
+                                <div className="space-y-4 mt-4">
+                                    {pdfPreviews.map((preview) => {
+                                        const isAllSelected = preview.selectedPages.length === preview.pageCount;
+                                        return (
+                                            <div key={preview.fileId} className="border border-border rounded-sm p-4 bg-white">
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="bg-brand/10 text-brand p-2 rounded-sm">
+                                                            <FileText className="h-4 w-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-bold text-foreground">Prévia do PDF</p>
+                                                            <p className="text-[11px] text-foreground/60 font-medium truncate max-w-xs">{preview.fileName}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => selectAllPdfPages(preview.fileId)}
+                                                            className={`px-3 py-1 rounded-sm text-[10px] font-bold border transition-all ${isAllSelected ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-foreground/70 border-border hover:border-brand/40'}`}
+                                                        >
+                                                            Selecionar todas
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => clearPdfPages(preview.fileId)}
+                                                            className="px-3 py-1 rounded-sm text-[10px] font-bold border bg-gray-50 text-foreground/60 border-border hover:border-brand/40"
+                                                        >
+                                                            Limpar seleção
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => renderAllPdfPages(preview.fileId)}
+                                                            className="px-3 py-1 rounded-sm text-[10px] font-bold border bg-gray-50 text-foreground/60 border-border hover:border-brand/40"
+                                                        >
+                                                            Carregar prévias
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <p className="mt-3 text-[10px] font-bold text-foreground/40">
+                                                    Prévia rápida carrega só as {PDF_PREVIEW_INITIAL_PAGES} primeiras páginas para acelerar.
+                                                </p>
+
+                                                {preview.isLoading && (
+                                                    <div className="mt-4 flex items-center gap-2 text-xs text-foreground/60">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        Carregando páginas...
+                                                    </div>
+                                                )}
+
+                                                {preview.error && (
+                                                    <div className="mt-4 text-xs font-bold text-red-500">{preview.error}</div>
+                                                )}
+
+                                                {!preview.isLoading && !preview.error && (
+                                                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                        {preview.pages.map((page) => {
+                                                            const selected = preview.selectedPages.includes(page.pageNumber);
+                                                            return (
+                                                                <button
+                                                                    key={`${preview.fileId}-${page.pageNumber}`}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        togglePdfPageSelection(preview.fileId, page.pageNumber);
+                                                                        if (!page.dataUrl && !page.isRendering) {
+                                                                            renderPdfPage(preview.fileId, page.pageNumber);
+                                                                        }
+                                                                    }}
+                                                                    className={`relative border rounded-sm overflow-hidden transition-all ${selected ? 'border-brand ring-2 ring-brand/30' : 'border-border hover:border-brand/40'}`}
+                                                                >
+                                                                    {page.dataUrl ? (
+                                                                        <img
+                                                                            src={page.dataUrl}
+                                                                            alt={`Página ${page.pageNumber}`}
+                                                                            className="w-full h-auto object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="flex flex-col items-center justify-center bg-gray-50 text-foreground/60 text-[10px] font-bold h-36">
+                                                                            {page.isRendering ? (
+                                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <span>Prévia rápida</span>
+                                                                            )}
+                                                                            <span className="mt-1">Página {page.pageNumber}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-x-0 bottom-0 bg-white/90 text-[10px] font-bold text-foreground/70 px-2 py-1 flex items-center justify-between">
+                                                                        <span>Página {page.pageNumber}</span>
+                                                                        {selected && <Check className="h-3 w-3 text-brand" />}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1218,7 +1567,9 @@ export default function GeneratorClient() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                    <div className="mt-6">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-2">Passo 2 • Ajustes principais</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="study-level" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível</label>
                             <div className="relative text-foreground">
@@ -1252,17 +1603,17 @@ export default function GeneratorClient() {
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
+                            <label htmlFor="card-style" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Estilo do card</label>
                             <div className="relative text-foreground">
                                 <select
-                                    id="difficulty-select"
-                                    value={difficulty}
-                                    onChange={(event) => setDifficulty(event.target.value)}
+                                    id="card-style"
+                                    value={cardStyle}
+                                    onChange={(event) => setCardStyle(event.target.value as typeof cardStyle)}
                                     className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
                                 >
-                                    <option value="Iniciante">Iniciante</option>
-                                    <option value="Intermediário">Intermediário</option>
-                                    <option value="Avançado">Avançado</option>
+                                    <option value="basic">Pergunta e resposta</option>
+                                    <option value="short_answer">Resposta curta</option>
+                                    <option value="image_occlusion">Oclusão (imagem)</option>
                                 </select>
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                             </div>
@@ -1293,90 +1644,114 @@ export default function GeneratorClient() {
                                 )}
                             </div>
                         </div>
-                    </div>
-                    <div className="mt-4">
-                        <label htmlFor="language-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Idioma do Deck</label>
-                        <div className="relative text-foreground">
-                            <select
-                                id="language-select"
-                                value={language}
-                                onChange={(event) => setLanguage(event.target.value)}
-                                className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
-                            >
-                                <option value="Português">Português</option>
-                                <option value="Inglês">Inglês</option>
-                                <option value="Espanhol">Espanhol</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <div className={`flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowImageGeneration ? 'bg-gray-50 border-border' : 'bg-gray-100 border-border/60'}`}>
-                            <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowImageGeneration ? 'text-foreground' : 'text-foreground/40'}`}>
-                                <input
-                                    type="checkbox"
-                                    checked={generateImages}
-                                    onChange={handleToggleImageGeneration}
-                                    className="h-4 w-4 accent-brand"
-                                    aria-disabled={!limits.allowImageGeneration}
-                                />
-                                Gerar imagens para os cards
-                            </label>
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowImageGeneration ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
-                                Ultimate
-                            </span>
-                        </div>
-                        {generateImages && limits.allowImageGeneration && (
-                            <div className="mt-3 flex items-center gap-3">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
-                                    Quantidade de imagens:
-                                </label>
-                                <select
-                                    value={imageCount}
-                                    onChange={(e) => setImageCount(Number(e.target.value))}
-                                    className="appearance-none bg-gray-50 border border-border px-3 py-1.5 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
-                                >
-                                    {Array.from({ length: limits.maxImageCardsPerGen }, (_, i) => i + 1).map((num) => (
-                                        <option key={num} value={num}>{num}</option>
-                                    ))}
-                                </select>
+                    <details className="mt-4 border border-border rounded-sm bg-gray-50">
+                        <summary className="cursor-pointer select-none px-3 py-2 text-xs font-bold text-foreground/60">
+                            Configurações avançadas
+                        </summary>
+                        <div className="px-3 pb-3 space-y-4">
+                            <div>
+                                <label htmlFor="difficulty-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Nível de Dificuldade</label>
+                                <div className="relative text-foreground">
+                                    <select
+                                        id="difficulty-select"
+                                        value={difficulty}
+                                        onChange={(event) => setDifficulty(event.target.value)}
+                                        className="w-full appearance-none bg-white border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                    >
+                                        <option value="Iniciante">Iniciante</option>
+                                        <option value="Intermediário">Intermediário</option>
+                                        <option value="Avançado">Avançado</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                </div>
                             </div>
-                        )}
-                        <p className="text-[10px] text-foreground/40 mt-2">
-                            {limits.allowImageGeneration
-                                ? `Ate ${limits.maxImageCardsPerGen} imagens por geracao.`
-                                : 'Disponivel no Ultimate.'}
-                        </p>
-                        {generateImages && limits.allowImageGeneration && (
-                            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-sm">
-                                <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                                    <span className="font-bold">⚡ Recurso Premium:</span> A geração de imagens por IA utiliza tecnologia avançada (DALL-E 3) com custo elevado por imagem.
-                                    Use de forma consciente, priorizando cards que realmente se beneficiam de recursos visuais, como diagramas, anatomia, mapas e conceitos abstratos.
+                            <div>
+                                <label htmlFor="language-select" className="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mb-1.5 block">Idioma do Deck</label>
+                                <div className="relative text-foreground">
+                                    <select
+                                        id="language-select"
+                                        value={language}
+                                        onChange={(event) => setLanguage(event.target.value)}
+                                        className="w-full appearance-none bg-white border border-border px-3 py-2 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none pr-8 cursor-pointer"
+                                    >
+                                        <option value="Português">Português</option>
+                                        <option value="Inglês">Inglês</option>
+                                        <option value="Espanhol">Espanhol</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className={`flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowImageGeneration ? 'bg-white border-border' : 'bg-gray-100 border-border/60'}`}>
+                                    <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowImageGeneration ? 'text-foreground' : 'text-foreground/40'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={generateImages}
+                                            onChange={handleToggleImageGeneration}
+                                            className="h-4 w-4 accent-brand"
+                                            aria-disabled={!limits.allowImageGeneration}
+                                        />
+                                        Gerar imagens para os cards
+                                    </label>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowImageGeneration ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
+                                        Ultimate
+                                    </span>
+                                </div>
+                                {generateImages && limits.allowImageGeneration && (
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <label className="text-[10px] font-bold uppercase tracking-wider text-foreground/40">
+                                            Quantidade de imagens:
+                                        </label>
+                                        <select
+                                            value={imageCount}
+                                            onChange={(e) => setImageCount(Number(e.target.value))}
+                                            className="appearance-none bg-white border border-border px-3 py-1.5 rounded-sm text-sm font-bold focus:ring-1 focus:ring-brand outline-none cursor-pointer"
+                                        >
+                                            {Array.from({ length: limits.maxImageCardsPerGen }, (_, i) => i + 1).map((num) => (
+                                                <option key={num} value={num}>{num}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                <p className="text-[10px] text-foreground/40 mt-2">
+                                    {limits.allowImageGeneration
+                                        ? `Ate ${limits.maxImageCardsPerGen} imagens por geracao.`
+                                        : 'Disponivel no Ultimate.'}
                                 </p>
+                                {generateImages && limits.allowImageGeneration && (
+                                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                                        <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                                            <span className="font-bold">⚡ Recurso Premium:</span> A geração de imagens por IA utiliza tecnologia avançada (DALL-E 3) com custo elevado por imagem.
+                                            Use de forma consciente, priorizando cards que realmente se beneficiam de recursos visuais, como diagramas, anatomia, mapas e conceitos abstratos.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    <div className={`mt-3 flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowEnemMode ? 'bg-gray-50 border-border' : 'bg-gray-100 border-border/60'}`}>
-                        <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowEnemMode ? 'text-foreground' : 'text-foreground/40'}`}>
-                            <input
-                                type="checkbox"
-                                checked={enemMode}
-                                onChange={() => {
-                                    if (!limits.allowEnemMode) {
-                                        setShowUpgradeModal(true);
-                                        return;
-                                    }
-                                    setEnemMode(!enemMode);
-                                }}
-                                className="h-4 w-4 accent-brand"
-                                disabled={!limits.allowEnemMode}
-                            />
-                            Ativar Modo ENEM (Conceito + Pegadinha + Exemplo)
-                        </label>
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowEnemMode ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
-                            Pro
-                        </span>
-                    </div>
+                            <div className={`flex items-center justify-between gap-3 border rounded-sm px-3 py-2 ${limits.allowEnemMode ? 'bg-white border-border' : 'bg-gray-100 border-border/60'}`}>
+                                <label className={`flex items-center gap-3 text-xs font-bold ${limits.allowEnemMode ? 'text-foreground' : 'text-foreground/40'}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={enemMode}
+                                        onChange={() => {
+                                            if (!limits.allowEnemMode) {
+                                                setShowUpgradeModal(true);
+                                                return;
+                                            }
+                                            setEnemMode(!enemMode);
+                                        }}
+                                        className="h-4 w-4 accent-brand"
+                                        disabled={!limits.allowEnemMode}
+                                    />
+                                    Ativar Modo ENEM (Conceito + Pegadinha + Exemplo)
+                                </label>
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm ${limits.allowEnemMode ? 'bg-brand/10 text-brand' : 'bg-gray-200 text-foreground/40'}`}>
+                                    Pro
+                                </span>
+                            </div>
+                        </div>
+                    </details>
 
                     <button
                         onClick={handleGenerateEnemExample}
@@ -1412,30 +1787,25 @@ export default function GeneratorClient() {
 
             {/* Coluna Direita: Preview dos Cards */}
             <div className="lg:col-span-7 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 flex-1">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="deck-title-input" className="sr-only">Nome do Baralho</label>
+                        <input
+                            id="deck-title-input"
+                            type="text"
+                            value={deckTitle}
+                            onChange={(e) => setDeckTitle(e.target.value)}
+                            className="text-xl font-bold tracking-tight text-foreground bg-transparent border-b border-dashed border-gray-300 focus:border-brand outline-none w-full max-w-sm placeholder:text-gray-400 pb-1"
+                            placeholder="Nome do seu baralho..."
+                        />
                         {cards.length > 0 ? (
-                            <>
-                                <label htmlFor="deck-title-input" className="sr-only">Nome do Baralho</label>
-                                <input
-                                    id="deck-title-input"
-                                    type="text"
-                                    value={deckTitle}
-                                    onChange={(e) => setDeckTitle(e.target.value)}
-                                    className="text-xl font-bold tracking-tight text-foreground bg-transparent border-b border-dashed border-gray-300 focus:border-brand outline-none w-full max-w-sm placeholder:text-gray-400 pb-1"
-                                    placeholder="Nome do seu baralho..."
-                                />
-                            </>
+                            <span className="text-brand font-bold text-lg">({cards.length})</span>
                         ) : (
-                            <h2 className="text-xl font-bold tracking-tight text-foreground">
-                                Preview dos Cards
-                            </h2>
+                            <span className="text-foreground/40 text-sm font-bold">Preview dos cards</span>
                         )}
-                        {cards.length > 0 && <span className="text-brand font-bold text-lg">({cards.length})</span>}
                     </div>
-
                     {cards.length > 0 && (
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                             <button
                                 onClick={handleSaveLibrary}
                                 disabled={isSaving || saveSuccess}

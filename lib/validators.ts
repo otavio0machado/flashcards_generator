@@ -32,6 +32,7 @@ export const GenerateOptionsSchema = z.object({
     studyLevel: z.string().default('ENEM'),
     studyGoal: z.string().default('Memorizar'),
     templateType: z.string().default('geral'),
+    cardStyle: z.enum(['basic', 'short_answer', 'image_occlusion']).default('basic'),
     cardCount: z.union([z.string(), z.number()])
         .transform((val) => typeof val === 'string' ? parseInt(val, 10) : val)
         .optional(),
