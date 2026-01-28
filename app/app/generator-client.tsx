@@ -20,15 +20,8 @@ import {
     Settings2,
     LayoutDashboard,
     Maximize2,
-    BookOpen,
-    Edit2,
-    Star,
-    Copy,
-    Share2,
-    MoreHorizontal
+    BookOpen
 } from 'lucide-react';
-import ContextMenu from '@/components/ContextMenu';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { gzip } from 'pako';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { haptics } from '@/lib/haptics';
@@ -43,6 +36,8 @@ import UpgradeModal from '@/components/UpgradeModal';
 import AuthGateModal from '@/components/AuthGateModal';
 import { User } from '@supabase/supabase-js';
 import { trackEvent } from '@/lib/analytics';
+import { SegmentedControl } from '@/components/ios';
+import { QuickSettingsSheet, GeneratorActionBar } from '@/components/mobile';
 
 declare global {
     interface Window {
@@ -59,6 +54,7 @@ interface Flashcard {
     answer: string;
     question_image_url?: string | null;
     answer_image_url?: string | null;
+    favorite?: boolean;
 }
 
 type ImageDropTarget = {
@@ -184,17 +180,6 @@ export default function GeneratorClient() {
     const [showMobileSettings, setShowMobileSettings] = useState(false);
     const reduceMotion = useReducedMotion();
     const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
-    // Inline editing & context menu state
-    const [editingCardId, setEditingCardId] = useState<string | null>(null);
-    const [editingDrafts, setEditingDrafts] = useState<Record<string, { question: string; answer: string }>>({});
-    const [contextMenuState, setContextMenuState] = useState<{ open: boolean; x: number; y: number; cardId: string | null }>({ open: false, x: 0, y: 0, cardId: null });
-
-    // Long-press timer handle for mobile context menu
-    const longPressTimerRef = React.useRef<number | null>(null);
-
-    // Tauri picker availability
-    const { isTauri, isMobile } = useTauri();
-
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
 
@@ -837,14 +822,6 @@ export default function GeneratorClient() {
         window.turnstile.execute(captchaWidgetIdRef.current);
     };
 
-    const handleSaveLibrary = async () => {
-        if (isDemo) {
-            openAuthGate('demo_save');
-            return;
-        }
-
-    };
-
     // --- Card actions ---
     const handleDeleteCard = (id: string) => {
         setCards(prev => prev.filter(c => c.id !== id));
@@ -852,7 +829,7 @@ export default function GeneratorClient() {
         try { haptics.impact(); } catch (e) {}
     };
 
-    const handleUpdateCard = (id: string, patched: Partial<any>) => {
+    const handleUpdateCard = (id: string, patched: Partial<Flashcard>) => {
         setCards(prev => prev.map(c => c.id === id ? { ...c, ...patched } : c));
         setToast({ message: 'Alterações salvas', type: 'success' });
     };
@@ -860,6 +837,12 @@ export default function GeneratorClient() {
     const handleToggleFavorite = (id: string) => {
         setCards(prev => prev.map(c => c.id === id ? { ...c, favorite: !c.favorite } : c));
     };
+
+    const handleSaveLibrary = async () => {
+        if (isDemo) {
+            openAuthGate('demo_save');
+            return;
+        }
         if (cards.length === 0 || !user || isSaving) return;
 
         if (!limits.historySaved) {
@@ -1390,109 +1373,6 @@ export default function GeneratorClient() {
         await handleGenerate(ENEM_EXAMPLE_TEXT);
     };
 
-    const renderMobileMenu = () => (
-        <AnimatePresence>
-            {showMobileSettings && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setShowMobileSettings(false)}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
-                    />
-                    <motion.div
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl z-[70] p-6 pb-12 shadow-2xl border-t border-zinc-200 dark:border-zinc-800"
-                    >
-                        <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-6" />
-                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
-                            <Settings2 className="w-5 h-5 text-brand" />
-                            Configurações do Deck
-                        </h3>
-
-                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-                            {/* Reusing settings logic compactly */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nível</label>
-                                    <select
-                                        value={studyLevel}
-                                        onChange={(e) => setStudyLevel(e.target.value as any)}
-                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
-                                    >
-                                        <option value="ENEM">ENEM</option>
-                                        <option value="Faculdade">Faculdade</option>
-                                        <option value="Concurso">Concurso</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Objetivo</label>
-                                    <select
-                                        value={studyGoal}
-                                        onChange={(e) => setStudyGoal(e.target.value as any)}
-                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
-                                    >
-                                        <option value="Memorizar">Memorizar</option>
-                                        <option value="Revisar rápido">Revisar rápido</option>
-                                        <option value="Aprofundar">Aprofundar</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Estilo de Resposta</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { id: 'basic', label: 'Q&A' },
-                                        { id: 'short_answer', label: 'Curta' },
-                                        { id: 'image_occlusion', label: 'Oclusão' }
-                                    ].map(style => (
-                                        <button
-                                            key={style.id}
-                                            onClick={() => setCardStyle(style.id as any)}
-                                            className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${cardStyle === style.id
-                                                ? 'border-brand bg-brand/5 text-brand'
-                                                : 'border-zinc-100 dark:border-zinc-800 text-zinc-500'
-                                                }`}
-                                        >
-                                            {style.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold">Gerar Imagens com IA</span>
-                                        <span className="text-[10px] text-zinc-400 font-medium">Melhora a memorização visual</span>
-                                    </div>
-                                    <button
-                                        onClick={handleToggleImageGeneration}
-                                        className={`w-12 h-6 rounded-full transition-colors relative ${generateImages ? 'bg-brand' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${generateImages ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setShowMobileSettings(false)}
-                                className="w-full bg-brand text-white font-black py-4 rounded-2xl shadow-lg shadow-brand/20 active:scale-[0.98] transition-transform mt-4"
-                            >
-                                Aplicar Ajustes
-                            </button>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    );
-
     if (isMobile) {
         return (
             <div className="flex flex-col min-h-[80vh] px-4 space-y-6 pb-32 pt-6">
@@ -1504,7 +1384,22 @@ export default function GeneratorClient() {
                     onLoginClick={() => setSignupModalAction(true)}
                 />
 
-                {renderMobileMenu()}
+                <QuickSettingsSheet
+                    open={showMobileSettings}
+                    onClose={() => setShowMobileSettings(false)}
+                    studyLevel={studyLevel}
+                    onStudyLevelChange={setStudyLevel}
+                    studyGoal={studyGoal}
+                    onStudyGoalChange={setStudyGoal}
+                    cardStyle={cardStyle}
+                    onCardStyleChange={setCardStyle}
+                    cardCount={cardCount}
+                    onCardCountChange={setCardCount}
+                    maxCards={limits.maxCardsPerGen}
+                    generateImages={generateImages}
+                    onGenerateImagesChange={setGenerateImages}
+                    allowImageGeneration={limits.allowImageGeneration}
+                />
 
                 {/* Mobile Header / Quick Actions */}
                 <div className="flex items-center justify-between pt-6 border-b border-zinc-100 dark:border-zinc-900 pb-6">
@@ -1514,23 +1409,27 @@ export default function GeneratorClient() {
                             {isDemo ? 'Demonstração' : `Plano ${limits.name}`}
                         </p>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 p-1 rounded-sm border border-zinc-100 dark:border-zinc-800">
-                        <button
-                            onClick={() => setViewMode(viewMode === 'input' ? 'cards' : 'input')}
-                            className={`p-2.5 rounded-sm transition-all ripple ${viewMode === 'cards' ? 'bg-white dark:bg-zinc-800 shadow-sm text-brand' : 'text-zinc-400'}`}
-                        >
-                            {viewMode === 'input' ? <BookOpen className="w-5 h-5" /> : <LayoutDashboard className="w-5 h-5" />}
-                        </button>
+                    <div className="flex items-center gap-2">
+                        <SegmentedControl
+                            segments={[
+                                { id: 'input', label: 'Editor', icon: LayoutDashboard },
+                                { id: 'cards', label: 'Cards', icon: BookOpen },
+                            ]}
+                            selected={viewMode}
+                            onChange={(id) => setViewMode(id as 'input' | 'cards')}
+                            size="sm"
+                        />
                         <button
                             onClick={() => setShowMobileSettings(true)}
-                            className="p-2.5 text-zinc-400 hover:text-brand transition-colors ripple"
+                            className="p-2.5 text-zinc-400 hover:text-brand transition-colors rounded-[var(--corner-card)] bg-zinc-100 dark:bg-zinc-800"
+                            aria-label="Configurações"
                         >
                             <Settings2 className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                <AnimatePresence mode="wait" reduceMotion={reduceMotion}>
+                <AnimatePresence mode="wait">
                     {viewMode === 'input' ? (
                         <motion.div
                             key="input-view"
@@ -1662,6 +1561,20 @@ export default function GeneratorClient() {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                <GeneratorActionBar
+                    visible={viewMode === 'cards'}
+                    cardCount={cards.length}
+                    onSave={handleSaveLibrary}
+                    onExport={exportToApkg}
+                    onRegenerate={() => handleGenerate(inputText)}
+                    isSaving={isSaving}
+                    isExporting={isExportingApkg}
+                    isRegenerating={isGenerating}
+                    saveDisabled={cards.length === 0 || isDemo}
+                    exportDisabled={cards.length === 0 || isDemo}
+                    regenerateDisabled={inputText.length < 50}
+                />
 
                 {
                     toast && (

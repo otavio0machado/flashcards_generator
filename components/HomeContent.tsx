@@ -12,6 +12,15 @@ import { trackEvent } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import MobileHomeDashboard from './MobileHomeDashboard';
 import {
+    HomeHero,
+    HowItWorksSection,
+    FeaturesSection,
+    ForWhoSection,
+    MetricsSection,
+    MobilePricingSection,
+    MobileFaqSection
+} from '@/components/mobile';
+import {
     ArrowRight,
     FileText,
     Cpu,
@@ -103,17 +112,15 @@ export default function HomeContent() {
                 }
             });
 
-            // Mobile: Check auth and show dashboard or onboarding
+            // Mobile: Check auth and show dashboard
             if (isMobile) {
                 supabase.auth.getSession().then(({ data: { session } }) => {
                     setCheckingAuth(false);
                     if (session) {
                         // Authenticated - show dashboard
                         setShowMobileDashboard(true);
-                    } else {
-                        // Not authenticated - go to onboarding
-                        router.replace('/mobile/welcome');
                     }
+                    // Guest - show landing page (no redirect)
                 });
                 return;
             }
@@ -189,8 +196,19 @@ export default function HomeContent() {
         if (showMobileDashboard) {
             return <MobileHomeDashboard />;
         }
-        // If not showing dashboard and not checking auth, we're redirecting to onboarding
-        return null;
+
+        // Guest logic: Show Mobile Landing Page
+        return (
+            <div className="pb-24 bg-background">
+                <HomeHero />
+                <HowItWorksSection />
+                <FeaturesSection />
+                <ForWhoSection />
+                <MetricsSection />
+                <MobilePricingSection />
+                <MobileFaqSection />
+            </div>
+        );
     }
 
     const handleHeroCta = () => trackEvent('cta_generate_clicked', { location: 'hero' });
@@ -224,7 +242,7 @@ export default function HomeContent() {
                                 <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-4">Flashcards Generator</p>
                                 {/* Title moved to AppShell to ensure consistent vertical alignment across pages */}
                                 <div className="sr-only">{heroHeadline}</div>
-                                
+
 
 
                                 <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -263,7 +281,7 @@ export default function HomeContent() {
                                 <div className="bg-gray-50 border border-border rounded-sm p-4 mb-4">
                                     <div className="text-[10px] font-bold text-foreground/60 uppercase mb-2">Texto colado</div>
                                     <p className="text-sm text-foreground/70">
-                                        "A Revolução Industrial aumentou a produção, mas trouxe jornadas longas, trabalho infantil e urbanização acelerada..."
+                                        &quot;A Revolução Industrial aumentou a produção, mas trouxe jornadas longas, trabalho infantil e urbanização acelerada...&quot;
                                     </p>
                                 </div>
                                 <div className="space-y-3">
@@ -377,7 +395,7 @@ export default function HomeContent() {
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="bg-gray-50 border border-border rounded-sm p-4">
                                         <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Antes</div>
-                                        <p className="text-sm text-foreground/70 mt-2">"Fotossíntese converte luz em energia química, produzindo glicose e oxigênio."</p>
+                                        <p className="text-sm text-foreground/70 mt-2">&quot;Fotossíntese converte luz em energia química, produzindo glicose e oxigênio.&quot;</p>
                                     </div>
 
                                     {/* Visual transformation indicator */}

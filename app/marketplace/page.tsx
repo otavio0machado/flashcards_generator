@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
+import { useTauri } from '@/lib/tauri';
 import { deckService } from '@/services/deckService';
 import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
 import AppShell from '@/components/AppShell';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
+import { SearchBar } from '@/components/ios';
+import { DeckCard } from '@/components/mobile';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -35,6 +38,7 @@ interface PublicDeck {
 }
 
 export default function MarketplacePage() {
+    const { isMobile } = useTauri();
     const [decks, setDecks] = useState<PublicDeck[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -174,65 +178,85 @@ export default function MarketplacePage() {
                 maxWidthClass="max-w-7xl"
             >
 
-                <m.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white border border-border rounded-sm p-4 mb-10 shadow-sm"
-                >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="flex items-center gap-3 flex-1">
-                            <Search className="h-4 w-4 text-foreground/40" />
-                            <input
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Buscar por titulo, tag ou categoria"
-                                className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none"
-                            />
+                {isMobile ? (
+                    /* Mobile: iOS SearchBar */
+                    <m.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mb-6"
+                    >
+                        <SearchBar
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Buscar decks..."
+                            filters={tags.map(tag => ({ id: tag, label: tag }))}
+                            selectedFilters={activeTag ? [activeTag] : []}
+                            onFilterChange={(filters) => setActiveTag(filters[0] || null)}
+                        />
+                    </m.div>
+                ) : (
+                    /* Desktop: Original search bar */
+                    <m.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-white border border-border rounded-sm p-4 mb-10 shadow-sm"
+                    >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-3 flex-1">
+                                <Search className="h-4 w-4 text-foreground/40" />
+                                <input
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Buscar por titulo, tag ou categoria"
+                                    className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none"
+                                />
+                            </div>
+                            <div className="relative w-full sm:w-64">
+                                <select
+                                    value={activeCategoryId || ''}
+                                    onChange={(event) => setActiveCategoryId(event.target.value || null)}
+                                    className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-widest text-foreground/60 focus:ring-1 focus:ring-brand outline-none pr-8"
+                                >
+                                    <option value="">Todas as categorias</option>
+                                    {categoryOptions.map((option) => (
+                                        <option key={option.id} value={option.id}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
+                            </div>
                         </div>
-                        <div className="relative w-full sm:w-64">
-                            <select
-                                value={activeCategoryId || ''}
-                                onChange={(event) => setActiveCategoryId(event.target.value || null)}
-                                className="w-full appearance-none bg-gray-50 border border-border px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-widest text-foreground/60 focus:ring-1 focus:ring-brand outline-none pr-8"
-                            >
-                                <option value="">Todas as categorias</option>
-                                {categoryOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30 pointer-events-none" />
-                        </div>
-                    </div>
-                    {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            <m.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setActiveTag(null)}
-                                className={`px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border transition-all ${!activeTag ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-foreground/60 border-border hover:border-brand/40'}`}
-                            >
-                                Todos
-                            </m.button>
-                            {tags.map((tag) => (
+                        {tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-4">
                                 <m.button
-                                    key={tag}
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => setActiveTag(tag)}
-                                    className={`px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border transition-all ${activeTag === tag ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-foreground/60 border-border hover:border-brand/40'}`}
+                                    onClick={() => setActiveTag(null)}
+                                    className={`px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border transition-all ${!activeTag ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-foreground/60 border-border hover:border-brand/40'}`}
                                 >
-                                    <span className="inline-flex items-center gap-1">
-                                        <Tag className="h-3 w-3" />
-                                        {tag}
-                                    </span>
+                                    Todos
                                 </m.button>
-                            ))}
-                        </div>
-                    )}
-                </m.div>
+                                {tags.map((tag) => (
+                                    <m.button
+                                        key={tag}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setActiveTag(tag)}
+                                        className={`px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-widest border transition-all ${activeTag === tag ? 'bg-brand text-white border-brand' : 'bg-gray-50 text-foreground/60 border-border hover:border-brand/40'}`}
+                                    >
+                                        <span className="inline-flex items-center gap-1">
+                                            <Tag className="h-3 w-3" />
+                                            {tag}
+                                        </span>
+                                    </m.button>
+                                ))}
+                            </div>
+                        )}
+                    </m.div>
+                )}
 
                 {loading ? (
                     <div className="h-64 flex items-center justify-center">
@@ -256,6 +280,18 @@ export default function MarketplacePage() {
                             <ArrowRight className="h-4 w-4 cta-arrow-shift" />
                         </Link>
                     </m.div>
+                ) : isMobile ? (
+                    <div className="space-y-2">
+                        {filteredDecks.map((deck) => (
+                            <DeckCard
+                                key={deck.id}
+                                deck={deck}
+                                categoryLabel={deck.category?.id ? categoryLabels[deck.category.id] : undefined}
+                                onClone={handleClone}
+                                isCloning={cloningId === deck.id}
+                            />
+                        ))}
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredDecks.map((deck, index) => (
