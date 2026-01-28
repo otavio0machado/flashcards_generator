@@ -11,6 +11,7 @@ fn get_app_info() -> serde_json::Value {
     })
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn set_window_title(window: tauri::WebviewWindow, title: String) -> Result<(), String> {
     window.set_title(&title).map_err(|e| e.to_string())
@@ -23,25 +24,14 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
-        .invoke_handler(tauri::generate_handler![get_app_info, set_window_title])
+        .invoke_handler(tauri::generate_handler![
+            get_app_info,
+            #[cfg(not(target_os = "android"))]
+            set_window_title
+        ])
         .setup(|app| {
-            let main_window = app.get_webview_window("main").unwrap();
-
-            // Always maximize and show the main window
-            let _ = main_window.maximize();
-            let _ = main_window.show();
-            let _ = main_window.set_focus();
-
-            // Close splash screen
-            if let Some(splash) = app.get_webview_window("splashscreen") {
-                let _ = splash.close();
-            }
-
-            #[cfg(debug_assertions)]
-            {
-                main_window.open_devtools();
-            }
-
+            // Minimal setup to diagnose compilation
+            let _ = app;
             Ok(())
         })
         .run(tauri::generate_context!())

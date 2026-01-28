@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:static": "next build && next export",
+    "build:static": "next build",
     "start": "next start",
     "lint": "eslint",
     "tauri": "tauri",
@@ -14,7 +14,12 @@
     "tauri:build:prod": "tauri build -c src-tauri/tauri.conf.prod.json",
     "tauri:build:windows": "tauri build -c src-tauri/tauri.conf.prod.json --target x86_64-pc-windows-msvc",
     "tauri:build:mac": "tauri build -c src-tauri/tauri.conf.prod.json --target universal-apple-darwin",
-    "tauri:icons": "node scripts/generate-tauri-icons.js"
+    "tauri:icons": "node scripts/generate-tauri-icons.js",
+    "tauri:android:init": "tauri android init",
+    "tauri:android:dev": "tauri android dev",
+    "tauri:android:build": "tauri android build",
+    "tauri:android:build:aab": "tauri android build --aab",
+    "tauri:android:icons": "node scripts/generate-android-icons.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -24,6 +29,7 @@
     "@supabase/auth-helpers-react": "^0.15.0",
     "@supabase/supabase-js": "^2.91.0",
     "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-os": "^2.3.2",
     "@tauri-apps/plugin-shell": "^2.3.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",

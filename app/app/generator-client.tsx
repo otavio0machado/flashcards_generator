@@ -16,9 +16,15 @@ import {
     GripVertical,
     X,
     Globe,
-    FileText
+    FileText,
+    Settings2,
+    LayoutDashboard,
+    Maximize2,
+    BookOpen
 } from 'lucide-react';
 import { gzip } from 'pako';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTauri } from '@/lib/tauri';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
@@ -165,6 +171,9 @@ export default function GeneratorClient() {
     const objectUrlsRef = useRef<Set<string>>(new Set());
     const pdfDocsRef = useRef<Map<string, any>>(new Map());
     const pdfjsRef = useRef<any>(null);
+    const { isMobile, isTauri } = useTauri();
+    const [showMobileSettings, setShowMobileSettings] = useState(false);
+    const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
 
@@ -1286,8 +1295,283 @@ export default function GeneratorClient() {
         await handleGenerate(ENEM_EXAMPLE_TEXT);
     };
 
+    const renderMobileMenu = () => (
+        <AnimatePresence>
+            {showMobileSettings && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowMobileSettings(false)}
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+                    />
+                    <motion.div
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl z-[70] p-6 pb-12 shadow-2xl border-t border-zinc-200 dark:border-zinc-800"
+                    >
+                        <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-6" />
+                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
+                            <Settings2 className="w-5 h-5 text-brand" />
+                            Configurações do Deck
+                        </h3>
+
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                            {/* Reusing settings logic compactly */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nível</label>
+                                    <select
+                                        value={studyLevel}
+                                        onChange={(e) => setStudyLevel(e.target.value as any)}
+                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
+                                    >
+                                        <option value="ENEM">ENEM</option>
+                                        <option value="Faculdade">Faculdade</option>
+                                        <option value="Concurso">Concurso</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Objetivo</label>
+                                    <select
+                                        value={studyGoal}
+                                        onChange={(e) => setStudyGoal(e.target.value as any)}
+                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
+                                    >
+                                        <option value="Memorizar">Memorizar</option>
+                                        <option value="Revisar rápido">Revisar rápido</option>
+                                        <option value="Aprofundar">Aprofundar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Estilo de Resposta</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { id: 'basic', label: 'Q&A' },
+                                        { id: 'short_answer', label: 'Curta' },
+                                        { id: 'image_occlusion', label: 'Oclusão' }
+                                    ].map(style => (
+                                        <button
+                                            key={style.id}
+                                            onClick={() => setCardStyle(style.id as any)}
+                                            className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${cardStyle === style.id
+                                                ? 'border-brand bg-brand/5 text-brand'
+                                                : 'border-zinc-100 dark:border-zinc-800 text-zinc-500'
+                                                }`}
+                                        >
+                                            {style.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold">Gerar Imagens com IA</span>
+                                        <span className="text-[10px] text-zinc-400 font-medium">Melhora a memorização visual</span>
+                                    </div>
+                                    <button
+                                        onClick={handleToggleImageGeneration}
+                                        className={`w-12 h-6 rounded-full transition-colors relative ${generateImages ? 'bg-brand' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${generateImages ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowMobileSettings(false)}
+                                className="w-full bg-brand text-white font-black py-4 rounded-2xl shadow-lg shadow-brand/20 active:scale-[0.98] transition-transform mt-4"
+                            >
+                                Aplicar Ajustes
+                            </button>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+
+    if (isMobile) {
+        return (
+            <div className="flex flex-col min-h-[80vh] px-4 space-y-6 pb-32 pt-6">
+                <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+                <AuthGateModal
+                    isOpen={showAuthGateModal}
+                    onClose={() => setShowAuthGateModal(false)}
+                    onSignupClick={() => setSignupModalAction(true)}
+                    onLoginClick={() => setSignupModalAction(true)}
+                />
+
+                {renderMobileMenu()}
+
+                {/* Mobile Header / Quick Actions */}
+                <div className="flex items-center justify-between pt-6 border-b border-zinc-100 dark:border-zinc-900 pb-6">
+                    <div>
+                        <h2 className="text-3xl font-black text-swiss-header uppercase tracking-tighter">Gerar</h2>
+                        <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mt-1">
+                            {isDemo ? 'Demonstração' : `Plano ${limits.name}`}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 p-1 rounded-sm border border-zinc-100 dark:border-zinc-800">
+                        <button
+                            onClick={() => setViewMode(viewMode === 'input' ? 'cards' : 'input')}
+                            className={`p-2.5 rounded-sm transition-all ripple ${viewMode === 'cards' ? 'bg-white dark:bg-zinc-800 shadow-sm text-brand' : 'text-zinc-400'}`}
+                        >
+                            {viewMode === 'input' ? <BookOpen className="w-5 h-5" /> : <LayoutDashboard className="w-5 h-5" />}
+                        </button>
+                        <button
+                            onClick={() => setShowMobileSettings(true)}
+                            className="p-2.5 text-zinc-400 hover:text-brand transition-colors ripple"
+                        >
+                            <Settings2 className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                    {viewMode === 'input' ? (
+                        <motion.div
+                            key="input-view"
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.02 }}
+                            className="space-y-8"
+                        >
+                            <div className="relative group">
+                                <textarea
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder="INSIRA SEU CONTEÚDO AQUI..."
+                                    className="w-full h-[50vh] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 text-lg font-bold tracking-tight text-swiss-header focus:border-brand outline-none transition-colors shadow-[0_4px_0_0_rgba(0,0,0,0.02)] dark:shadow-none resize-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800"
+                                />
+                                <div className="absolute bottom-6 right-6 flex flex-col gap-2">
+                                    <button
+                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        className="p-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                    >
+                                        <FileUp className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => alert('Em breve: Scanner OCR Nativo!')}
+                                        className="p-4 bg-brand text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                    >
+                                        <Maximize2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="absolute top-6 right-6 text-[10px] font-black text-zinc-300 dark:text-zinc-700 uppercase tracking-widest pointer-events-none">
+                                    {inputText.length} / {limits.maxChars}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleGenerateClick}
+                                disabled={isGenerating || (inputText.length < 50 && uploadedFiles.length === 0)}
+                                className={`w-full py-6 rounded-sm font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ripple ${isGenerating
+                                    ? 'bg-zinc-100 text-zinc-300'
+                                    : 'bg-brand text-white shadow-xl shadow-brand/20'
+                                    }`}
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Gerando
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5" />
+                                        Gerar Cards
+                                    </>
+                                )}
+                            </button>
+
+                            {isDemo && (
+                                <p className="text-[10px] text-center text-zinc-400 font-bold uppercase tracking-wider">
+                                    Iniciando no modo de teste grátis
+                                </p>
+                            )}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="cards-view"
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            className="space-y-6"
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-black text-xl text-swiss-header uppercase tracking-tighter">Seus Cards ({cards.length})</h3>
+                                {cards.length > 0 && (
+                                    <button
+                                        onClick={handleSaveLibrary}
+                                        className="text-brand text-[10px] font-black uppercase tracking-widest ripple"
+                                    >
+                                        Salvar Tudo
+                                    </button>
+                                )}
+                            </div>
+
+                            {cards.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-sm">
+                                    <Sparkles className="w-12 h-12 text-zinc-200 mb-4" />
+                                    <p className="font-black text-zinc-300 text-xs uppercase tracking-widest">Nenhum card gerado</p>
+                                    <button
+                                        onClick={() => setViewMode('input')}
+                                        className="mt-6 px-8 py-3 bg-brand text-white rounded-sm text-[10px] font-black uppercase tracking-widest ripple"
+                                    >
+                                        Voltar
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
+                                    {cards.map((card, idx) => (
+                                        <div key={card.id} className="bg-white dark:bg-zinc-950 p-8">
+                                            <div className="flex items-start justify-between mb-8">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">Card #{idx + 1}</span>
+                                                <button
+                                                    onClick={() => setCards(prev => prev.filter(c => c.id !== card.id))}
+                                                    className="p-1 text-zinc-200 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-2 block">Pergunta</label>
+                                                    <p className="text-lg font-black text-swiss-header leading-tight italic">"{card.question}"</p>
+                                                </div>
+                                                <div className="pt-6 border-t border-zinc-50 dark:border-zinc-900">
+                                                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Resposta</label>
+                                                    <p className="text-base font-bold text-zinc-600 dark:text-zinc-400 leading-snug">{card.answer}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {
+                    toast && (
+                        <div className="fixed top-12 left-4 right-4 z-[100]">
+                            <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+                        </div>
+                    )
+                }
+            </div >
+        );
+    }
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-11 xl:grid-cols-12 gap-8 items-start relative max-w-[1600px] mx-auto">
 
             {/* Upgrade Modal */}
             {/* Upgrade Modal */}
@@ -1314,7 +1598,7 @@ export default function GeneratorClient() {
             />
 
             {/* Coluna Esquerda: Input e Configs */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
@@ -1933,10 +2217,10 @@ export default function GeneratorClient() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-4 text-foreground">
+                    <div className="grid grid-cols-1 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
                         {cards.map((card, index) => (
-                            <div key={card.id} className="group bg-white border border-border rounded-sm hover:border-brand/40 transition-all p-5 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <div key={card.id} className="group bg-white dark:bg-zinc-950 p-8 relative transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
                                     <button
                                         onClick={() => deleteCard(card.id)}
                                         className="p-1.5 text-foreground/30 hover:text-red-500 hover:bg-red-50 rounded-sm transition-colors"

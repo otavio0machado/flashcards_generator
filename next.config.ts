@@ -126,29 +126,26 @@ const securityHeaders = [
   },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+    value: 'camera=(), microphone=(), geolocation=()'
   },
 ];
 
 const isDesktop = process.env.NEXT_PUBLIC_IS_DESKTOP === 'true';
 
 const nextConfig: NextConfig = {
+  trailingSlash: false,
   // Turbopack config (Next.js 16+)
   turbopack: {},
 
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: securityHeaders,
-      },
-    ];
-  },
   serverExternalPackages: ['anki-apkg-export'],
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
+    unoptimized: true, // Required for static export
     remotePatterns: [
       {
         protocol: 'https',

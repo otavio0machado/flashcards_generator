@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getApiUrl } from '@/lib/api-config';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { trackEvent } from '@/lib/analytics';
-import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell } from 'lucide-react';
+import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell, BookOpen, FileText } from 'lucide-react';
 import Link from 'next/link';
 import NotificationSettings from '@/components/NotificationSettings';
 
@@ -113,7 +113,7 @@ export default function SettingsPage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-12 md:pt-32">
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -122,34 +122,30 @@ export default function SettingsPage() {
                     <h1 className="text-3xl font-bold tracking-tight mb-8">Configurações da Conta</h1>
                 </m.div>
 
-                <div className="space-y-6">
+                <div className="space-y-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
                     {/* Profile Card */}
                     <m.div
                         custom={0}
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className="bg-white border border-border rounded-sm p-6 shadow-sm"
+                        className="bg-white dark:bg-zinc-950 p-8 flex items-center justify-between group"
                     >
-                        <div className="flex items-center gap-4 mb-6">
-                            <m.div
-                                whileHover={{ scale: 1.05 }}
-                                className="bg-brand/10 p-3 rounded-full"
-                            >
+                        <div className="flex items-center gap-6">
+                            <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-sm border border-zinc-100 dark:border-zinc-800">
                                 <User className="h-6 w-6 text-brand" />
-                            </m.div>
+                            </div>
                             <div>
-                                <h2 className="text-lg font-bold text-foreground">Perfil</h2>
-                                <p className="text-sm text-foreground/60 font-medium">{user.email}</p>
+                                <h2 className="text-xl font-black text-swiss-header">Perfil</h2>
+                                <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">{user.email}</p>
                             </div>
                         </div>
-
                         <button
                             onClick={handleSignOut}
-                            className="text-red-500 text-sm font-bold flex items-center gap-2 hover:bg-red-50 px-4 py-2 rounded-sm transition-all border border-transparent hover:border-red-100"
+                            className="p-3 text-zinc-300 hover:text-red-500 transition-colors ripple"
+                            title="Sair"
                         >
-                            <LogOut className="h-4 w-4" />
-                            Sair da Conta
+                            <LogOut className="h-5 w-5" />
                         </button>
                     </m.div>
 
@@ -159,34 +155,21 @@ export default function SettingsPage() {
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className="bg-white border border-border rounded-sm p-6 shadow-sm"
+                        className="bg-white dark:bg-zinc-950 p-8"
                     >
-                        <div className="flex items-center gap-4 mb-6">
-                            <m.div
-                                whileHover={{ scale: 1.05 }}
-                                className="bg-blue-50 p-3 rounded-full"
-                            >
-                                <BarChart3 className="h-6 w-6 text-blue-500" />
-                            </m.div>
-                            <div>
-                                <h2 className="text-lg font-bold text-foreground">Uso Diário</h2>
-                                <p className="text-sm text-foreground/60 font-medium">Suas gerações via IA renovam a cada 24h.</p>
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-xl font-black text-swiss-header">Uso Diário</h2>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                {usage} / {limits.dailyGens}
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-foreground/40">
-                                <span>{usage} de {limits.dailyGens} gerações</span>
-                                <span>{Math.round(usagePercent)}%</span>
-                            </div>
-                            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                                <m.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${usagePercent}%` }}
-                                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                                    className={`h-full ${usagePercent > 90 ? 'bg-red-500' : 'bg-brand'}`}
-                                />
-                            </div>
+                        <div className="h-1 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                            <m.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${usagePercent}%` }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                                className={`h-full ${usagePercent > 90 ? 'bg-red-500' : 'bg-brand'}`}
+                            />
                         </div>
                     </m.div>
 
@@ -196,84 +179,42 @@ export default function SettingsPage() {
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className="bg-white border border-border rounded-sm p-6 shadow-sm relative overflow-hidden"
+                        className="bg-white dark:bg-zinc-950 p-8 relative overflow-hidden"
                     >
-                        {currentPlan === 'pro' && (
-                            <m.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="absolute top-0 right-0 p-4"
-                            >
-                                <span className="bg-brand text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm">PRO ATIVO</span>
-                            </m.div>
-                        )}
-
-                        <div className="flex items-center gap-4 mb-6">
-                            <m.div
-                                whileHover={{ scale: 1.05 }}
-                                className="bg-emerald-50 p-3 rounded-full"
-                            >
-                                <CreditCard className="h-6 w-6 text-emerald-600" />
-                            </m.div>
+                        <div className="flex items-start justify-between mb-10">
                             <div>
-                                <h2 className="text-lg font-bold text-foreground">Plano Atual</h2>
-                                <p className="text-sm text-foreground/60 font-medium capitalize">
-                                    {currentPlan === 'free' ? 'Plano Gratuito' : 'Plano Profissional'}
-                                </p>
+                                <h2 className="text-xl font-black text-swiss-header uppercase tracking-tighter">Plano {currentPlan === 'free' ? 'Básico' : currentPlan}</h2>
+                                <p className="text-xs text-zinc-400 font-bold mt-1">Status: {currentPlan === 'free' ? 'Ativo (Grátis)' : 'Premium'}</p>
                             </div>
+                            <CreditCard className="h-6 w-6 text-zinc-200 dark:text-zinc-800" />
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-sm border border-border mb-6 space-y-2 text-sm text-foreground/70">
-                            <m.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="flex items-center gap-2"
-                            >
-                                <Zap className="h-4 w-4 text-brand" />
-                                <span>Limite de {limits.dailyGens} gerações/dia</span>
-                            </m.div>
-                            <m.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 }}
-                                className="flex items-center gap-2"
-                            >
-                                <Zap className="h-4 w-4 text-brand" />
-                                <span>Cards de até {limits.maxChars} caracteres</span>
-                            </m.div>
-                            <m.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="flex items-center gap-2"
-                            >
-                                <Zap className={`h-4 w-4 ${limits.allowFile ? 'text-brand' : 'text-gray-300'}`} />
-                                <span className={limits.allowFile ? '' : 'text-gray-400 line-through'}>
-                                    Upload de Arquivos (PDF)
-                                </span>
-                            </m.div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                            <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-1">Gerações</span>
+                                <span className="text-sm font-bold">{limits.dailyGens} por dia</span>
+                            </div>
+                            <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-brand block mb-1">Upload</span>
+                                <span className="text-sm font-bold">{limits.allowFile ? 'Habilitado' : 'Bloqueado'}</span>
+                            </div>
                         </div>
 
                         {currentPlan === 'free' ? (
                             <Link
                                 href="/#pricing"
-                                className="group block text-center w-full bg-brand text-white py-3 rounded-sm font-bold text-sm hover:bg-brand/90 transition-all"
+                                className="block w-full bg-brand text-white py-4 rounded-sm font-black text-xs uppercase tracking-[0.2em] text-center hover:bg-brand/90 transition-all shadow-xl shadow-brand/20 ripple"
                             >
-                                <span className="inline-flex items-center gap-2">
-                                    Fazer Upgrade para PRO
-                                    <ArrowRight className="h-4 w-4 cta-arrow-shift" />
-                                </span>
+                                Fazer Upgrade
                             </Link>
                         ) : (
                             <button
                                 onClick={handleManageSubscription}
                                 disabled={loadingPortal}
-                                className="w-full bg-brand text-white py-3 rounded-sm font-bold text-sm hover:bg-brand/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black py-4 rounded-sm font-black text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-50 ripple flex items-center justify-center gap-2"
                             >
                                 {loadingPortal && <Loader2 className="h-4 w-4 animate-spin" />}
-                                Gerenciar Assinatura
+                                Painel Strype
                             </button>
                         )}
                     </m.div>
@@ -284,22 +225,46 @@ export default function SettingsPage() {
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className="bg-white border border-border rounded-sm p-6 shadow-sm"
+                        className="bg-white dark:bg-zinc-950 p-8"
                     >
-                        <div className="flex items-center gap-4 mb-6">
-                            <m.div
-                                whileHover={{ scale: 1.05 }}
-                                className="bg-purple-50 p-3 rounded-full"
-                            >
-                                <Bell className="h-6 w-6 text-purple-600" />
-                            </m.div>
-                            <div>
-                                <h2 className="text-lg font-bold text-foreground">Notificações</h2>
-                                <p className="text-sm text-foreground/60 font-medium">Configure lembretes de estudo.</p>
-                            </div>
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-xl font-black text-swiss-header">Notificações</h2>
+                            <Bell className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
                         </div>
-
                         <NotificationSettings />
+                    </m.div>
+
+                    {/* Help & Support */}
+                    <m.div
+                        custom={4}
+                        initial="hidden"
+                        animate="visible"
+                        variants={cardVariants}
+                        className="bg-white dark:bg-zinc-950 p-8"
+                    >
+                        <h2 className="text-xl font-black text-swiss-header mb-8">Ajuda e Suporte</h2>
+                        <div className="grid grid-cols-1 gap-2">
+                            <Link
+                                href="/guia"
+                                className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm hover:border-brand transition-colors group ripple"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <BookOpen className="h-5 w-5 text-brand" />
+                                    <span className="text-sm font-bold uppercase tracking-tight">Tutorial Android</span>
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-zinc-300 group-hover:text-brand transition-all group-hover:translate-x-1" />
+                            </Link>
+                            <Link
+                                href="/documentacao"
+                                className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm hover:border-brand transition-colors group ripple"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <FileText className="h-5 w-5 text-zinc-400" />
+                                    <span className="text-sm font-bold uppercase tracking-tight">Documentação</span>
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-zinc-300 group-hover:text-brand transition-all group-hover:translate-x-1" />
+                            </Link>
+                        </div>
                     </m.div>
                 </div>
             </div>

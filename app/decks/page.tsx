@@ -103,7 +103,7 @@ export default function DecksPage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-12 md:pt-32">
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -160,7 +160,7 @@ export default function DecksPage() {
                         </Link>
                     </m.div>
                 ) : (
-                    <div id="decks-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="decks-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-px gap-y-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 overflow-hidden rounded-sm">
                         {decks.map((deck, index) => (
                             <m.div
                                 key={deck.id}
@@ -168,49 +168,49 @@ export default function DecksPage() {
                                 initial="hidden"
                                 animate="visible"
                                 variants={cardVariants}
-                                whileHover={{ y: -4 }}
-                                className="group bg-white border border-border p-6 rounded-sm shadow-sm hover:border-brand/40 transition-all relative overflow-hidden"
+                                className="group bg-white dark:bg-zinc-950 p-8 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors relative h-full flex flex-col"
                             >
-                                <div className="flex items-start justify-between mb-8">
-                                    <div className="bg-brand/10 p-2 rounded-sm">
-                                        <Folder className="h-5 w-5 text-brand" />
-                                    </div>
+                                <div className="flex items-start justify-between mb-12">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                                        {new Date(deck.created_at).toLocaleDateString()}
+                                    </span>
                                     <button
                                         onClick={() => handleDeleteClick(deck.id)}
-                                        className="text-foreground/20 hover:text-red-500 transition-colors p-1"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-zinc-300 hover:text-red-500"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
                                 </div>
 
-                                <h3 className="text-xl font-bold mb-2 group-hover:text-brand transition-colors line-clamp-1">
-                                    {deck.title}
-                                </h3>
-
-                                <div className="flex items-center gap-4 text-xs font-bold text-foreground/40 mb-8">
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar className="h-3.5 w-3.5" />
-                                        {new Date(deck.created_at).toLocaleDateString()}
-                                    </div>
-                                    <div className="bg-gray-100 px-2 py-0.5 rounded-sm">
-                                        {deck.cards[0]?.count || 0} CARDS
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-black text-swiss-header mb-4 group-hover:text-brand transition-colors">
+                                        {deck.title}
+                                    </h3>
+                                    <div className="flex items-center gap-3 mb-8">
+                                        <div className="h-1 bg-zinc-100 dark:bg-zinc-900 flex-1">
+                                            <div
+                                                className="h-full bg-brand"
+                                                style={{ width: `${Math.min(100, (deck.cards[0]?.count || 0) * 10)}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                                            {deck.cards[0]?.count || 0} Cards
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="flex border border-zinc-100 dark:border-zinc-900 divide-x divide-zinc-100 dark:divide-zinc-900 mt-auto overflow-hidden rounded-sm">
                                     <button
                                         onClick={() => setDeckToExport(deck)}
-                                        className="w-full sm:flex-1 bg-white border border-border py-2 rounded-sm text-xs font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all ripple"
                                     >
-                                        <Download className="h-3.5 w-3.5" />
                                         Exportar
                                     </button>
                                     <Link
                                         href={`/decks/${deck.id}`}
-                                        className="group/link w-full sm:flex-1 bg-gray-50 border border-border py-2 rounded-sm text-xs font-bold text-center hover:bg-white transition-all flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-center hover:bg-zinc-900 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-black transition-all ripple"
                                     >
-                                        Ver Cards
-                                        <ArrowRight className="h-3.5 w-3.5 cta-arrow-shift" />
+                                        Abrir
                                     </Link>
                                 </div>
                             </m.div>

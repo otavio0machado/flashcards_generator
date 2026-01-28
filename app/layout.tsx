@@ -98,9 +98,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning data-theme="light">
+    <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16 pb-20 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pb-20 md:pb-0 md:pt-16`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {

@@ -65,17 +65,20 @@ function InlineCta({ location }: { location: string }) {
 export default function HomeContent() {
     const scroll50Tracked = useRef(false);
     const scroll90Tracked = useRef(false);
-    const { isTauri } = useTauri();
+    const { isTauri, isMobile, isLoading } = useTauri();
     const router = useRouter();
 
     useEffect(() => {
-        if (isTauri) {
-            // Close splashscreen and show main window
+        if (isTauri && !isLoading) {
+            // Window manipulation for both Desktop and Mobile
             import('@tauri-apps/api/webviewWindow').then(async ({ WebviewWindow }) => {
                 try {
                     const currentWindow = WebviewWindow.getCurrent();
                     await currentWindow.show();
-                    await currentWindow.maximize();
+
+                    if (!isMobile) {
+                        await currentWindow.maximize();
+                    }
                     await currentWindow.setFocus();
 
                     // Small delay to ensure render
@@ -94,7 +97,12 @@ export default function HomeContent() {
                 }
             });
 
-            // First launch: show welcome. After that: go straight to /app.
+            // Mobile goes straight to /app. Desktop might show welcome.
+            if (isMobile) {
+                router.replace('/app');
+                return;
+            }
+
             const hasSeenWelcome = localStorage.getItem('desktop_onboarding_complete');
 
             if (hasSeenWelcome !== 'true') {
@@ -103,7 +111,7 @@ export default function HomeContent() {
                 router.replace('/app');
             }
         }
-    }, [isTauri, router]);
+    }, [isTauri, isMobile, isLoading, router]);
 
     useEffect(() => {
         if (!isTauri) {
@@ -146,7 +154,8 @@ export default function HomeContent() {
     }, [heroVariant]);
 
     // If active desktop app, show loader instead of landing page while redirecting
-    if (isTauri) {
+    // On mobile, we avoid the spinner to prevent "infinite loading" feel during fast redirects
+    if (isTauri && !isMobile) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>

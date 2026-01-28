@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation';
 
 interface TauriContextType {
     isTauri: boolean;
+    isLoading: boolean;
     platform: string | null;
     isDesktop: boolean;
     isMobile: boolean;
+    isMobileTauri: boolean;
+    isDesktopTauri: boolean;
     appVersion: string | null;
     sidebarCollapsed: boolean;
     setSidebarCollapsed: (collapsed: boolean) => void;
@@ -15,12 +18,15 @@ interface TauriContextType {
 
 const TauriContext = createContext<TauriContextType>({
     isTauri: false,
+    isLoading: true,
     platform: null,
     isDesktop: false,
     isMobile: false,
+    isMobileTauri: false,
+    isDesktopTauri: false,
     appVersion: null,
     sidebarCollapsed: false,
-    setSidebarCollapsed: () => {},
+    setSidebarCollapsed: () => { },
 });
 
 function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boolean } {
@@ -30,10 +36,10 @@ function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boo
 
     const userAgent = navigator.userAgent.toLowerCase();
 
-    if (userAgent.includes('android')) {
+    if (userAgent.includes('android') || userAgent.includes('linux arm') || userAgent.includes('mobi')) {
         return { platform: 'android', isDesktop: false, isMobile: true };
     }
-    if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+    if (userAgent.includes('iphone') || userAgent.includes('ipad') || userAgent.includes('ipod')) {
         return { platform: 'ios', isDesktop: false, isMobile: true };
     }
     if (userAgent.includes('win')) {
@@ -42,9 +48,6 @@ function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boo
     if (userAgent.includes('mac')) {
         return { platform: 'macos', isDesktop: true, isMobile: false };
     }
-    if (userAgent.includes('linux')) {
-        return { platform: 'linux', isDesktop: true, isMobile: false };
-    }
 
     return { platform: 'unknown', isDesktop: true, isMobile: false };
 }
@@ -52,9 +55,12 @@ function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boo
 export function TauriProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<Omit<TauriContextType, 'setSidebarCollapsed'>>({
         isTauri: false,
+        isLoading: true,
         platform: null,
         isDesktop: false,
         isMobile: false,
+        isMobileTauri: false,
+        isDesktopTauri: false,
         appVersion: null,
         sidebarCollapsed: false,
     });
@@ -81,8 +87,29 @@ export function TauriProvider({ children }: { children: ReactNode }) {
                 platform,
                 isDesktop,
                 isMobile,
+                isMobileTauri: isMobile,
+                isDesktopTauri: isDesktop,
                 sidebarCollapsed: savedCollapsed,
+                isLoading: !isMobile, // On mobile we can trust UA more for immediate redirect, desktop waits for plugin
             }));
+
+            // Reliable platform info via @tauri-apps/plugin-os (sync in v2)
+            import('@tauri-apps/plugin-os').then(({ platform: osPlatform }) => {
+                const os = osPlatform();
+                const isMobileOs = os === 'android' || os === 'ios';
+                const isDesktopOs = !isMobileOs;
+                setState(prev => ({
+                    ...prev,
+                    platform: os,
+                    isDesktop: isDesktopOs,
+                    isMobile: isMobileOs,
+                    isMobileTauri: isMobileOs,
+                    isDesktopTauri: isDesktopOs,
+                    isLoading: false,
+                }));
+            }).catch(() => {
+                setState(prev => ({ ...prev, isLoading: false }));
+            });
 
             // Get app version
             import('@tauri-apps/api/app').then(({ getVersion }) => {
@@ -92,6 +119,19 @@ export function TauriProvider({ children }: { children: ReactNode }) {
             }).catch(() => {
                 // Version unavailable
             });
+        } else {
+            // WEB environment
+            const { platform, isDesktop, isMobile } = detectPlatform();
+            setState(prev => ({
+                ...prev,
+                isTauri: false,
+                isLoading: false,
+                platform,
+                isDesktop,
+                isMobile,
+                isMobileTauri: false,
+                isDesktopTauri: false,
+            }));
         }
     }, []);
 

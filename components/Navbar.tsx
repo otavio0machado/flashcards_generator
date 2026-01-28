@@ -17,7 +17,7 @@ import { useTauri } from '@/lib/tauri';
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isTauri, isDesktop } = useTauri();
+  const { isTauri, isDesktop, isMobile } = useTauri();
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -118,9 +118,10 @@ export default function Navbar() {
 
     return 'Usuario';
   })();
-  
+
   // Hide Navbar in Tauri desktop (we have sidebar instead)
-  if (isTauri && isDesktop) {
+  // Also hide on mobile completely since we have bottom nav for mobility
+  if ((isTauri && isDesktop) || isMobile) {
     return null;
   }
 
