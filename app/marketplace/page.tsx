@@ -8,6 +8,7 @@ import { trackEvent } from '@/lib/analytics';
 import { deckService } from '@/services/deckService';
 import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
+import AppShell from '@/components/AppShell';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
 
 function SectionLabel({ text }: { text: string }) {
@@ -152,19 +153,11 @@ export default function MarketplacePage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
-                <m.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10"
-                >
-                    <div>
-                        <SectionLabel text="MARKETPLACE" />
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3">Marketplace de Decks</h1>
-                        <p className="text-foreground/60 font-medium max-w-2xl">
-                            Explore decks publicados pela comunidade e clone direto para a sua biblioteca.
-                        </p>
-                    </div>
+            <AppShell
+                eyebrow="MARKETPLACE"
+                title="Marketplace de Decks"
+                subtitle="Explore decks publicados pela comunidade e clone direto para a sua biblioteca."
+                headerActions={(
                     <m.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -177,7 +170,9 @@ export default function MarketplacePage() {
                             Criar meu deck
                         </Link>
                     </m.div>
-                </m.div>
+                )}
+                maxWidthClass="max-w-7xl"
+            >
 
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
@@ -356,7 +351,7 @@ export default function MarketplacePage() {
                         onClose={() => setToast(null)}
                     />
                 )}
-            </div>
+            </AppShell>
         </LazyMotion>
     );
 }

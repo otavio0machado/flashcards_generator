@@ -11,6 +11,7 @@ import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import StudyHeatmap from '@/components/StudyHeatmap';
 import { addUtcDays, getDateKey, startOfUtcDay, StudyActivityRecord } from '@/lib/study-activity';
+import AppShell from '@/components/AppShell';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -103,17 +104,11 @@ export default function DecksPage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-12 md:pt-32">
-                <m.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12"
-                >
-                    <div>
-                        <SectionLabel text="MINHA BIBLIOTECA" />
-                        <h1 className="text-4xl font-bold tracking-tight mb-2">Minha Biblioteca</h1>
-                        <p className="text-foreground/60 font-medium">Todos os seus baralhos gerados e salvos.</p>
-                    </div>
+            <AppShell
+                eyebrow="MINHA BIBLIOTECA"
+                title="Minha Biblioteca"
+                subtitle="Todos os seus baralhos gerados e salvos."
+                headerActions={(
                     <m.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -126,7 +121,9 @@ export default function DecksPage() {
                             Novo Baralho
                         </Link>
                     </m.div>
-                </m.div>
+                )}
+                maxWidthClass="max-w-7xl"
+            >
 
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
@@ -242,7 +239,7 @@ export default function DecksPage() {
                         onClose={() => setToast(null)}
                     />
                 )}
-            </div>
+            </AppShell>
         </LazyMotion>
     );
 }

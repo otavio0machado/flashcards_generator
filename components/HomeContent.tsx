@@ -87,19 +87,17 @@ export default function HomeContent() {
                         await currentWindow.setFocus();
                     }
 
-                    // Small delay to ensure render (close splashscreen only on desktop where Window API is available)
-                    if (!isMobile) {
-                        setTimeout(async () => {
-                            try {
-                                const splash = await WebviewWindow.getByLabel('splashscreen');
-                                if (splash) {
-                                    await splash.close();
-                                }
-                            } catch (err) {
-                                console.warn('Could not close splashscreen:', err);
+                    // Small delay to ensure render (close splashscreen regardless of platform)
+                    setTimeout(async () => {
+                        try {
+                            const splash = await WebviewWindow.getByLabel('splashscreen');
+                            if (splash) {
+                                await splash.close();
                             }
-                        }, 500);
-                    }
+                        } catch (err) {
+                            console.warn('Could not close splashscreen:', err);
+                        }
+                    }, 500);
                 } catch (err) {
                     console.error('Window manipulation error:', err);
                 }
@@ -208,7 +206,7 @@ export default function HomeContent() {
         <LazyMotion features={domAnimation}>
             <div className="flex flex-col min-h-screen pb-16 sm:pb-0">
                 {/* Hero Section */}
-                <section id="hero" className="relative pt-16 pb-28 overflow-hidden">
+                <section id="hero" className="relative pb-28 overflow-hidden">
                     <m.div
                         animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.08, 0.2, 0.08] }}
                         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -224,12 +222,10 @@ export default function HomeContent() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-4">Flashcards Generator</p>
-                                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground mb-6 leading-tight">
-                                    {heroHeadline}
-                                </h1>
-                                <p className="text-lg text-foreground/70 font-medium mb-8">
-                                    Perfeito para ENEM, concursos e faculdade. Gere perguntas e respostas automaticamente e exporte para o Anki.
-                                </p>
+                                {/* Title moved to AppShell to ensure consistent vertical alignment across pages */}
+                                <div className="sr-only">{heroHeadline}</div>
+                                
+
 
                                 <div className="flex flex-col sm:flex-row gap-4 items-start">
                                     <Link

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import NotificationSettings from '@/components/NotificationSettings';
 import { useTauri } from '@/lib/tauri';
 import { useMobilePreferences } from '@/lib/mobile-preferences';
+import AppShell from '@/components/AppShell';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -117,17 +118,14 @@ export default function SettingsPage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-12 md:pt-32">
+            <AppShell eyebrow="CONFIGURAÇÕES" title="Configurações da Conta" maxWidthClass="max-w-3xl">
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <SectionLabel text="CONFIGURAÇÕES" />
-                    <h1 className="text-3xl font-bold tracking-tight mb-8">Configurações da Conta</h1>
                 </m.div>
 
-                <div className="space-y-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
-                    {/* Profile Card */}
+                <div className="space-y-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">                    {/* Profile Card */}
                     <m.div
                         custom={0}
                         initial="hidden"
@@ -343,7 +341,7 @@ export default function SettingsPage() {
                         </div>
                     </m.div>
                 </div>
-            </div>
+            </AppShell>
         </LazyMotion>
     );
 }
