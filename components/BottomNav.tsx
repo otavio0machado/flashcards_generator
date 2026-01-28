@@ -56,6 +56,11 @@ export default function BottomNav() {
         if (item.href === '/' && isTauri && isMobile) {
             e.preventDefault();
 
+            // If user is already on the home page, do nothing (avoid redirect to /app)
+            if (pathname === '/') {
+                return;
+            }
+
             // Ensure we know auth state
             let auth = isAuthenticated;
             if (auth === null) {
@@ -71,12 +76,8 @@ export default function BottomNav() {
                 return;
             }
 
-            // If authenticated go to app directly, otherwise to mobile welcome
-            if (auth) {
-                router.push('/app');
-            } else {
-                router.replace('/mobile/welcome');
-            }
+            // Navigate to the home page on mobile for a consistent predictable experience
+            router.push('/');
             return;
         }
 

@@ -831,8 +831,35 @@ export default function GeneratorClient() {
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
-            console.error(err);
-            setToast({ message: 'Erro ao salvar baralho', type: 'error' });
+            // Build a helpful message for the user
+            let errMsg = 'Erro ao salvar baralho';
+            try {
+                if (err && typeof err === 'object') {
+                    errMsg = (err as any).message ? `Erro ao salvar baralho: ${(err as any).message}` : `${errMsg}: ${JSON.stringify(err)}`;
+                } else if (typeof err === 'string') {
+                    errMsg = `Erro ao salvar baralho: ${err}`;
+                }
+            } catch (parseErr) {
+                // ignore parsing errors
+            }
+
+            console.error('saveDeck error:', err);
+
+            // Report to Sentry (if configured) with contextual info for faster triage
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const Sentry = require('@sentry/nextjs');
+                if (Sentry && typeof Sentry.captureException === 'function') {
+                    Sentry.captureException(err, {
+                        tags: { feature: 'save-deck', flow: 'generator-client', isTauri: !!isTauri, isMobile: !!isMobile },
+                        extra: { deckTitle, cardsCount: cards.length, userId: (user as any)?.id }
+                    });
+                }
+            } catch (sentryErr) {
+                console.error('Sentry capture failed:', sentryErr);
+            }
+
+            setToast({ message: errMsg, type: 'error' });
         } finally {
             setIsSaving(false);
         }
