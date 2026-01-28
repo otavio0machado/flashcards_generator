@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { useTauri } from '@/lib/tauri';
 import { STRIPE_PRICES } from '@/constants/config';
 import CheckoutButton from '@/components/CheckoutButton';
 import Logo from '@/components/Logo';
 import { trackEvent } from '@/lib/analytics';
+import { supabase } from '@/lib/supabase';
+import MobileHomeDashboard from '@/components/MobileHomeDashboard';
 import {
     ArrowRight,
     FileText,
@@ -67,6 +69,8 @@ export default function HomeContent() {
     const scroll90Tracked = useRef(false);
     const { isTauri, isMobile, isLoading } = useTauri();
     const router = useRouter();
+    const [showMobileDashboard, setShowMobileDashboard] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
 
     useEffect(() => {
         if (isTauri && !isLoading) {
@@ -74,14 +78,16 @@ export default function HomeContent() {
             import('@tauri-apps/api/webviewWindow').then(async ({ WebviewWindow }) => {
                 try {
                     const currentWindow = WebviewWindow.getCurrent();
-                    await currentWindow.show();
 
+                    // Mobile webviews refuse some window APIs (e.g. show()). Only perform desktop window
+                    // manipulations to avoid permission errors on mobile.
                     if (!isMobile) {
+                        await currentWindow.show();
                         await currentWindow.maximize();
+                        await currentWindow.setFocus();
                     }
-                    await currentWindow.setFocus();
 
-                    // Small delay to ensure render
+                    // Small delay to ensure render (close splashscreen regardless of platform)
                     setTimeout(async () => {
                         try {
                             const splash = await WebviewWindow.getByLabel('splashscreen');
@@ -97,9 +103,18 @@ export default function HomeContent() {
                 }
             });
 
-            // Mobile goes straight to /app. Desktop might show welcome.
+            // Mobile: Check auth and show dashboard or onboarding
             if (isMobile) {
-                router.replace('/app');
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    setCheckingAuth(false);
+                    if (session) {
+                        // Authenticated - show dashboard
+                        setShowMobileDashboard(true);
+                    } else {
+                        // Not authenticated - go to onboarding
+                        router.replace('/mobile/welcome');
+                    }
+                });
                 return;
             }
 
@@ -154,13 +169,28 @@ export default function HomeContent() {
     }, [heroVariant]);
 
     // If active desktop app, show loader instead of landing page while redirecting
-    // On mobile, we avoid the spinner to prevent "infinite loading" feel during fast redirects
     if (isTauri && !isMobile) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
             </div>
         );
+    }
+
+    // Mobile Tauri: Show dashboard for authenticated users
+    if (isTauri && isMobile) {
+        if (checkingAuth) {
+            return (
+                <div className="min-h-screen bg-background flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+                </div>
+            );
+        }
+        if (showMobileDashboard) {
+            return <MobileHomeDashboard />;
+        }
+        // If not showing dashboard and not checking auth, we're redirecting to onboarding
+        return null;
     }
 
     const handleHeroCta = () => trackEvent('cta_generate_clicked', { location: 'hero' });
