@@ -23,21 +23,21 @@ test.describe('Generator flow', () => {
     await expect(editButtons.first()).toBeVisible();
     await editButtons.first().click();
 
-    const firstQuestionTextarea = page.locator('textarea').nth(0); // first textarea in editor
+    // first visible textarea within the card editor
+    const firstQuestionTextarea = page.locator('textarea').nth(0);
     await firstQuestionTextarea.fill('Qual é a função da mitocôndria?');
 
     const saveButton = page.locator('button', { hasText: 'Salvar' }).first();
     await saveButton.click();
 
     // Verify updated question text appears
-    await expect(page.locator('text="Qual é a função da mitocôndria?"')).toBeVisible();
+    await expect(page.locator('text=Qual é a função da mitocôndria?')).toBeVisible();
 
     // Delete the first card
     const deleteButtons = page.locator('button[aria-label="Excluir"]');
-    const beforeCount = await page.locator('text=Card #').count();
     await deleteButtons.first().click();
 
-    // After deletion, number of cards should be less (or Card #1 no longer present)
+    // After deletion, number of cards should be less or Card #1 not visible
     await expect(page.locator('text=Card #1')).not.toBeVisible();
   });
 });
