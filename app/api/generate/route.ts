@@ -12,7 +12,6 @@ import { aiService } from '@/services/aiService';
 import { imageService } from '@/services/imageService';
 import { GenerateOptionsSchema } from '@/lib/validators';
 import { sanitizeInput } from '@/lib/utils';
-import { PLAN_LIMITS } from '@/constants/pricing';
 import { ErrorCodes } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
@@ -138,7 +137,7 @@ export async function POST(req: Request) {
         }
 
         // 3. Parse Request
-        let rawBody: any = {};
+        let rawBody: unknown = {};
         let files: File[] = [];
         let fileIds: string[] = [];
         let pdfPageSelections: Record<string, number[] | 'all'> = {};

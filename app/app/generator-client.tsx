@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
     Plus,
     Trash2,
@@ -23,7 +24,7 @@ import {
     BookOpen
 } from 'lucide-react';
 import { gzip } from 'pako';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { haptics } from '@/lib/haptics';
 import { useTauri } from '@/lib/tauri';
 import EditableCard from '@/components/EditableCard';
@@ -91,7 +92,6 @@ const IMAGE_MIME_TYPES = new Set([
 const PDF_MIME_TYPE = 'application/pdf';
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 const PDF_PREVIEW_INITIAL_PAGES = 6;
 
 const TEMPLATE_OPTIONS = [
@@ -154,7 +154,6 @@ export default function GeneratorClient() {
     const [templateType, setTemplateType] = useState<string>('');
     const [recentTexts, setRecentTexts] = useState<string[]>([]);
     const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
-    const [stats, setStats] = useState<{ cardsWeek: number; decksToday: number } | null>(null);
     const [isExportingApkg, setIsExportingApkg] = useState(false);
     const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
     const [savedDeckPublic, setSavedDeckPublic] = useState(false);
@@ -173,12 +172,15 @@ export default function GeneratorClient() {
     const [signupModalAction, setSignupModalAction] = useState(false);
     const captchaContainerRef = useRef<HTMLDivElement | null>(null);
     const captchaWidgetIdRef = useRef<string | null>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const objectUrlsRef = useRef<Set<string>>(new Set());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfDocsRef = useRef<Map<string, any>>(new Map());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfjsRef = useRef<any>(null);
-    const { isMobile, isTauri } = useTauri();
+    const { isMobile, isTauri, isTablet } = useTauri();
     const [showMobileSettings, setShowMobileSettings] = useState(false);
-    const reduceMotion = useReducedMotion();
     const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
@@ -208,17 +210,21 @@ export default function GeneratorClient() {
 
     // Cleanup object URLs when component unmounts
     useEffect(() => {
+        const objectUrls = objectUrlsRef.current;
+        const pdfDocs = pdfDocsRef.current;
         return () => {
-            objectUrlsRef.current.forEach(url => {
-                try {
-                    URL.revokeObjectURL(url);
-                } catch {
-                    // URL already revoked or invalid
-                }
-            });
-            objectUrlsRef.current.clear();
-            pdfDocsRef.current.clear();
-            pdfjsRef.current = null;
+            if (objectUrls) {
+                objectUrls.forEach(url => {
+                    try {
+                        URL.revokeObjectURL(url);
+                    } catch {
+                        // URL already revoked or invalid
+                    }
+                });
+                objectUrls.clear();
+            }
+            if (pdfDocs) pdfDocs.clear();
+            if (pdfjsRef.current) pdfjsRef.current = null;
         };
     }, []);
 
@@ -412,7 +418,7 @@ export default function GeneratorClient() {
                 setCardCount(PLAN_LIMITS[res.planTier].maxCardsPerGen);
             }).catch(console.error).finally(() => setIsAuthChecked(true));
         });
-    }, []);
+    }, [demoLimits.maxCardsPerGen]);
 
     // Check character limits on input
     useEffect(() => {
@@ -425,7 +431,7 @@ export default function GeneratorClient() {
         } else {
             setError(null);
         }
-    }, [inputText, limits]);
+    }, [inputText, limits, isDemo]);
 
     useEffect(() => {
         if (!limits.allowImageGeneration && generateImages) {
@@ -472,23 +478,9 @@ export default function GeneratorClient() {
         }
     }, []);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await fetch(getApiUrl('api/stats'));
-                if (!response.ok) return;
-                const data = await response.json();
-                setStats({
-                    cardsWeek: Number(data?.cardsWeek || 0),
-                    decksToday: Number(data?.decksToday || 0)
-                });
-            } catch {
-                setStats(null);
-            }
-        };
-
-        fetchStats();
-    }, []);
+    // Stats fetch logic removed as 'stats' was unused
+    // If needed later, re-implement properly
+    // useEffect(() => { ... }, []);
 
     useEffect(() => {
         if (!captchaRequired) return;
@@ -537,7 +529,7 @@ export default function GeneratorClient() {
 
     const handleGenerateClick = () => {
         // Haptic feedback for primary generate action
-        try { haptics.impact(); } catch (e) { /* silent */ }
+        try { haptics.impact(); } catch { /* silent */ }
 
         if (isDemo) {
             trackEvent('demo_generate_click', {
@@ -550,7 +542,7 @@ export default function GeneratorClient() {
         } else {
             handleGenerate();
         }
-    }; 
+    };
 
     const handleConfirmGenerate = () => {
         setShowImageWarningModal(false);
@@ -727,7 +719,7 @@ export default function GeneratorClient() {
             });
 
             setCards([...newCardsFormatted, ...cards]);
-            try { haptics.success(); } catch (e) { /* silent */ }
+            try { haptics.success(); } catch { /* silent */ }
 
             if (!deckTitle) {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
@@ -826,7 +818,7 @@ export default function GeneratorClient() {
     const handleDeleteCard = (id: string) => {
         setCards(prev => prev.filter(c => c.id !== id));
         setToast({ message: 'Card excluído', type: 'info' });
-        try { haptics.impact(); } catch (e) {}
+        try { haptics.impact(); } catch { }
     };
 
     const handleUpdateCard = (id: string, patched: Partial<Flashcard>) => {
@@ -879,18 +871,22 @@ export default function GeneratorClient() {
             setSavedDeckPublic(false);
             setSaveSuccess(true);
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
-            try { haptics.success(); } catch (e) { /* silent */ }
+            try { haptics.success(); } catch { /* silent */ }
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             // Build a helpful message for the user
             let errMsg = 'Erro ao salvar baralho';
             try {
-                if (err && typeof err === 'object') {
-                    errMsg = (err as any).message ? `Erro ao salvar baralho: ${(err as any).message}` : `${errMsg}: ${JSON.stringify(err)}`;
+                if (err instanceof Error) {
+                    errMsg = `Erro ao salvar baralho: ${err.message}`;
+                } else if (typeof err === 'object' && err !== null && 'message' in err) {
+                    errMsg = `Erro ao salvar baralho: ${String((err as { message: unknown }).message)}`;
                 } else if (typeof err === 'string') {
                     errMsg = `Erro ao salvar baralho: ${err}`;
+                } else {
+                    errMsg = `${errMsg}: ${JSON.stringify(err)}`;
                 }
-            } catch (parseErr) {
+            } catch {
                 // ignore parsing errors
             }
 
@@ -898,12 +894,12 @@ export default function GeneratorClient() {
 
             // Report to Sentry (if configured) with contextual info for faster triage
             try {
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                const Sentry = require('@sentry/nextjs');
+
+                const Sentry = await import('@sentry/nextjs');
                 if (Sentry && typeof Sentry.captureException === 'function') {
                     Sentry.captureException(err, {
                         tags: { feature: 'save-deck', flow: 'generator-client', isTauri: !!isTauri, isMobile: !!isMobile },
-                        extra: { deckTitle, cardsCount: cards.length, userId: (user as any)?.id }
+                        extra: { deckTitle, cardsCount: cards.length, userId: user?.id }
                     });
                 }
             } catch (sentryErr) {
@@ -944,7 +940,7 @@ export default function GeneratorClient() {
         }
     };
 
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
 
     const handleFileUpload = () => {
         if (isDemo) {
@@ -1373,7 +1369,7 @@ export default function GeneratorClient() {
         await handleGenerate(ENEM_EXAMPLE_TEXT);
     };
 
-    if (isMobile) {
+    if (isMobile && !isTablet) {
         return (
             <div className="flex flex-col min-h-[80vh] px-4 space-y-6 pb-32 pt-6">
                 <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
@@ -1469,11 +1465,12 @@ export default function GeneratorClient() {
                                     )}
 
                                     <button
-                                        onClick={() => alert('Em breve: Scanner OCR Nativo!')}
+                                        onClick={() => cameraInputRef.current?.click()}
                                         className="p-4 bg-brand text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
                                     >
                                         <Maximize2 className="w-5 h-5" />
                                     </button>
+
                                 </div>
                                 <div className="absolute top-6 right-6 text-[10px] font-black text-zinc-300 dark:text-zinc-700 uppercase tracking-widest pointer-events-none">
                                     {inputText.length} / {limits.maxChars}
@@ -1505,7 +1502,7 @@ export default function GeneratorClient() {
                                         Gerar Cards
                                     </>
                                 )}
-                            </button> 
+                            </button>
 
                             {isDemo && (
                                 <p className="text-[10px] text-center text-zinc-400 font-bold uppercase tracking-wider">
@@ -1588,7 +1585,7 @@ export default function GeneratorClient() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-11 xl:grid-cols-12 gap-8 items-start relative max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-11 lg:grid-cols-11 xl:grid-cols-12 gap-8 items-start relative max-w-[1600px] mx-auto">
 
             {/* Upgrade Modal */}
             {/* Upgrade Modal */}
@@ -1615,7 +1612,7 @@ export default function GeneratorClient() {
             />
 
             {/* Coluna Esquerda: Input e Configs */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
+            <div className="md:col-span-4 lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
@@ -1687,9 +1684,19 @@ export default function GeneratorClient() {
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             accept={fileAccept}
-                            aria-label="Selecionar arquivos (PDF, imagens)"
+                            multiple
                             className="hidden"
                         />
+                        <input
+                            id="camera-upload"
+                            type="file"
+                            ref={cameraInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                        />
+
                         <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
                         <textarea
                             id="content-input"
@@ -1813,10 +1820,15 @@ export default function GeneratorClient() {
                                                                     className={`relative border rounded-sm overflow-hidden transition-all ${selected ? 'border-brand ring-2 ring-brand/30' : 'border-border hover:border-brand/40'}`}
                                                                 >
                                                                     {page.dataUrl ? (
-                                                                        <img
+                                                                        <Image
                                                                             src={page.dataUrl}
                                                                             alt={`Página ${page.pageNumber}`}
                                                                             className="w-full h-auto object-cover"
+                                                                            width={0}
+                                                                            height={0}
+                                                                            sizes="100vw"
+                                                                            style={{ width: '100%', height: 'auto' }}
+                                                                            unoptimized
                                                                         />
                                                                     ) : (
                                                                         <div className="flex flex-col items-center justify-center bg-gray-50 text-foreground/60 text-[10px] font-bold h-36">
@@ -2090,7 +2102,7 @@ export default function GeneratorClient() {
             </div>
 
             {/* Coluna Direita: Preview dos Cards */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="md:col-span-7 lg:col-span-7 space-y-6">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <label htmlFor="deck-title-input" className="sr-only">Nome do Baralho</label>
@@ -2258,15 +2270,17 @@ export default function GeneratorClient() {
                                     >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-brand">Pergunta #{index + 1}</label>
                                         {card.question_image_url ? (
-                                            <div className="relative group/img w-full">
-                                                <img
+                                            <div className="relative group/img w-full h-40">
+                                                <Image
                                                     src={card.question_image_url}
                                                     alt={`Imagem da pergunta ${index + 1}`}
-                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    className="object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
                                                     draggable
                                                     onDragStart={(e) => handleImageDragStart(e, card.id, 'question', card.question_image_url!)}
                                                     onDragEnd={handleImageDragEnd}
                                                     onError={() => removeImage(card.id, 'question')}
+                                                    fill
+                                                    unoptimized
                                                 />
                                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
                                                     <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">
@@ -2306,15 +2320,17 @@ export default function GeneratorClient() {
                                     >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Resposta</label>
                                         {card.answer_image_url ? (
-                                            <div className="relative group/img w-full">
-                                                <img
+                                            <div className="relative group/img w-full h-40">
+                                                <Image
                                                     src={card.answer_image_url}
                                                     alt={`Imagem da resposta ${index + 1}`}
-                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    className="object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
                                                     draggable
                                                     onDragStart={(e) => handleImageDragStart(e, card.id, 'answer', card.answer_image_url!)}
                                                     onDragEnd={handleImageDragEnd}
                                                     onError={() => removeImage(card.id, 'answer')}
+                                                    fill
+                                                    unoptimized
                                                 />
                                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
                                                     <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">
