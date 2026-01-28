@@ -20,12 +20,20 @@ import {
     Settings2,
     LayoutDashboard,
     Maximize2,
-    BookOpen
+    BookOpen,
+    Edit2,
+    Star,
+    Copy,
+    Share2,
+    MoreHorizontal
 } from 'lucide-react';
+import ContextMenu from '@/components/ContextMenu';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { gzip } from 'pako';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { haptics } from '@/lib/haptics';
 import { useTauri } from '@/lib/tauri';
+import EditableCard from '@/components/EditableCard';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
@@ -176,8 +184,42 @@ export default function GeneratorClient() {
     const [showMobileSettings, setShowMobileSettings] = useState(false);
     const reduceMotion = useReducedMotion();
     const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
+    // Inline editing & context menu state
+    const [editingCardId, setEditingCardId] = useState<string | null>(null);
+    const [editingDrafts, setEditingDrafts] = useState<Record<string, { question: string; answer: string }>>({});
+    const [contextMenuState, setContextMenuState] = useState<{ open: boolean; x: number; y: number; cardId: string | null }>({ open: false, x: 0, y: 0, cardId: null });
+
+    // Long-press timer handle for mobile context menu
+    const longPressTimerRef = React.useRef<number | null>(null);
+
+    // Tauri picker availability
+    const { isTauri, isMobile } = useTauri();
+
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+
+    // Native picker integration (Tauri)
+    const handleTauriPick = async () => {
+        try {
+            const picked = await import('@/lib/tauri').then(m => m.pickFilesTauri());
+            if (!picked?.length) return;
+
+            // Convert picked blobs to File objects and append to uploadedFiles
+            const converted: File[] = [];
+            for (const p of picked) {
+                if (!p.blob) continue;
+                const blob = p.blob;
+                const file = new File([blob], p.name, { type: p.type || 'application/octet-stream' });
+                converted.push(file);
+            }
+
+            if (converted.length) {
+                setUploadedFiles(prev => [...prev, ...converted]);
+            }
+        } catch (err) {
+            console.warn('Tauri pick failed', err);
+        }
+    };
 
     // Cleanup object URLs when component unmounts
     useEffect(() => {
@@ -694,7 +736,8 @@ export default function GeneratorClient() {
                     question: c.question,
                     answer: c.answer,
                     question_image_url: qImg,
-                    answer_image_url: aImg
+                    answer_image_url: aImg,
+                    favorite: false
                 };
             });
 
@@ -799,6 +842,24 @@ export default function GeneratorClient() {
             openAuthGate('demo_save');
             return;
         }
+
+    };
+
+    // --- Card actions ---
+    const handleDeleteCard = (id: string) => {
+        setCards(prev => prev.filter(c => c.id !== id));
+        setToast({ message: 'Card excluído', type: 'info' });
+        try { haptics.impact(); } catch (e) {}
+    };
+
+    const handleUpdateCard = (id: string, patched: Partial<any>) => {
+        setCards(prev => prev.map(c => c.id === id ? { ...c, ...patched } : c));
+        setToast({ message: 'Alterações salvas', type: 'success' });
+    };
+
+    const handleToggleFavorite = (id: string) => {
+        setCards(prev => prev.map(c => c.id === id ? { ...c, favorite: !c.favorite } : c));
+    };
         if (cards.length === 0 || !user || isSaving) return;
 
         if (!limits.historySaved) {
@@ -1497,6 +1558,17 @@ export default function GeneratorClient() {
                                     >
                                         <FileUp className="w-5 h-5" />
                                     </button>
+
+                                    {isTauri && (
+                                        <button
+                                            onClick={handleTauriPick}
+                                            className="p-4 bg-zinc-700 text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                            aria-label="Importar arquivo nativo"
+                                        >
+                                            <FileText className="w-5 h-5" />
+                                        </button>
+                                    )}
+
                                     <button
                                         onClick={() => alert('Em breve: Scanner OCR Nativo!')}
                                         className="p-4 bg-brand text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
@@ -1576,27 +1648,14 @@ export default function GeneratorClient() {
                             ) : (
                                 <div className="grid grid-cols-1 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
                                     {cards.map((card, idx) => (
-                                        <div key={card.id} className="bg-[var(--secondary-system-background)] p-6 rounded-[var(--corner-card)]">
-                                            <div className="flex items-start justify-between mb-8">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">Card #{idx + 1}</span>
-                                                <button
-                                                    onClick={() => setCards(prev => prev.filter(c => c.id !== card.id))}
-                                                    className="p-1 text-zinc-200 hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-2 block">Pergunta</label>
-                                                    <p className="text-lg font-black text-swiss-header leading-tight italic">"{card.question}"</p>
-                                                </div>
-                                                <div className="pt-6 border-t border-zinc-50 dark:border-zinc-900">
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Resposta</label>
-                                                    <p className="text-base font-bold text-zinc-600 dark:text-zinc-400 leading-snug">{card.answer}</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <EditableCard
+                                            key={card.id}
+                                            card={card}
+                                            idx={idx}
+                                            onDelete={handleDeleteCard}
+                                            onUpdate={(id, patched) => handleUpdateCard(id, patched)}
+                                            onToggleFavorite={handleToggleFavorite}
+                                        />
                                     ))}
                                 </div>
                             )}

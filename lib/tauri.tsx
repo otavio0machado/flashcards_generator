@@ -151,6 +151,46 @@ export function isTauriApp(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window;
 }
 
+// --- Small helpers for mobile/native interactions ---
+export async function pickFilesTauri(accept: string[] = ['*/*']): Promise<Array<{ name: string; path?: string; type?: string; blob?: Blob }>> {
+    try {
+        // Dynamically import to avoid SSR bundling issues
+        const { open } = await import('@tauri-apps/api/dialog');
+        const { readBinaryFile } = await import('@tauri-apps/api/fs');
+
+        const selected = await open({ multiple: true });
+        if (!selected) return [];
+
+        // selected may be string or string[]
+        const files = Array.isArray(selected) ? selected : [selected];
+
+        const results: Array<{ name: string; path?: string; type?: string; blob?: Blob }> = [];
+
+        for (const filePath of files) {
+            try {
+                const bytes = await readBinaryFile(filePath as string);
+                const u8 = new Uint8Array(bytes as unknown as number[]);
+                const blob = new Blob([u8.buffer]);
+                const name = (filePath as string).split(/[\\/]/).pop() || 'file';
+                results.push({ name, path: filePath as string, blob });
+            } catch (e) {
+                console.error('pickFilesTauri read failed:', e);
+            }
+        }
+
+        return results;
+    } catch (err) {
+        console.warn('Tauri file picker not available', err);
+        return [];
+    }
+}
+
+export async function performOCRStub(filePath: string): Promise<string> {
+    // Placeholder for native OCR implementation in future
+    await new Promise((r) => setTimeout(r, 400));
+    return 'OCR não implementado (stub)';
+}
+
 // --- Desktop keyboard shortcuts ---
 
 export function useDesktopShortcuts() {
