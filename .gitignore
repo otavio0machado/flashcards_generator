@@ -52,3 +52,6 @@ public/worker-*.js.map
 
 # Rust/Tauri build artifacts
 src-tauri/target/
+
+# Ignore backup files created locally
+src-tauri/*.bak
