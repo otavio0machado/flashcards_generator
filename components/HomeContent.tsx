@@ -87,17 +87,19 @@ export default function HomeContent() {
                         await currentWindow.setFocus();
                     }
 
-                    // Small delay to ensure render (close splashscreen regardless of platform)
-                    setTimeout(async () => {
-                        try {
-                            const splash = await WebviewWindow.getByLabel('splashscreen');
-                            if (splash) {
-                                await splash.close();
+                    // Small delay to ensure render (close splashscreen only on desktop where Window API is available)
+                    if (!isMobile) {
+                        setTimeout(async () => {
+                            try {
+                                const splash = await WebviewWindow.getByLabel('splashscreen');
+                                if (splash) {
+                                    await splash.close();
+                                }
+                            } catch (err) {
+                                console.warn('Could not close splashscreen:', err);
                             }
-                        } catch (err) {
-                            console.warn('Could not close splashscreen:', err);
-                        }
-                    }, 500);
+                        }, 500);
+                    }
                 } catch (err) {
                     console.error('Window manipulation error:', err);
                 }
