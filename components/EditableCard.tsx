@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, PanInfo } from 'framer-motion';
 import { Edit2, Trash2, Star, Copy, Share2 } from 'lucide-react';
 import ContextMenu from '@/components/ContextMenu';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { haptics } from '@/lib/haptics';
+
+/*
+ Temporarily allow explicit any for pan event forwarding to the low-level swipe handler.
+ We'll replace this with stronger types when we extract a well-typed swipe adapter.
+*/
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface CardProps {
     id: string;
@@ -85,8 +91,9 @@ export default function EditableCard({ card, idx, onDelete, onUpdate, onToggleFa
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.12}
             onDragStart={() => handlers.onDragStart()}
-            onDrag={(e: any, info: any) => handlers.onDrag(e, info)}
-            onDragEnd={(e: any, info: any) => handlers.onDragEnd(e, info)}
+            onDrag={(event: any, info: PanInfo) => handlers.onDrag(event, info)}
+            onDragEnd={(event: any, info: PanInfo) => handlers.onDragEnd(event, info)}
+            /* eslint-enable @typescript-eslint/no-explicit-any */
             onContextMenu={(e) => { e.preventDefault(); setMenuPos({ x: e.clientX, y: e.clientY }); setMenuOpen(true); }}
             onPointerDown={startLongPress}
             onPointerUp={() => { clearLongPress(); }}
@@ -129,7 +136,7 @@ export default function EditableCard({ card, idx, onDelete, onUpdate, onToggleFa
                 <div className="space-y-6">
                     <div>
                         <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-2 block">Pergunta</label>
-                        <p className="text-lg font-black text-swiss-header leading-tight italic">"{card.question}"</p>
+                        <p className="text-lg font-black text-swiss-header leading-tight italic">{card.question}</p>
                     </div>
                     <div className="pt-6 border-t border-zinc-50 dark:border-zinc-900">
                         <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Resposta</label>

@@ -2,12 +2,11 @@
 
 import React from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { Copy, Share2, Star, Trash2, MoreHorizontal } from 'lucide-react';
 
 interface MenuOption {
     id: string;
     label: string;
-    icon?: React.ComponentType<any>;
+    icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     destructive?: boolean;
     onClick: () => void;
 }
@@ -42,7 +41,7 @@ export default function ContextMenu({ open, x, y, options, onClose }: ContextMen
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors ${opt.destructive ? 'text-red-500' : 'text-foreground'}`}
                         >
-                            {opt.icon ? <opt.icon className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
+                            {opt.icon ? <opt.icon className="w-4 h-4" /> : null}
                             <span className="truncate">{opt.label}</span>
                         </button>
                     ))}
