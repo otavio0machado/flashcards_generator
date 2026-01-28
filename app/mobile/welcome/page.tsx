@@ -41,11 +41,12 @@ export default function MobileWelcomePage() {
                 transition={{ duration: 0.5 }}
                 className="max-w-md w-full flex flex-col items-center text-center"
             >
-                {/* Logo */}
+                {/* Logo - use packaged app icon for a consistent brand */}
                 <div className="mb-8 relative">
                     <div className="absolute inset-0 bg-brand/20 blur-xl rounded-full" />
-                    <div className="relative w-20 h-20 bg-gradient-to-br from-brand to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                        <Sparkles className="w-10 h-10 text-white" />
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-brand to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
+                        {/* Use the app icon from /public/icons for a more authentic visual */}
+                        <img src="/icons/icon-192x192.png" alt="Flashcards Generator" width={64} height={64} className="w-12 h-12 object-contain" />
                     </div>
                 </div>
 
