@@ -7,9 +7,11 @@ import { supabase } from '@/lib/supabase';
 import { getApiUrl } from '@/lib/api-config';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { trackEvent } from '@/lib/analytics';
-import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell, BookOpen, FileText } from 'lucide-react';
+import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell, BookOpen, FileText, Smartphone, Hand, Vibrate } from 'lucide-react';
 import Link from 'next/link';
 import NotificationSettings from '@/components/NotificationSettings';
+import { useTauri } from '@/lib/tauri';
+import { useMobilePreferences } from '@/lib/mobile-preferences';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -27,6 +29,8 @@ export default function SettingsPage() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [loadingPortal, setLoadingPortal] = useState(false);
+    const { isMobileTauri } = useTauri();
+    const [mobilePrefs, setMobilePrefs] = useMobilePreferences();
 
     useEffect(() => {
         trackEvent('settings_view', { source: 'settings_page' });
@@ -234,9 +238,81 @@ export default function SettingsPage() {
                         <NotificationSettings />
                     </m.div>
 
+                    {/* Mobile Settings - Only visible on mobile Tauri */}
+                    {isMobileTauri && (
+                        <m.div
+                            custom={4}
+                            initial="hidden"
+                            animate="visible"
+                            variants={cardVariants}
+                            className="bg-white dark:bg-zinc-950 p-8"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-xl font-black text-swiss-header">Gestos e Feedback</h2>
+                                <Smartphone className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                            </div>
+                            <div className="space-y-6">
+                                {/* Swipe Gestures Toggle */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Hand className="h-5 w-5 text-brand" />
+                                        <div>
+                                            <p className="font-bold text-sm">Gestos de Swipe</p>
+                                            <p className="text-xs text-zinc-500">Deslize para virar e avaliar cards</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setMobilePrefs({ swipeGesturesEnabled: !mobilePrefs.swipeGesturesEnabled })}
+                                        className={`relative w-12 h-7 rounded-full transition-colors ${mobilePrefs.swipeGesturesEnabled ? 'bg-brand' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                                    >
+                                        <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${mobilePrefs.swipeGesturesEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+
+                                {/* Haptic Feedback Toggle */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Vibrate className="h-5 w-5 text-brand" />
+                                        <div>
+                                            <p className="font-bold text-sm">Vibração</p>
+                                            <p className="text-xs text-zinc-500">Feedback tátil nas interações</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setMobilePrefs({ hapticFeedbackEnabled: !mobilePrefs.hapticFeedbackEnabled })}
+                                        className={`relative w-12 h-7 rounded-full transition-colors ${mobilePrefs.hapticFeedbackEnabled ? 'bg-brand' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                                    >
+                                        <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${mobilePrefs.hapticFeedbackEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+
+                                {/* Haptic Intensity */}
+                                {mobilePrefs.hapticFeedbackEnabled && (
+                                    <div className="pl-8">
+                                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Intensidade</p>
+                                        <div className="flex gap-2">
+                                            {(['light', 'medium', 'strong'] as const).map((intensity) => (
+                                                <button
+                                                    key={intensity}
+                                                    onClick={() => setMobilePrefs({ hapticIntensity: intensity })}
+                                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${mobilePrefs.hapticIntensity === intensity
+                                                        ? 'bg-brand text-white'
+                                                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                                        }`}
+                                                >
+                                                    {intensity === 'light' ? 'Leve' : intensity === 'medium' ? 'Médio' : 'Forte'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </m.div>
+                    )}
+
                     {/* Help & Support */}
                     <m.div
-                        custom={4}
+                        custom={isMobileTauri ? 5 : 4}
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}

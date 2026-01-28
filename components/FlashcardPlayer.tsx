@@ -4,6 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useTauri } from '@/lib/tauri';
+import { haptic } from '@/lib/haptics';
+import { useMobilePreferences } from '@/lib/mobile-preferences';
+import SwipeableFlashcard from './SwipeableFlashcard';
 
 interface Card {
     id: string;
@@ -28,6 +32,9 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
     const [queue, setQueue] = useState<Card[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+
+    const { isMobileTauri } = useTauri();
+    const [prefs] = useMobilePreferences();
 
     useEffect(() => {
         setQueue(cards || []);
@@ -79,9 +86,9 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
         setCurrentIndex(nextIndex);
         setIsFlipped(false);
 
-        // Simple vibration for feedback if available
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(50);
+        // Enhanced haptic feedback based on review quality
+        if (prefs.hapticFeedbackEnabled) {
+            haptic(quality >= 4 ? 'success' : 'warning');
         }
 
         if (!disableProgress) {
@@ -141,63 +148,72 @@ export default function FlashcardPlayer({ cards, disableProgress = false }: Flas
             </div>
 
             {/* Card Area */}
-            <div
-                className="perspective-1000 h-[380px] sm:h-[450px] cursor-pointer group touch-manipulation"
-                onClick={handleFlip}
-            >
+            {isMobileTauri ? (
+                <SwipeableFlashcard
+                    card={currentCard}
+                    isFlipped={isFlipped}
+                    onFlip={handleFlip}
+                    onReview={handleReview}
+                />
+            ) : (
                 <div
-                    className={`relative w-full h-full text-center transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
+                    className="perspective-1000 h-[380px] sm:h-[450px] cursor-pointer group touch-manipulation"
+                    onClick={handleFlip}
                 >
-                    {/* Front */}
-                    <div className="absolute inset-0 backface-hidden bg-white border border-border shadow-lg rounded-sm flex flex-col items-center justify-center p-6 sm:p-8 md:p-12 hover:border-brand/40 transition-colors">
-                        <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-brand/40">
-                            Pergunta
-                        </span>
-                        {currentCard.image_url && (
-                            <div className="relative w-full h-40 mb-4">
-                                <Image
-                                    src={currentCard.image_url}
-                                    alt="Conteúdo do card"
-                                    fill
-                                    className="object-contain rounded-sm"
-                                    sizes="(max-width: 768px) 100vw, 500px"
-                                    priority={currentIndex === 0}
-                                />
-                            </div>
-                        )}
-                        <p className="text-2xl md:text-3xl font-bold text-foreground leading-relaxed select-none">
-                            {currentCard.front}
-                        </p>
-                        <span className="absolute bottom-6 text-xs text-foreground/20 font-medium">
-                            {'Toque ou Espaço para virar'}
-                        </span>
-                    </div>
+                    <div
+                        className={`relative w-full h-full text-center transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
+                    >
+                        {/* Front */}
+                        <div className="absolute inset-0 backface-hidden bg-white border border-border shadow-lg rounded-xl flex flex-col items-center justify-center p-6 sm:p-8 md:p-12 hover:border-brand/40 transition-colors">
+                            <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-brand/40">
+                                Pergunta
+                            </span>
+                            {currentCard.image_url && (
+                                <div className="relative w-full h-40 mb-4">
+                                    <Image
+                                        src={currentCard.image_url}
+                                        alt="Conteúdo do card"
+                                        fill
+                                        className="object-contain rounded-lg"
+                                        sizes="(max-width: 768px) 100vw, 500px"
+                                        priority={currentIndex === 0}
+                                    />
+                                </div>
+                            )}
+                            <p className="text-2xl md:text-3xl font-bold text-foreground leading-relaxed select-none">
+                                {currentCard.front}
+                            </p>
+                            <span className="absolute bottom-6 text-xs text-foreground/20 font-medium">
+                                Toque ou Espaço para virar
+                            </span>
+                        </div>
 
-                    {/* Back */}
-                    <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gray-900 border border-gray-900 shadow-xl rounded-sm flex flex-col items-center justify-center p-6 sm:p-8 md:p-12">
-                        <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-white/40">
-                            Resposta
-                        </span>
-                        {currentCard.image_url && (
-                            <div className="relative w-full h-40 mb-4">
-                                <Image
-                                    src={currentCard.image_url}
-                                    alt="Conteúdo do card"
-                                    fill
-                                    className="object-contain rounded-sm border border-white/10"
-                                    sizes="(max-width: 768px) 100vw, 500px"
-                                />
-                            </div>
-                        )}
-                        <p className="text-xl md:text-2xl font-medium text-white leading-relaxed select-none">
-                            {currentCard.back}
-                        </p>
-                        <span className="absolute bottom-6 text-xs text-white/30 font-medium">
-                            Avalie para continuar
-                        </span>
+                        {/* Back */}
+                        <div className="absolute inset-0 backface-hidden rotate-y-180 bg-zinc-900 border border-zinc-800 shadow-xl rounded-xl flex flex-col items-center justify-center p-6 sm:p-8 md:p-12">
+                            <span className="absolute top-6 left-6 text-[10px] font-black uppercase tracking-widest text-white/40">
+                                Resposta
+                            </span>
+                            {currentCard.image_url && (
+                                <div className="relative w-full h-40 mb-4">
+                                    <Image
+                                        src={currentCard.image_url}
+                                        alt="Conteúdo do card"
+                                        fill
+                                        className="object-contain rounded-lg border border-white/10"
+                                        sizes="(max-width: 768px) 100vw, 500px"
+                                    />
+                                </div>
+                            )}
+                            <p className="text-xl md:text-2xl font-medium text-white leading-relaxed select-none">
+                                {currentCard.back}
+                            </p>
+                            <span className="absolute bottom-6 text-xs text-white/30 font-medium">
+                                Avalie para continuar
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Review Controls */}
             <div className="w-full">

@@ -6,8 +6,8 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "npm run build:static",
-    "frontendDist": "../out"
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../public"
   },
   "app": {
     "withGlobalTauri": true,
@@ -23,7 +23,8 @@
         "maximized": true,
         "fullscreen": false,
         "center": true,
-        "visible": true
+        "visible": true,
+        "url": "https://flashcardsgenerator.com.br"
       }
     ],
     "security": {
