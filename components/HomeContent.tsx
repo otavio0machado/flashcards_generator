@@ -75,6 +75,7 @@ export default function HomeContent() {
                 try {
                     const currentWindow = WebviewWindow.getCurrent();
                     await currentWindow.show();
+                    await currentWindow.maximize();
                     await currentWindow.setFocus();
 
                     // Small delay to ensure render
@@ -93,7 +94,7 @@ export default function HomeContent() {
                 }
             });
 
-            // Check if user has seen onboarding
+            // First launch: show welcome. After that: go straight to /app.
             const hasSeenWelcome = localStorage.getItem('desktop_onboarding_complete');
 
             if (hasSeenWelcome !== 'true') {
@@ -110,16 +111,8 @@ export default function HomeContent() {
         }
     }, [isTauri]);
 
-    // If active desktop app, show loader instead of landing page while redirecting
-    if (isTauri) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
-            </div>
-        );
-    }
-
     useEffect(() => {
+        if (isTauri) return; // Only track scroll on web landing page
         const handleScroll = () => {
             const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -137,7 +130,7 @@ export default function HomeContent() {
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [isTauri]);
 
     const heroVariant = process.env.NEXT_PUBLIC_HERO_VARIANT || 'A';
     const heroHeadline = useMemo(() => {
@@ -151,6 +144,15 @@ export default function HomeContent() {
                 return 'Texto → flashcards em segundos.';
         }
     }, [heroVariant]);
+
+    // If active desktop app, show loader instead of landing page while redirecting
+    if (isTauri) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+            </div>
+        );
+    }
 
     const handleHeroCta = () => trackEvent('cta_generate_clicked', { location: 'hero' });
     const handlePricingCta = (plan: 'free' | 'pro' | 'ultimate') => {

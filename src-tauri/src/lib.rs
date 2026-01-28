@@ -24,12 +24,24 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
         .invoke_handler(tauri::generate_handler![get_app_info, set_window_title])
-        .setup(|_app| {
+        .setup(|app| {
+            let main_window = app.get_webview_window("main").unwrap();
+
+            // Always maximize and show the main window
+            let _ = main_window.maximize();
+            let _ = main_window.show();
+            let _ = main_window.set_focus();
+
+            // Close splash screen
+            if let Some(splash) = app.get_webview_window("splashscreen") {
+                let _ = splash.close();
+            }
+
             #[cfg(debug_assertions)]
             {
-                let window = _app.get_webview_window("main").unwrap();
-                window.open_devtools();
+                main_window.open_devtools();
             }
+
             Ok(())
         })
         .run(tauri::generate_context!())

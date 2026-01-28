@@ -81,7 +81,7 @@ export function useDesktopOnboarding() {
             const nav = routerRef.current;
 
             if (onboardingComplete && session) {
-                // Onboarding done + logged in
+                // Onboarding done + logged in → go to app
                 setNeedsOnboarding(false);
 
                 if (currentPath?.startsWith('/desktop/')) {

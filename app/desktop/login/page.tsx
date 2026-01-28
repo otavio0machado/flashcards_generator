@@ -81,12 +81,8 @@ export default function DesktopLoginPage() {
             return;
         }
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                completeOnboarding();
-                router.replace('/app');
-            }
-        });
+        // Do NOT auto-redirect even if already logged in.
+        // The user must explicitly log in each time.
 
         return () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);

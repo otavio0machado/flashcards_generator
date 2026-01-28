@@ -92,7 +92,7 @@ export default function InstallPrompt() {
         if (isWindows) {
             trackEvent('desktop_install_clicked', { platform: 'windows' });
             // Direct download link
-            window.location.href = 'https://github.com/otavio0machado/flashcards_generator/releases/download/v1.0.0/Flashcards.Generator_1.0.0_x64-setup.exe';
+            window.location.href = 'https://github.com/otavio0machado/flashcards_generator/releases/download/v1.0.4/Flashcards.Generator_1.0.4_x64-setup.exe';
             handleDismiss(); // Close prompt after click
             return;
         }

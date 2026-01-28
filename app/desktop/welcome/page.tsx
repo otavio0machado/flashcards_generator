@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Sparkles, ArrowRight } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { isTauriApp } from '@/lib/tauri';
-import { setOnboardingStep, skipOnboarding } from '@/lib/desktop-onboarding';
-import OnboardingProgressDots from '@/components/OnboardingProgressDots';
 
 export default function WelcomePage() {
     const router = useRouter();
@@ -24,12 +21,12 @@ export default function WelcomePage() {
     }, [router]);
 
     const handleContinue = () => {
-        // Mark onboarding as done
+        // Mark onboarding as done so the welcome screen won't show again
         if (typeof window !== 'undefined') {
             localStorage.setItem('desktop_onboarding_complete', 'true');
         }
-        // Redirect strictly to login as requested
-        router.push('/auth/login');
+        // Go to login page — user must log in explicitly
+        router.push('/desktop/login');
     };
 
     if (checking) {
@@ -108,7 +105,7 @@ export default function WelcomePage() {
                 </button>
 
                 <p className="mt-4 text-xs text-[var(--color-text-secondary)] uppercase tracking-wider font-semibold">
-                    Versão Desktop v1.0.3
+                    Versão Desktop v1.0.4
                 </p>
             </motion.div>
         </div>
