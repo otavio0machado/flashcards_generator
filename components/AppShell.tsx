@@ -42,7 +42,8 @@ export default function AppShell({ title, eyebrow, subtitle, headerActions, titl
         className={`${maxWidthClass} mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20`}
       >
         <header className={`mb-8 ${className}`}>
-          <div className="flex items-end justify-between gap-6">
+          {/* Stack on small screens to avoid overlap with headerActions; align side-by-side on sm+ */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
             <div>
               {eyebrow && <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">{eyebrow}</p>}
               {title && (
@@ -51,7 +52,7 @@ export default function AppShell({ title, eyebrow, subtitle, headerActions, titl
               {subtitle && <p className="text-foreground/60 font-medium mt-2">{subtitle}</p>}
             </div>
             {/* Optional header actions (e.g., CTA) can be provided by pages via headerActions prop */}
-            <div className="flex-shrink-0">{(headerActions as React.ReactNode) ?? null}</div>
+            <div className="flex-shrink-0 mt-4 sm:mt-0 max-w-[260px] w-full sm:w-auto">{(headerActions as React.ReactNode) ?? null}</div>
           </div>
         </header>
       </div>

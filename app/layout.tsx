@@ -32,8 +32,8 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -100,7 +100,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pb-20 md:pb-0 md:pt-16`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pb-20 md:pb-0`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {

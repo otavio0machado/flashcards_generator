@@ -83,6 +83,19 @@ html {
   outline-offset: 2px;
 }
 
+/* Prevent pinch-to-zoom and double-tap zoom on mobile webview to provide a consistent app-like experience.
+   Note: disabling zoom may affect accessibility for users who rely on magnification. If you want to preserve
+   accessibility, consider improving text sizing and responsive layout instead. */
+html, body, input, textarea, select, button {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+}
+
+/* Prevent iOS text-size adjustment which can cause layout jumps */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 /* Active States for Buttons (Swiss Style - Clear Feedback) */
 button:active:not(:disabled),
 a:active:not(:disabled),
