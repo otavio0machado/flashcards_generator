@@ -133,6 +133,7 @@ const securityHeaders = [
 const isDesktop = process.env.NEXT_PUBLIC_IS_DESKTOP === 'true';
 
 const nextConfig: NextConfig = {
+  output: "export",
   trailingSlash: false,
   // Turbopack config (Next.js 16+)
   turbopack: {},
