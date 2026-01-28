@@ -164,7 +164,7 @@ export default function MarketplacePage() {
                     >
                         <Link
                             href="/app"
-                            className="group bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 w-full lg:w-auto"
+                            className="group bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 w-auto"
                         >
                             <Layers className="h-4 w-4" />
                             Criar meu deck
