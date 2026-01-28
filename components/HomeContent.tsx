@@ -10,7 +10,7 @@ import CheckoutButton from '@/components/CheckoutButton';
 import Logo from '@/components/Logo';
 import { trackEvent } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
-import MobileHomeDashboard from '@/components/MobileHomeDashboard';
+import MobileHomeDashboard from './MobileHomeDashboard';
 import {
     ArrowRight,
     FileText,
