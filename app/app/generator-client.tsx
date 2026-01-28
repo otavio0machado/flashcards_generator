@@ -23,7 +23,8 @@ import {
     BookOpen
 } from 'lucide-react';
 import { gzip } from 'pako';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { haptics } from '@/lib/haptics';
 import { useTauri } from '@/lib/tauri';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
@@ -173,6 +174,7 @@ export default function GeneratorClient() {
     const pdfjsRef = useRef<any>(null);
     const { isMobile, isTauri } = useTauri();
     const [showMobileSettings, setShowMobileSettings] = useState(false);
+    const reduceMotion = useReducedMotion();
     const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
@@ -507,6 +509,9 @@ export default function GeneratorClient() {
     };
 
     const handleGenerateClick = () => {
+        // Haptic feedback for primary generate action
+        try { haptics.impact(); } catch (e) { /* silent */ }
+
         if (isDemo) {
             trackEvent('demo_generate_click', {
                 is_demo: true,
@@ -518,7 +523,7 @@ export default function GeneratorClient() {
         } else {
             handleGenerate();
         }
-    };
+    }; 
 
     const handleConfirmGenerate = () => {
         setShowImageWarningModal(false);
@@ -694,6 +699,7 @@ export default function GeneratorClient() {
             });
 
             setCards([...newCardsFormatted, ...cards]);
+            try { haptics.success(); } catch (e) { /* silent */ }
 
             if (!deckTitle) {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
@@ -829,6 +835,7 @@ export default function GeneratorClient() {
             setSavedDeckPublic(false);
             setSaveSuccess(true);
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
+            try { haptics.success(); } catch (e) { /* silent */ }
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             // Build a helpful message for the user
@@ -1462,7 +1469,7 @@ export default function GeneratorClient() {
                     </div>
                 </div>
 
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="wait" reduceMotion={reduceMotion}>
                     {viewMode === 'input' ? (
                         <motion.div
                             key="input-view"
@@ -1473,15 +1480,20 @@ export default function GeneratorClient() {
                         >
                             <div className="relative group">
                                 <textarea
+                                    id="content-input"
+                                    aria-label="Campo de texto para gerar flashcards"
+                                    aria-describedby="char-count"
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder="INSIRA SEU CONTEÚDO AQUI..."
-                                    className="w-full h-[50vh] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 text-lg font-bold tracking-tight text-swiss-header focus:border-brand outline-none transition-colors shadow-[0_4px_0_0_rgba(0,0,0,0.02)] dark:shadow-none resize-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800"
+                                    className="w-full h-[50vh] bg-[var(--secondary-system-background)] border border-zinc-200 dark:border-zinc-800 p-6 text-lg font-bold tracking-tight text-swiss-header focus:border-brand outline-none transition-colors shadow-[0_4px_0_0_rgba(0,0,0,0.02)] dark:shadow-none resize-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800 rounded-[var(--corner-card)]"
                                 />
                                 <div className="absolute bottom-6 right-6 flex flex-col gap-2">
+                                    <div id="char-count" className="text-[10px] font-black text-zinc-300 dark:text-zinc-700 uppercase tracking-widest pointer-events-none">{inputText.length} / {limits.maxChars}</div>
                                     <button
-                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        onClick={() => fileInputRef.current?.click()}
                                         className="p-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                        aria-label="Importar arquivo"
                                     >
                                         <FileUp className="w-5 h-5" />
                                     </button>
@@ -1497,26 +1509,32 @@ export default function GeneratorClient() {
                                 </div>
                             </div>
 
+                            <div role="status" aria-live="polite" className="sr-only">{isGenerating ? 'Gerando flashcards...' : ''}</div>
+
                             <button
+                                id="generate-button"
                                 onClick={handleGenerateClick}
                                 disabled={isGenerating || (inputText.length < 50 && uploadedFiles.length === 0)}
-                                className={`w-full py-6 rounded-sm font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ripple ${isGenerating
+                                aria-label="Gerar flashcards"
+                                aria-busy={isGenerating}
+                                className={`w-full min-h-[44px] py-3 rounded-sm font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ripple ${isGenerating
                                     ? 'bg-zinc-100 text-zinc-300'
                                     : 'bg-brand text-white shadow-xl shadow-brand/20'
                                     }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                                        <span className="sr-only">Gerando</span>
                                         Gerando
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="w-5 h-5" />
+                                        <Sparkles className="w-5 h-5" aria-hidden="true" />
                                         Gerar Cards
                                     </>
                                 )}
-                            </button>
+                            </button> 
 
                             {isDemo && (
                                 <p className="text-[10px] text-center text-zinc-400 font-bold uppercase tracking-wider">
@@ -1545,7 +1563,7 @@ export default function GeneratorClient() {
                             </div>
 
                             {cards.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-sm">
+                                <div className="flex flex-col items-center justify-center py-20 bg-[var(--secondary-system-background)] border border-zinc-200 dark:border-zinc-800 rounded-[var(--corner-card)]">
                                     <Sparkles className="w-12 h-12 text-zinc-200 mb-4" />
                                     <p className="font-black text-zinc-300 text-xs uppercase tracking-widest">Nenhum card gerado</p>
                                     <button
@@ -1558,7 +1576,7 @@ export default function GeneratorClient() {
                             ) : (
                                 <div className="grid grid-cols-1 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
                                     {cards.map((card, idx) => (
-                                        <div key={card.id} className="bg-white dark:bg-zinc-950 p-8">
+                                        <div key={card.id} className="bg-[var(--secondary-system-background)] p-6 rounded-[var(--corner-card)]">
                                             <div className="flex items-start justify-between mb-8">
                                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">Card #{idx + 1}</span>
                                                 <button
@@ -1692,10 +1710,12 @@ export default function GeneratorClient() {
 
                     <div className="relative mt-4">
                         <input
+                            id="file-upload"
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             accept={fileAccept}
+                            aria-label="Selecionar arquivos (PDF, imagens)"
                             className="hidden"
                         />
                         <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
