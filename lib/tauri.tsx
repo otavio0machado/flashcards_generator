@@ -38,14 +38,16 @@ function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boo
 
     const userAgent = navigator.userAgent.toLowerCase();
 
+    // iPad Pro / iPadOS 13+ often sends "Macintosh" as UA but has touch points
+    const isIpadOS = (userAgent.includes('mac') && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+
     // Tablet Detection
-    const isIpad = userAgent.includes('ipad');
+    const isIpad = userAgent.includes('ipad') || isIpadOS;
     const isAndroid = userAgent.includes('android');
     const isMobileUA = userAgent.includes('mobile');
 
     // Android Tablet: Android but often NOT "mobile" (though sometimes it is). 
     // Best effort: Android AND NOT Mobile, OR iPad.
-    // Note: Some Android tablets send "mobile", we might need screen width check later if this fails.
     const isAndroidTablet = isAndroid && !isMobileUA;
     const isTablet = isIpad || isAndroidTablet;
 
