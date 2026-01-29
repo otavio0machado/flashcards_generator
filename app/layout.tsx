@@ -100,7 +100,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning data-scroll-behavior="smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pb-20 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] md:pb-0`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {

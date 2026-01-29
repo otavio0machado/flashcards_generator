@@ -1,7 +1,5 @@
 import { Metadata } from 'next';
 import HomeContent from '@/components/HomeContent';
-import AppShell from '@/components/AppShell';
-import { getHeroHeadline, getHeroSubtitle } from '@/lib/hero';
 
 export const metadata: Metadata = {
   title: "Gerar Flashcards automaticamente (Anki)",
@@ -23,10 +21,6 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  const variant = process.env.NEXT_PUBLIC_HERO_VARIANT || 'A';
-  const title = getHeroHeadline(variant);
-  const subtitle = getHeroSubtitle(variant);
-
   return (
     <>
       <script
@@ -51,9 +45,7 @@ export default function Home() {
           })
         }}
       />
-      <AppShell title={title} subtitle={subtitle} titleClassName="text-4xl md:text-6xl font-black leading-tight">
-        <HomeContent />
-      </AppShell>
+      <HomeContent />
     </>
   );
 }

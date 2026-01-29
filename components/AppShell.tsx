@@ -30,16 +30,10 @@ interface AppShellProps {
 }
 
 export default function AppShell({ title, eyebrow, subtitle, headerActions, titleClassName, maxWidthClass = 'max-w-7xl', children, className = '' }: AppShellProps) {
-  // Use safe-area-inset-top + standard top spacing so all screens align
-  // Base spacing: mobile pt-12 (48px), md:pt-20 (80px)
-  const topPadding = 'calc(env(safe-area-inset-top, 0px) + 3rem)';
-  const topPaddingMd = 'calc(env(safe-area-inset-top, 0px) + 5rem)';
-
   return (
     <div>
       <div
-        style={{ paddingTop: topPadding }}
-        className={`${maxWidthClass} mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20`}
+        className={`${maxWidthClass} mx-auto px-4 sm:px-6 lg:px-8 pt-[calc(env(safe-area-inset-top,0px)+3rem)] md:pt-[calc(env(safe-area-inset-top,0px)+5rem)]`}
       >
         <header className={`mb-8 ${className}`}>
           {/* Stack on small screens to avoid overlap with headerActions; align side-by-side on sm+ */}

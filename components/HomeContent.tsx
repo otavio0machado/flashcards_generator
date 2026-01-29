@@ -224,7 +224,7 @@ export default function HomeContent() {
         <LazyMotion features={domAnimation}>
             <div className="flex flex-col min-h-screen pb-16 sm:pb-0">
                 {/* Hero Section */}
-                <section id="hero" className="relative pb-28 overflow-hidden">
+                <section id="hero" className="relative pt-[calc(env(safe-area-inset-top,0px)+7rem)] md:pt-[calc(env(safe-area-inset-top,0px)+9rem)] pb-28 overflow-hidden">
                     <m.div
                         animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.08, 0.2, 0.08] }}
                         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -240,10 +240,10 @@ export default function HomeContent() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-4">Flashcards Generator</p>
-                                {/* Title moved to AppShell to ensure consistent vertical alignment across pages */}
-                                <div className="sr-only">{heroHeadline}</div>
-
-
+                                <h1 className="text-4xl md:text-6xl font-black leading-tight mb-6 text-foreground">{heroHeadline}</h1>
+                                <p className="text-lg md:text-xl text-foreground/70 font-medium mb-8">
+                                    Cole textos e gere flashcards otimizados para memorização.
+                                </p>
 
                                 <div className="flex flex-col sm:flex-row gap-4 items-start">
                                     <Link
@@ -844,18 +844,6 @@ export default function HomeContent() {
                         <p className="text-xs text-white/80 font-bold mt-3">Sem cartão • 3 gerações/dia grátis</p>
                     </div>
                 </section>
-
-                {/* Mobile Sticky CTA */}
-                <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-border shadow-lg p-3">
-                    <Link
-                        href="/app"
-                        onClick={handleHeroCta}
-                        className="group w-full bg-brand text-white py-3 rounded-sm font-bold text-center shadow-lg flex items-center justify-center gap-2"
-                    >
-                        Testar grátis agora
-                        <ArrowRight className="h-5 w-5 cta-arrow-shift" />
-                    </Link>
-                </div>
 
                 {/* Footer */}
                 <footer className="bg-white border-t border-border py-12">

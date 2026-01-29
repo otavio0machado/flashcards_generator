@@ -5,14 +5,10 @@ import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
-import { useTauri } from '@/lib/tauri';
 import { deckService } from '@/services/deckService';
 import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
-import AppShell from '@/components/AppShell';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
-import { SearchBar } from '@/components/ios';
-import { DeckCard } from '@/components/mobile';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -157,26 +153,32 @@ export default function MarketplacePage() {
 
     return (
         <LazyMotion features={domAnimation}>
-            <AppShell
-                eyebrow="MARKETPLACE"
-                title="Marketplace de Decks"
-                subtitle="Explore decks publicados pela comunidade e clone direto para a sua biblioteca."
-                headerActions={(
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
+                <m.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10"
+                >
+                    <div>
+                        <SectionLabel text="MARKETPLACE" />
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3">Marketplace de Decks</h1>
+                        <p className="text-foreground/60 font-medium max-w-2xl">
+                            Explore decks publicados pela comunidade e clone direto para a sua biblioteca.
+                        </p>
+                    </div>
                     <m.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                     >
                         <Link
                             href="/app"
-                            className="group bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 w-auto"
+                            className="group bg-brand text-white px-6 py-3 rounded-sm font-bold flex items-center justify-center gap-2 hover:bg-brand/90 transition-all shadow-lg shadow-brand/20 w-full lg:w-auto"
                         >
                             <Layers className="h-4 w-4" />
                             Criar meu deck
                         </Link>
                     </m.div>
-                )}
-                maxWidthClass="max-w-7xl"
-            >
+                </m.div>
 
                 {isMobile ? (
                     /* Mobile: iOS SearchBar */
@@ -280,18 +282,6 @@ export default function MarketplacePage() {
                             <ArrowRight className="h-4 w-4 cta-arrow-shift" />
                         </Link>
                     </m.div>
-                ) : isMobile ? (
-                    <div className="space-y-2">
-                        {filteredDecks.map((deck) => (
-                            <DeckCard
-                                key={deck.id}
-                                deck={deck}
-                                categoryLabel={deck.category?.id ? categoryLabels[deck.category.id] : undefined}
-                                onClone={handleClone}
-                                isCloning={cloningId === deck.id}
-                            />
-                        ))}
-                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredDecks.map((deck, index) => (
@@ -387,7 +377,7 @@ export default function MarketplacePage() {
                         onClose={() => setToast(null)}
                     />
                 )}
-            </AppShell>
+            </div>
         </LazyMotion>
     );
 }
