@@ -126,23 +126,16 @@ const securityHeaders = [
   },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=()'
+    value: 'camera=(self), microphone=(), geolocation=()'
   },
 ];
 
 const isDesktop = process.env.NEXT_PUBLIC_IS_DESKTOP === 'true';
 
 const nextConfig: NextConfig = {
-  trailingSlash: false,
-  // Turbopack config (Next.js 16+)
-  turbopack: {},
-
-  serverExternalPackages: ['anki-apkg-export'],
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  output: process.env.NEXT_PUBLIC_IS_TAURI ? 'export' : undefined,
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -156,6 +149,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Turbopack config (Next.js 16+)
+  turbopack: {},
+
+  serverExternalPackages: ['anki-apkg-export'],
+  typescript: {
+    // ignoreBuildErrors: false, // Strict mode enabled
+  },
+
 };
 
 const sentryBuildOptions = {

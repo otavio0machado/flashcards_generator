@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { getApiUrl } from '@/lib/api-config';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { trackEvent } from '@/lib/analytics';
-import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell, BookOpen, FileText, Smartphone, Hand, Vibrate } from 'lucide-react';
+import { User, CreditCard, BarChart3, LogOut, Loader2, Zap, ArrowRight, Bell, BookOpen, FileText, Smartphone, Hand, Vibrate, Globe, Moon, Sun, Trash2, MessageSquare, Star, HelpCircle, Shield } from 'lucide-react';
 import Link from 'next/link';
 import NotificationSettings from '@/components/NotificationSettings';
 import { useTauri } from '@/lib/tauri';
@@ -94,6 +94,21 @@ export default function SettingsPage() {
         }
     };
 
+    const handleThemeChange = (theme: 'light' | 'dark') => {
+        const root = document.documentElement;
+        root.classList.toggle('dark', theme === 'dark');
+        root.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        trackEvent('theme_changed', { theme });
+    };
+
+    const handleDeleteAccount = () => {
+        if (confirm('Tem certeza? Essa ação é irreversível e apagará todos os seus decks e dados.')) {
+            // TODO: Implement delete account logic
+            alert('Funcionalidade em desenvolvimento. Entre em contato com o suporte para excluir sua conta imediatamente.');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center pt-20">
@@ -125,7 +140,52 @@ export default function SettingsPage() {
                 >
                 </m.div>
 
-                <div className="space-y-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">                    {/* Profile Card */}
+                <div className="space-y-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
+                    {/* General Preferences */}
+                    <m.div
+                        custom={0}
+                        initial="hidden"
+                        animate="visible"
+                        variants={cardVariants}
+                        className="bg-white dark:bg-zinc-950 p-8"
+                    >
+                        <h2 className="text-xl font-black text-swiss-header mb-8">Preferências</h2>
+
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <Globe className="h-5 w-5 text-zinc-400" />
+                                <span className="text-sm font-bold">Idioma</span>
+                            </div>
+                            <select className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm px-3 py-1.5 text-xs font-bold uppercase tracking-wider outline-none">
+                                <option value="pt">Português</option>
+                                <option value="en">English (Breve)</option>
+                                <option value="es">Español (Breve)</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Moon className="h-5 w-5 text-zinc-400" />
+                                <span className="text-sm font-bold">Tema</span>
+                            </div>
+                            <div className="flex bg-zinc-50 dark:bg-zinc-900 p-1 rounded-sm border border-zinc-200 dark:border-zinc-800">
+                                <button
+                                    onClick={() => handleThemeChange('light')}
+                                    className="px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-white dark:hover:bg-zinc-800 hover:shadow-sm transition-all"
+                                >
+                                    Claro
+                                </button>
+                                <button
+                                    onClick={() => handleThemeChange('dark')}
+                                    className="px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider hover:bg-white dark:hover:bg-zinc-800 hover:shadow-sm transition-all"
+                                >
+                                    Escuro
+                                </button>
+                            </div>
+                        </div>
+                    </m.div>
+
+                    {/* Profile Card */}
                     <m.div
                         custom={0}
                         initial="hidden"
@@ -236,6 +296,33 @@ export default function SettingsPage() {
                         <NotificationSettings />
                     </m.div>
 
+                    {/* Privacy */}
+                    <m.div
+                        custom={4}
+                        initial="hidden"
+                        animate="visible"
+                        variants={cardVariants}
+                        className="bg-white dark:bg-zinc-950 p-8"
+                    >
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-xl font-black text-swiss-header">Privacidade</h2>
+                            <Shield className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                        </div>
+                        <div className="space-y-4">
+                            <button className="w-full flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm hover:border-zinc-300 transition-colors group text-left">
+                                <span className="text-sm font-bold text-foreground/70">Exportar meus dados</span>
+                                <ArrowRight className="h-4 w-4 text-zinc-300 group-hover:text-brand transition-all" />
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                className="w-full flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-sm hover:border-red-300 transition-colors group text-left"
+                            >
+                                <span className="text-sm font-bold text-red-600">Excluir conta</span>
+                                <Trash2 className="h-4 w-4 text-red-400 group-hover:text-red-600 transition-all" />
+                            </button>
+                        </div>
+                    </m.div>
+
                     {/* Mobile Settings - Only visible on mobile Tauri */}
                     {isMobileTauri && (
                         <m.div
@@ -308,9 +395,41 @@ export default function SettingsPage() {
                         </m.div>
                     )}
 
+                    {/* Feedback */}
+                    <m.div
+                        custom={isMobileTauri ? 6 : 5}
+                        initial="hidden"
+                        animate="visible"
+                        variants={cardVariants}
+                        className="bg-white dark:bg-zinc-950 p-8"
+                    >
+                        <h2 className="text-xl font-black text-swiss-header mb-8">Feedback</h2>
+                        <div className="grid grid-cols-1 gap-2">
+                            <a
+                                href="mailto:feedback@flashcardsgenerator.com"
+                                className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm hover:border-brand transition-colors group ripple"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <MessageSquare className="h-5 w-5 text-brand" />
+                                    <span className="text-sm font-bold uppercase tracking-tight">Enviar Sugestão</span>
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-zinc-300 group-hover:text-brand transition-all group-hover:translate-x-1" />
+                            </a>
+                            <button
+                                className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-sm hover:border-brand transition-colors group ripple w-full text-left"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <Star className="h-5 w-5 text-yellow-500" />
+                                    <span className="text-sm font-bold uppercase tracking-tight">Avaliar App</span>
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-zinc-300 group-hover:text-brand transition-all group-hover:translate-x-1" />
+                            </button>
+                        </div>
+                    </m.div>
+
                     {/* Help & Support */}
                     <m.div
-                        custom={isMobileTauri ? 5 : 4}
+                        custom={isMobileTauri ? 7 : 6}
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}

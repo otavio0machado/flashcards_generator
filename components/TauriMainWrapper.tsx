@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { useTauri } from '@/lib/tauri';
+import MobileShell from '@/components/MobileShell';
 
 interface TauriMainWrapperProps {
     children: React.ReactNode;
@@ -22,7 +23,11 @@ export default function TauriMainWrapper({ children }: TauriMainWrapperProps) {
                     : ''
                 } ${isTauri ? 'desktop-density' : ''}`}
         >
-            {children}
+            {(!isTauri || !isDesktop) ? (
+                <MobileShell>{children}</MobileShell>
+            ) : (
+                children
+            )}
         </main>
     );
 }

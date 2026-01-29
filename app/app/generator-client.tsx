@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
     Plus,
     Trash2,
@@ -24,7 +25,9 @@ import {
 } from 'lucide-react';
 import { gzip } from 'pako';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptics } from '@/lib/haptics';
 import { useTauri } from '@/lib/tauri';
+import EditableCard from '@/components/EditableCard';
 import Toast, { ToastType } from '@/components/Toast';
 import { PLAN_LIMITS, PlanKey } from '@/constants/pricing';
 import { supabase } from '@/lib/supabase';
@@ -34,6 +37,8 @@ import UpgradeModal from '@/components/UpgradeModal';
 import AuthGateModal from '@/components/AuthGateModal';
 import { User } from '@supabase/supabase-js';
 import { trackEvent } from '@/lib/analytics';
+import { SegmentedControl } from '@/components/ios';
+import { QuickSettingsSheet, GeneratorActionBar } from '@/components/mobile';
 
 declare global {
     interface Window {
@@ -50,6 +55,7 @@ interface Flashcard {
     answer: string;
     question_image_url?: string | null;
     answer_image_url?: string | null;
+    favorite?: boolean;
 }
 
 type ImageDropTarget = {
@@ -86,7 +92,6 @@ const IMAGE_MIME_TYPES = new Set([
 const PDF_MIME_TYPE = 'application/pdf';
 const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 const PDF_PREVIEW_INITIAL_PAGES = 6;
 
 const TEMPLATE_OPTIONS = [
@@ -149,7 +154,6 @@ export default function GeneratorClient() {
     const [templateType, setTemplateType] = useState<string>('');
     const [recentTexts, setRecentTexts] = useState<string[]>([]);
     const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
-    const [stats, setStats] = useState<{ cardsWeek: number; decksToday: number } | null>(null);
     const [isExportingApkg, setIsExportingApkg] = useState(false);
     const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
     const [savedDeckPublic, setSavedDeckPublic] = useState(false);
@@ -168,28 +172,59 @@ export default function GeneratorClient() {
     const [signupModalAction, setSignupModalAction] = useState(false);
     const captchaContainerRef = useRef<HTMLDivElement | null>(null);
     const captchaWidgetIdRef = useRef<string | null>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const objectUrlsRef = useRef<Set<string>>(new Set());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfDocsRef = useRef<Map<string, any>>(new Map());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfjsRef = useRef<any>(null);
-    const { isMobile, isTauri } = useTauri();
+    const { isMobile, isTauri, isTablet } = useTauri();
     const [showMobileSettings, setShowMobileSettings] = useState(false);
     const [viewMode, setViewMode] = useState<'input' | 'cards'>('input');
 
     const getFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
 
+    // Native picker integration (Tauri)
+    const handleTauriPick = async () => {
+        try {
+            const picked = await import('@/lib/tauri').then(m => m.pickFilesTauri());
+            if (!picked?.length) return;
+
+            // Convert picked blobs to File objects and append to uploadedFiles
+            const converted: File[] = [];
+            for (const p of picked) {
+                if (!p.blob) continue;
+                const blob = p.blob;
+                const file = new File([blob], p.name, { type: p.type || 'application/octet-stream' });
+                converted.push(file);
+            }
+
+            if (converted.length) {
+                setUploadedFiles(prev => [...prev, ...converted]);
+            }
+        } catch (err) {
+            console.warn('Tauri pick failed', err);
+        }
+    };
+
     // Cleanup object URLs when component unmounts
     useEffect(() => {
+        const objectUrls = objectUrlsRef.current;
+        const pdfDocs = pdfDocsRef.current;
         return () => {
-            objectUrlsRef.current.forEach(url => {
-                try {
-                    URL.revokeObjectURL(url);
-                } catch {
-                    // URL already revoked or invalid
-                }
-            });
-            objectUrlsRef.current.clear();
-            pdfDocsRef.current.clear();
-            pdfjsRef.current = null;
+            if (objectUrls) {
+                objectUrls.forEach(url => {
+                    try {
+                        URL.revokeObjectURL(url);
+                    } catch {
+                        // URL already revoked or invalid
+                    }
+                });
+                objectUrls.clear();
+            }
+            if (pdfDocs) pdfDocs.clear();
+            if (pdfjsRef.current) pdfjsRef.current = null;
         };
     }, []);
 
@@ -383,7 +418,7 @@ export default function GeneratorClient() {
                 setCardCount(PLAN_LIMITS[res.planTier].maxCardsPerGen);
             }).catch(console.error).finally(() => setIsAuthChecked(true));
         });
-    }, []);
+    }, [demoLimits.maxCardsPerGen]);
 
     // Check character limits on input
     useEffect(() => {
@@ -396,7 +431,7 @@ export default function GeneratorClient() {
         } else {
             setError(null);
         }
-    }, [inputText, limits]);
+    }, [inputText, limits, isDemo]);
 
     useEffect(() => {
         if (!limits.allowImageGeneration && generateImages) {
@@ -443,23 +478,9 @@ export default function GeneratorClient() {
         }
     }, []);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await fetch(getApiUrl('api/stats'));
-                if (!response.ok) return;
-                const data = await response.json();
-                setStats({
-                    cardsWeek: Number(data?.cardsWeek || 0),
-                    decksToday: Number(data?.decksToday || 0)
-                });
-            } catch {
-                setStats(null);
-            }
-        };
-
-        fetchStats();
-    }, []);
+    // Stats fetch logic removed as 'stats' was unused
+    // If needed later, re-implement properly
+    // useEffect(() => { ... }, []);
 
     useEffect(() => {
         if (!captchaRequired) return;
@@ -507,6 +528,9 @@ export default function GeneratorClient() {
     };
 
     const handleGenerateClick = () => {
+        // Haptic feedback for primary generate action
+        try { haptics.impact(); } catch { /* silent */ }
+
         if (isDemo) {
             trackEvent('demo_generate_click', {
                 is_demo: true,
@@ -689,11 +713,13 @@ export default function GeneratorClient() {
                     question: c.question,
                     answer: c.answer,
                     question_image_url: qImg,
-                    answer_image_url: aImg
+                    answer_image_url: aImg,
+                    favorite: false
                 };
             });
 
             setCards([...newCardsFormatted, ...cards]);
+            try { haptics.success(); } catch { /* silent */ }
 
             if (!deckTitle) {
                 setDeckTitle(`Deck ${new Date().toLocaleDateString()}`);
@@ -788,6 +814,22 @@ export default function GeneratorClient() {
         window.turnstile.execute(captchaWidgetIdRef.current);
     };
 
+    // --- Card actions ---
+    const handleDeleteCard = (id: string) => {
+        setCards(prev => prev.filter(c => c.id !== id));
+        setToast({ message: 'Card excluído', type: 'info' });
+        try { haptics.impact(); } catch { }
+    };
+
+    const handleUpdateCard = (id: string, patched: Partial<Flashcard>) => {
+        setCards(prev => prev.map(c => c.id === id ? { ...c, ...patched } : c));
+        setToast({ message: 'Alterações salvas', type: 'success' });
+    };
+
+    const handleToggleFavorite = (id: string) => {
+        setCards(prev => prev.map(c => c.id === id ? { ...c, favorite: !c.favorite } : c));
+    };
+
     const handleSaveLibrary = async () => {
         if (isDemo) {
             openAuthGate('demo_save');
@@ -829,17 +871,22 @@ export default function GeneratorClient() {
             setSavedDeckPublic(false);
             setSaveSuccess(true);
             setToast({ message: 'Baralho salvo com sucesso!', type: 'success' });
+            try { haptics.success(); } catch { /* silent */ }
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             // Build a helpful message for the user
             let errMsg = 'Erro ao salvar baralho';
             try {
-                if (err && typeof err === 'object') {
-                    errMsg = (err as any).message ? `Erro ao salvar baralho: ${(err as any).message}` : `${errMsg}: ${JSON.stringify(err)}`;
+                if (err instanceof Error) {
+                    errMsg = `Erro ao salvar baralho: ${err.message}`;
+                } else if (typeof err === 'object' && err !== null && 'message' in err) {
+                    errMsg = `Erro ao salvar baralho: ${String((err as { message: unknown }).message)}`;
                 } else if (typeof err === 'string') {
                     errMsg = `Erro ao salvar baralho: ${err}`;
+                } else {
+                    errMsg = `${errMsg}: ${JSON.stringify(err)}`;
                 }
-            } catch (parseErr) {
+            } catch {
                 // ignore parsing errors
             }
 
@@ -847,12 +894,12 @@ export default function GeneratorClient() {
 
             // Report to Sentry (if configured) with contextual info for faster triage
             try {
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                const Sentry = require('@sentry/nextjs');
+
+                const Sentry = await import('@sentry/nextjs');
                 if (Sentry && typeof Sentry.captureException === 'function') {
                     Sentry.captureException(err, {
                         tags: { feature: 'save-deck', flow: 'generator-client', isTauri: !!isTauri, isMobile: !!isMobile },
-                        extra: { deckTitle, cardsCount: cards.length, userId: (user as any)?.id }
+                        extra: { deckTitle, cardsCount: cards.length, userId: user?.id }
                     });
                 }
             } catch (sentryErr) {
@@ -893,7 +940,7 @@ export default function GeneratorClient() {
         }
     };
 
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
 
     const handleFileUpload = () => {
         if (isDemo) {
@@ -1322,110 +1369,7 @@ export default function GeneratorClient() {
         await handleGenerate(ENEM_EXAMPLE_TEXT);
     };
 
-    const renderMobileMenu = () => (
-        <AnimatePresence>
-            {showMobileSettings && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setShowMobileSettings(false)}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
-                    />
-                    <motion.div
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl z-[70] p-6 pb-12 shadow-2xl border-t border-zinc-200 dark:border-zinc-800"
-                    >
-                        <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-6" />
-                        <h3 className="text-xl font-black mb-6 flex items-center gap-2">
-                            <Settings2 className="w-5 h-5 text-brand" />
-                            Configurações do Deck
-                        </h3>
-
-                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-                            {/* Reusing settings logic compactly */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Nível</label>
-                                    <select
-                                        value={studyLevel}
-                                        onChange={(e) => setStudyLevel(e.target.value as any)}
-                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
-                                    >
-                                        <option value="ENEM">ENEM</option>
-                                        <option value="Faculdade">Faculdade</option>
-                                        <option value="Concurso">Concurso</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Objetivo</label>
-                                    <select
-                                        value={studyGoal}
-                                        onChange={(e) => setStudyGoal(e.target.value as any)}
-                                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 text-sm font-bold"
-                                    >
-                                        <option value="Memorizar">Memorizar</option>
-                                        <option value="Revisar rápido">Revisar rápido</option>
-                                        <option value="Aprofundar">Aprofundar</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Estilo de Resposta</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { id: 'basic', label: 'Q&A' },
-                                        { id: 'short_answer', label: 'Curta' },
-                                        { id: 'image_occlusion', label: 'Oclusão' }
-                                    ].map(style => (
-                                        <button
-                                            key={style.id}
-                                            onClick={() => setCardStyle(style.id as any)}
-                                            className={`px-4 py-2 rounded-full text-xs font-bold border-2 transition-all ${cardStyle === style.id
-                                                ? 'border-brand bg-brand/5 text-brand'
-                                                : 'border-zinc-100 dark:border-zinc-800 text-zinc-500'
-                                                }`}
-                                        >
-                                            {style.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold">Gerar Imagens com IA</span>
-                                        <span className="text-[10px] text-zinc-400 font-medium">Melhora a memorização visual</span>
-                                    </div>
-                                    <button
-                                        onClick={handleToggleImageGeneration}
-                                        className={`w-12 h-6 rounded-full transition-colors relative ${generateImages ? 'bg-brand' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${generateImages ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setShowMobileSettings(false)}
-                                className="w-full bg-brand text-white font-black py-4 rounded-2xl shadow-lg shadow-brand/20 active:scale-[0.98] transition-transform mt-4"
-                            >
-                                Aplicar Ajustes
-                            </button>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    );
-
-    if (isMobile) {
+    if (isMobile && !isTablet) {
         return (
             <div className="flex flex-col min-h-[80vh] px-4 space-y-6 pb-32 pt-6">
                 <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
@@ -1436,7 +1380,22 @@ export default function GeneratorClient() {
                     onLoginClick={() => setSignupModalAction(true)}
                 />
 
-                {renderMobileMenu()}
+                <QuickSettingsSheet
+                    open={showMobileSettings}
+                    onClose={() => setShowMobileSettings(false)}
+                    studyLevel={studyLevel}
+                    onStudyLevelChange={setStudyLevel}
+                    studyGoal={studyGoal}
+                    onStudyGoalChange={setStudyGoal}
+                    cardStyle={cardStyle}
+                    onCardStyleChange={setCardStyle}
+                    cardCount={cardCount}
+                    onCardCountChange={setCardCount}
+                    maxCards={limits.maxCardsPerGen}
+                    generateImages={generateImages}
+                    onGenerateImagesChange={setGenerateImages}
+                    allowImageGeneration={limits.allowImageGeneration}
+                />
 
                 {/* Mobile Header / Quick Actions */}
                 <div className="flex items-center justify-between pt-6 border-b border-zinc-100 dark:border-zinc-900 pb-6">
@@ -1446,16 +1405,20 @@ export default function GeneratorClient() {
                             {isDemo ? 'Demonstração' : `Plano ${limits.name}`}
                         </p>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 p-1 rounded-sm border border-zinc-100 dark:border-zinc-800">
-                        <button
-                            onClick={() => setViewMode(viewMode === 'input' ? 'cards' : 'input')}
-                            className={`p-2.5 rounded-sm transition-all ripple ${viewMode === 'cards' ? 'bg-white dark:bg-zinc-800 shadow-sm text-brand' : 'text-zinc-400'}`}
-                        >
-                            {viewMode === 'input' ? <BookOpen className="w-5 h-5" /> : <LayoutDashboard className="w-5 h-5" />}
-                        </button>
+                    <div className="flex items-center gap-2">
+                        <SegmentedControl
+                            segments={[
+                                { id: 'input', label: 'Editor', icon: LayoutDashboard },
+                                { id: 'cards', label: 'Cards', icon: BookOpen },
+                            ]}
+                            selected={viewMode}
+                            onChange={(id) => setViewMode(id as 'input' | 'cards')}
+                            size="sm"
+                        />
                         <button
                             onClick={() => setShowMobileSettings(true)}
-                            className="p-2.5 text-zinc-400 hover:text-brand transition-colors ripple"
+                            className="p-2.5 text-zinc-400 hover:text-brand transition-colors rounded-[var(--corner-card)] bg-zinc-100 dark:bg-zinc-800"
+                            aria-label="Configurações"
                         >
                             <Settings2 className="w-5 h-5" />
                         </button>
@@ -1473,46 +1436,69 @@ export default function GeneratorClient() {
                         >
                             <div className="relative group">
                                 <textarea
+                                    id="content-input"
+                                    aria-label="Campo de texto para gerar flashcards"
+                                    aria-describedby="char-count"
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder="INSIRA SEU CONTEÚDO AQUI..."
-                                    className="w-full h-[50vh] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 text-lg font-bold tracking-tight text-swiss-header focus:border-brand outline-none transition-colors shadow-[0_4px_0_0_rgba(0,0,0,0.02)] dark:shadow-none resize-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800"
+                                    className="w-full h-[50vh] bg-[var(--secondary-system-background)] border border-zinc-200 dark:border-zinc-800 p-6 text-lg font-bold tracking-tight text-swiss-header focus:border-brand outline-none transition-colors shadow-[0_4px_0_0_rgba(0,0,0,0.02)] dark:shadow-none resize-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800 rounded-[var(--corner-card)]"
                                 />
                                 <div className="absolute bottom-6 right-6 flex flex-col gap-2">
+                                    <div id="char-count" className="text-[10px] font-black text-zinc-300 dark:text-zinc-700 uppercase tracking-widest pointer-events-none">{inputText.length} / {limits.maxChars}</div>
                                     <button
-                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        onClick={() => fileInputRef.current?.click()}
                                         className="p-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                        aria-label="Importar arquivo"
                                     >
                                         <FileUp className="w-5 h-5" />
                                     </button>
+
+                                    {isTauri && (
+                                        <button
+                                            onClick={handleTauriPick}
+                                            className="p-4 bg-zinc-700 text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
+                                            aria-label="Importar arquivo nativo"
+                                        >
+                                            <FileText className="w-5 h-5" />
+                                        </button>
+                                    )}
+
                                     <button
-                                        onClick={() => alert('Em breve: Scanner OCR Nativo!')}
+                                        onClick={() => cameraInputRef.current?.click()}
                                         className="p-4 bg-brand text-white rounded-sm shadow-2xl hover:scale-105 active:scale-95 transition-all ripple"
                                     >
                                         <Maximize2 className="w-5 h-5" />
                                     </button>
+
                                 </div>
                                 <div className="absolute top-6 right-6 text-[10px] font-black text-zinc-300 dark:text-zinc-700 uppercase tracking-widest pointer-events-none">
                                     {inputText.length} / {limits.maxChars}
                                 </div>
                             </div>
 
+                            <div role="status" aria-live="polite" className="sr-only">{isGenerating ? 'Gerando flashcards...' : ''}</div>
+
                             <button
+                                id="generate-button"
                                 onClick={handleGenerateClick}
                                 disabled={isGenerating || (inputText.length < 50 && uploadedFiles.length === 0)}
-                                className={`w-full py-6 rounded-sm font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ripple ${isGenerating
+                                aria-label="Gerar flashcards"
+                                aria-busy={isGenerating}
+                                className={`w-full min-h-[44px] py-3 rounded-sm font-black text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all ripple ${isGenerating
                                     ? 'bg-zinc-100 text-zinc-300'
                                     : 'bg-brand text-white shadow-xl shadow-brand/20'
                                     }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                                        <span className="sr-only">Gerando</span>
                                         Gerando
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="w-5 h-5" />
+                                        <Sparkles className="w-5 h-5" aria-hidden="true" />
                                         Gerar Cards
                                     </>
                                 )}
@@ -1545,7 +1531,7 @@ export default function GeneratorClient() {
                             </div>
 
                             {cards.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-sm">
+                                <div className="flex flex-col items-center justify-center py-20 bg-[var(--secondary-system-background)] border border-zinc-200 dark:border-zinc-800 rounded-[var(--corner-card)]">
                                     <Sparkles className="w-12 h-12 text-zinc-200 mb-4" />
                                     <p className="font-black text-zinc-300 text-xs uppercase tracking-widest">Nenhum card gerado</p>
                                     <button
@@ -1558,33 +1544,34 @@ export default function GeneratorClient() {
                             ) : (
                                 <div className="grid grid-cols-1 gap-px bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-sm overflow-hidden">
                                     {cards.map((card, idx) => (
-                                        <div key={card.id} className="bg-white dark:bg-zinc-950 p-8">
-                                            <div className="flex items-start justify-between mb-8">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300">Card #{idx + 1}</span>
-                                                <button
-                                                    onClick={() => setCards(prev => prev.filter(c => c.id !== card.id))}
-                                                    className="p-1 text-zinc-200 hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-2 block">Pergunta</label>
-                                                    <p className="text-lg font-black text-swiss-header leading-tight italic">"{card.question}"</p>
-                                                </div>
-                                                <div className="pt-6 border-t border-zinc-50 dark:border-zinc-900">
-                                                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Resposta</label>
-                                                    <p className="text-base font-bold text-zinc-600 dark:text-zinc-400 leading-snug">{card.answer}</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <EditableCard
+                                            key={card.id}
+                                            card={card}
+                                            idx={idx}
+                                            onDelete={handleDeleteCard}
+                                            onUpdate={(id, patched) => handleUpdateCard(id, patched)}
+                                            onToggleFavorite={handleToggleFavorite}
+                                        />
                                     ))}
                                 </div>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                <GeneratorActionBar
+                    visible={viewMode === 'cards'}
+                    cardCount={cards.length}
+                    onSave={handleSaveLibrary}
+                    onExport={exportToApkg}
+                    onRegenerate={() => handleGenerate(inputText)}
+                    isSaving={isSaving}
+                    isExporting={isExportingApkg}
+                    isRegenerating={isGenerating}
+                    saveDisabled={cards.length === 0 || isDemo}
+                    exportDisabled={cards.length === 0 || isDemo}
+                    regenerateDisabled={inputText.length < 50}
+                />
 
                 {
                     toast && (
@@ -1598,7 +1585,7 @@ export default function GeneratorClient() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-11 xl:grid-cols-12 gap-8 items-start relative max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-11 lg:grid-cols-11 xl:grid-cols-12 gap-8 items-start relative max-w-[1600px] mx-auto">
 
             {/* Upgrade Modal */}
             {/* Upgrade Modal */}
@@ -1625,7 +1612,7 @@ export default function GeneratorClient() {
             />
 
             {/* Coluna Esquerda: Input e Configs */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
+            <div className="md:col-span-4 lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
                 <div className="bg-white border border-border p-6 rounded-sm shadow-sm lg:sticky lg:top-24">
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/60">
@@ -1692,12 +1679,24 @@ export default function GeneratorClient() {
 
                     <div className="relative mt-4">
                         <input
+                            id="file-upload"
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             accept={fileAccept}
+                            multiple
                             className="hidden"
                         />
+                        <input
+                            id="camera-upload"
+                            type="file"
+                            ref={cameraInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                        />
+
                         <label htmlFor="content-input" className="sr-only">Conteúdo para Flashcards</label>
                         <textarea
                             id="content-input"
@@ -1821,10 +1820,15 @@ export default function GeneratorClient() {
                                                                     className={`relative border rounded-sm overflow-hidden transition-all ${selected ? 'border-brand ring-2 ring-brand/30' : 'border-border hover:border-brand/40'}`}
                                                                 >
                                                                     {page.dataUrl ? (
-                                                                        <img
+                                                                        <Image
                                                                             src={page.dataUrl}
                                                                             alt={`Página ${page.pageNumber}`}
                                                                             className="w-full h-auto object-cover"
+                                                                            width={0}
+                                                                            height={0}
+                                                                            sizes="100vw"
+                                                                            style={{ width: '100%', height: 'auto' }}
+                                                                            unoptimized
                                                                         />
                                                                     ) : (
                                                                         <div className="flex flex-col items-center justify-center bg-gray-50 text-foreground/60 text-[10px] font-bold h-36">
@@ -2098,7 +2102,7 @@ export default function GeneratorClient() {
             </div>
 
             {/* Coluna Direita: Preview dos Cards */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="md:col-span-7 lg:col-span-7 space-y-6">
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
                         <label htmlFor="deck-title-input" className="sr-only">Nome do Baralho</label>
@@ -2266,15 +2270,17 @@ export default function GeneratorClient() {
                                     >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-brand">Pergunta #{index + 1}</label>
                                         {card.question_image_url ? (
-                                            <div className="relative group/img w-full">
-                                                <img
+                                            <div className="relative group/img w-full h-40">
+                                                <Image
                                                     src={card.question_image_url}
                                                     alt={`Imagem da pergunta ${index + 1}`}
-                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    className="object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
                                                     draggable
                                                     onDragStart={(e) => handleImageDragStart(e, card.id, 'question', card.question_image_url!)}
                                                     onDragEnd={handleImageDragEnd}
                                                     onError={() => removeImage(card.id, 'question')}
+                                                    fill
+                                                    unoptimized
                                                 />
                                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
                                                     <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">
@@ -2314,15 +2320,17 @@ export default function GeneratorClient() {
                                     >
                                         <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Resposta</label>
                                         {card.answer_image_url ? (
-                                            <div className="relative group/img w-full">
-                                                <img
+                                            <div className="relative group/img w-full h-40">
+                                                <Image
                                                     src={card.answer_image_url}
                                                     alt={`Imagem da resposta ${index + 1}`}
-                                                    className="w-full h-40 object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
+                                                    className="object-cover rounded-sm border border-border cursor-grab active:cursor-grabbing"
                                                     draggable
                                                     onDragStart={(e) => handleImageDragStart(e, card.id, 'answer', card.answer_image_url!)}
                                                     onDragEnd={handleImageDragEnd}
                                                     onError={() => removeImage(card.id, 'answer')}
+                                                    fill
+                                                    unoptimized
                                                 />
                                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
                                                     <div className="bg-black/60 text-white p-1.5 rounded-sm cursor-grab">

@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
-import { Library, Folder, Calendar, ArrowRight, Loader2, Plus, Download, Trash2 } from 'lucide-react';
+import { useTauri } from '@/lib/tauri';
+import { Library, ArrowRight, Loader2, Plus, Trash2 } from 'lucide-react';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import StudyHeatmap from '@/components/StudyHeatmap';
 import { addUtcDays, getDateKey, startOfUtcDay, StudyActivityRecord } from '@/lib/study-activity';
 import AppShell from '@/components/AppShell';
+import { SwipeableDeckRow } from '@/components/mobile';
 
 function SectionLabel({ text }: { text: string }) {
     return (
@@ -22,6 +24,7 @@ function SectionLabel({ text }: { text: string }) {
 }
 
 export default function DecksPage() {
+    const { isMobile } = useTauri();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [decks, setDecks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -156,7 +159,27 @@ export default function DecksPage() {
                             <ArrowRight className="h-4 w-4 cta-arrow-shift" />
                         </Link>
                     </m.div>
+                ) : isMobile ? (
+                    /* Mobile: Swipeable list view */
+                    <div id="decks-list" className="space-y-2">
+                        {decks.map((deck, index) => (
+                            <m.div
+                                key={deck.id}
+                                custom={index}
+                                initial="hidden"
+                                animate="visible"
+                                variants={cardVariants}
+                            >
+                                <SwipeableDeckRow
+                                    deck={deck}
+                                    onDelete={handleDeleteClick}
+                                    onLongPress={(d) => setDeckToExport(d)}
+                                />
+                            </m.div>
+                        ))}
+                    </div>
                 ) : (
+                    /* Desktop: Grid view */
                     <div id="decks-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-px gap-y-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 overflow-hidden rounded-sm">
                         {decks.map((deck, index) => (
                             <m.div

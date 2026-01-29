@@ -1,0 +1,81 @@
+name: Mobile Build (iOS & Android)
+
+on:
+  push:
+    branches: [ "main", "feat/*", "fix/*", "master" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios x86_64-apple-ios
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Initialize iOS
+        # This generates the ios directory since it's missing on Windows
+        run: npx tauri ios init --ci
+
+      - name: Build iOS (Simulator)
+        # Builds for Simulator (no signing required usually)
+        run: npx tauri ios build --debug --target universal-apple-ios-sim
+
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app
+          path: src-tauri/gen/apple/build/action/Build/Products/Debug-iphonesimulator/flashcards_generator.app
+
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Android APK
+        run: npx tauri android build --apk --debug
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk

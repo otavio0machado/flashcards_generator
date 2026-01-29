@@ -9,6 +9,7 @@ interface TauriContextType {
     platform: string | null;
     isDesktop: boolean;
     isMobile: boolean;
+    isTablet: boolean; // NEW
     isMobileTauri: boolean;
     isDesktopTauri: boolean;
     appVersion: string | null;
@@ -22,6 +23,7 @@ const TauriContext = createContext<TauriContextType>({
     platform: null,
     isDesktop: false,
     isMobile: false,
+    isTablet: false, // NEW
     isMobileTauri: false,
     isDesktopTauri: false,
     appVersion: null,
@@ -29,27 +31,43 @@ const TauriContext = createContext<TauriContextType>({
     setSidebarCollapsed: () => { },
 });
 
-function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boolean } {
+function detectPlatform(): { platform: string; isDesktop: boolean; isMobile: boolean; isTablet: boolean } {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-        return { platform: 'unknown', isDesktop: true, isMobile: false };
+        return { platform: 'unknown', isDesktop: true, isMobile: false, isTablet: false };
     }
 
     const userAgent = navigator.userAgent.toLowerCase();
 
-    if (userAgent.includes('android') || userAgent.includes('linux arm') || userAgent.includes('mobi')) {
-        return { platform: 'android', isDesktop: false, isMobile: true };
-    }
-    if (userAgent.includes('iphone') || userAgent.includes('ipad') || userAgent.includes('ipod')) {
-        return { platform: 'ios', isDesktop: false, isMobile: true };
-    }
-    if (userAgent.includes('win')) {
-        return { platform: 'windows', isDesktop: true, isMobile: false };
-    }
-    if (userAgent.includes('mac')) {
-        return { platform: 'macos', isDesktop: true, isMobile: false };
+    // iPad Pro / iPadOS 13+ often sends "Macintosh" as UA but has touch points
+    const isIpadOS = (userAgent.includes('mac') && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+
+    // Tablet Detection
+    const isIpad = userAgent.includes('ipad') || isIpadOS;
+    const isAndroid = userAgent.includes('android');
+    const isMobileUA = userAgent.includes('mobile');
+
+    // Android Tablet: Android but often NOT "mobile" (though sometimes it is). 
+    // Best effort: Android AND NOT Mobile, OR iPad.
+    const isAndroidTablet = isAndroid && !isMobileUA;
+    const isTablet = isIpad || isAndroidTablet;
+
+    if (isAndroid || isIpad || userAgent.includes('iphone') || userAgent.includes('ipod')) {
+        // Platform identification
+        let platform = 'unknown';
+        if (isAndroid) platform = 'android';
+        else if (isIpad || userAgent.includes('iphone') || userAgent.includes('ipod')) platform = 'ios';
+
+        return { platform, isDesktop: false, isMobile: true, isTablet };
     }
 
-    return { platform: 'unknown', isDesktop: true, isMobile: false };
+    if (userAgent.includes('win')) {
+        return { platform: 'windows', isDesktop: true, isMobile: false, isTablet: false };
+    }
+    if (userAgent.includes('mac')) {
+        return { platform: 'macos', isDesktop: true, isMobile: false, isTablet: false };
+    }
+
+    return { platform: 'unknown', isDesktop: true, isMobile: false, isTablet: false };
 }
 
 export function TauriProvider({ children }: { children: ReactNode }) {
@@ -59,6 +77,7 @@ export function TauriProvider({ children }: { children: ReactNode }) {
         platform: null,
         isDesktop: false,
         isMobile: false,
+        isTablet: false,
         isMobileTauri: false,
         isDesktopTauri: false,
         appVersion: null,
@@ -76,7 +95,7 @@ export function TauriProvider({ children }: { children: ReactNode }) {
         const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
 
         if (isTauriEnv) {
-            const { platform, isDesktop, isMobile } = detectPlatform();
+            const { platform, isDesktop, isMobile, isTablet } = detectPlatform();
 
             // Restore sidebar state from localStorage
             const savedCollapsed = localStorage.getItem('desktop_sidebar_collapsed') === 'true';
@@ -87,6 +106,7 @@ export function TauriProvider({ children }: { children: ReactNode }) {
                 platform,
                 isDesktop,
                 isMobile,
+                isTablet,
                 isMobileTauri: isMobile,
                 isDesktopTauri: isDesktop,
                 sidebarCollapsed: savedCollapsed,
@@ -121,7 +141,7 @@ export function TauriProvider({ children }: { children: ReactNode }) {
             });
         } else {
             // WEB environment
-            const { platform, isDesktop, isMobile } = detectPlatform();
+            const { platform, isDesktop, isMobile, isTablet } = detectPlatform();
             setState(prev => ({
                 ...prev,
                 isTauri: false,
@@ -129,6 +149,7 @@ export function TauriProvider({ children }: { children: ReactNode }) {
                 platform,
                 isDesktop,
                 isMobile,
+                isTablet,
                 isMobileTauri: false,
                 isDesktopTauri: false,
             }));
@@ -149,6 +170,46 @@ export function useTauri() {
 // Static check (no context needed)
 export function isTauriApp(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window;
+}
+
+// --- Small helpers for mobile/native interactions ---
+export async function pickFilesTauri(accept: string[] = ['*/*']): Promise<Array<{ name: string; path?: string; type?: string; blob?: Blob }>> {
+    try {
+        // Dynamically import to avoid SSR bundling issues
+        const { open } = await import('@tauri-apps/plugin-dialog');
+        const { readFile } = await import('@tauri-apps/plugin-fs');
+
+        const selected = await open({ multiple: true });
+        if (!selected) return [];
+
+        // selected may be string or string[]
+        const files = Array.isArray(selected) ? selected : [selected];
+
+        const results: Array<{ name: string; path?: string; type?: string; blob?: Blob }> = [];
+
+        for (const filePath of files) {
+            try {
+                const bytes = await readFile(filePath as string);
+                const u8 = new Uint8Array(bytes as unknown as number[]);
+                const blob = new Blob([u8.buffer]);
+                const name = (filePath as string).split(/[\\/]/).pop() || 'file';
+                results.push({ name, path: filePath as string, blob });
+            } catch (e) {
+                console.error('pickFilesTauri read failed:', e);
+            }
+        }
+
+        return results;
+    } catch (err) {
+        console.warn('Tauri file picker not available', err);
+        return [];
+    }
+}
+
+export async function performOCRStub(filePath: string): Promise<string> {
+    // Placeholder for native OCR implementation in future
+    await new Promise((r) => setTimeout(r, 400));
+    return 'OCR não implementado (stub)';
 }
 
 // --- Desktop keyboard shortcuts ---

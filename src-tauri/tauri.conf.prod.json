@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../public"
+    "frontendDist": "../out"
   },
   "app": {
     "withGlobalTauri": true,

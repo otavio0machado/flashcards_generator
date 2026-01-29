@@ -12,6 +12,14 @@ html {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  /* Utility to apply full safe-area padding on mobile shells */
+  .ios-safe {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 @theme {
@@ -22,13 +30,29 @@ html {
   --color-border: #E5E5E5;
   --color-text-secondary: #5F6368;
 
+  /* iOS Semantic Tokens (mapped to existing palette) */
+  --system-background: var(--color-background);
+  --secondary-system-background: var(--surface);
+  --tertiary-system-background: var(--surface-muted);
+  --label: var(--color-foreground);
+  --secondary-label: var(--color-text-secondary);
+
+  /* Spacing & grid (8pt baseline) */
+  --spacing-8: 0.5rem; /* 8px */
+  --spacing-16: 1rem;  /* 16px */
+  --spacing-24: 1.5rem; /* 24px */
+
+  /* Corner radii (iOS recommendations) */
+  --corner-card: 0.75rem; /* 12px */
+  --corner-soft: 1rem;    /* 16px */
+
   --radius-sm: 0.125rem;
   /* Strict swiss - squarer */
   --radius-md: 0.25rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1.5rem;
   /* For rounded mobile action buttons */
-}
+} 
 
 /* Neo-Swiss Typography */
 .text-swiss-header {
@@ -399,3 +423,6 @@ h6 {
 .comparison-table tr:last-child td {
   @apply border-b-0;
 }
+/* Dynamic Type Support (iOS) */
+.text-dynamic-body { font-size: clamp(0.875rem, 1rem + 0.5vw, 1.25rem); }
+.text-dynamic-headline { font-size: clamp(1.25rem, 1.5rem + 0.5vw, 2rem); }
