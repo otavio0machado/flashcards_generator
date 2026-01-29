@@ -9,6 +9,8 @@ import { deckService } from '@/services/deckService';
 import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
+import { useTauri } from '@/lib/tauri';
+import SearchBar from '@/components/ios/SearchBar';
 
 function SectionLabel({ text }: { text: string }) {
     return (
