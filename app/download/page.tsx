@@ -90,11 +90,12 @@ const benefits = [
 function detectOS(): string | null {
     if (typeof navigator === 'undefined') return null;
     const ua = navigator.userAgent.toLowerCase();
+    // Mobile checks first (Android UA contains "linux", iOS UA contains "mac")
+    if (ua.includes('android')) return 'android';
+    if (ua.includes('iphone') || ua.includes('ipad')) return 'ios';
     if (ua.includes('win')) return 'windows';
     if (ua.includes('mac')) return 'macos';
     if (ua.includes('linux')) return 'linux';
-    if (ua.includes('android')) return 'android';
-    if (ua.includes('iphone') || ua.includes('ipad')) return 'ios';
     return null;
 }
 
