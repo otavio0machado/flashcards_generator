@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { isTauriApp } from '@/lib/tauri';
+import { usePWA } from '@/lib/pwa';
+import { trackEvent } from '@/lib/analytics';
 
 const GITHUB_RELEASES_BASE = 'https://github.com/otavio0machado/flashcards_generator/releases/latest/download';
 
@@ -99,6 +101,7 @@ function detectOS(): string | null {
 export default function DownloadPage() {
     const [detectedOS, setDetectedOS] = useState<string | null>(null);
     const [isDesktopApp, setIsDesktopApp] = useState(false);
+    const { isStandalone, isInstallable, isIOS, promptInstall } = usePWA();
 
     useEffect(() => {
         setDetectedOS(detectOS());
@@ -181,6 +184,70 @@ export default function DownloadPage() {
             {/* Download Cards */}
             <section className="pb-24 px-4">
                 <div className="max-w-4xl mx-auto">
+                    {/* PWA Install Card */}
+                    {!isStandalone && !isDesktopApp && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-8 p-6 md:p-8 rounded-xl border-2 border-brand bg-brand/5"
+                        >
+                            <div className="flex flex-col items-center text-center">
+                                <div className="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mb-4">
+                                    <Smartphone className="w-7 h-7" />
+                                </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">
+                                    Instalar como App
+                                </h3>
+                                <p className="text-sm text-[var(--color-text-secondary)] mb-5 max-w-md">
+                                    Adicione o Flashcards Generator na sua tela inicial. Acesse offline, carregamento instantaneo, sem ocupar espaco.
+                                </p>
+
+                                {isInstallable ? (
+                                    <button
+                                        onClick={async () => {
+                                            const result = await promptInstall();
+                                            trackEvent('pwa_install_download_page', { result });
+                                        }}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white font-bold rounded-lg hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20 text-sm"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                        Instalar Agora
+                                    </button>
+                                ) : isIOS ? (
+                                    <div className="space-y-3 text-left max-w-sm">
+                                        <p className="text-sm font-medium text-foreground/70">
+                                            No Safari, siga estes passos:
+                                        </p>
+                                        <ol className="text-sm text-foreground/60 space-y-2">
+                                            <li className="flex items-center gap-2">
+                                                <span className="bg-gray-100 dark:bg-zinc-800 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                                                <span>Toque no icone de <strong>compartilhar</strong> (quadrado com seta)</span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <span className="bg-gray-100 dark:bg-zinc-800 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                                                <span>Role e toque em <strong>&quot;Adicionar a Tela de Inicio&quot;</strong></span>
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <span className="bg-gray-100 dark:bg-zinc-800 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                                                <span>Toque em <strong>&quot;Adicionar&quot;</strong></span>
+                                            </li>
+                                        </ol>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-foreground/50">
+                                        Abra no Chrome ou Safari para instalar como app.
+                                    </p>
+                                )}
+
+                                <div className="flex gap-4 mt-5 text-xs text-foreground/40 font-medium">
+                                    <span>Sem download pesado</span>
+                                    <span>Funciona offline</span>
+                                    <span>Sempre atualizado</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {sortedPlatforms.map((platform, index) => {
                             const isRecommended = platform.osKey === detectedOS;

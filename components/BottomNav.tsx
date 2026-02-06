@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, BookOpen, Store, Settings, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { usePWA } from '@/lib/pwa';
 
 const navItems = [
     { href: '/', icon: Home, label: 'Início' },
@@ -15,6 +16,10 @@ const navItems = [
 
 export default function BottomNav() {
     const pathname = usePathname();
+    const { isStandalone } = usePWA();
+
+    // Only show in PWA standalone mode (installed on home screen)
+    if (!isStandalone) return null;
 
     // Don't show on auth pages
     if (pathname?.startsWith('/auth')) {
@@ -22,7 +27,7 @@ export default function BottomNav() {
     }
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+        <nav data-bottomnav className="fixed bottom-0 left-0 right-0 z-50">
             {/* Blur background */}
             <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800" />
             

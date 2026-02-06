@@ -4,41 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { Download, X, Smartphone } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-
-interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    readonly userChoice: Promise<{
-        outcome: 'accepted' | 'dismissed';
-        platform: string;
-    }>;
-    prompt(): Promise<void>;
-}
-
-declare global {
-    interface WindowEventMap {
-        beforeinstallprompt: BeforeInstallPromptEvent;
-    }
-}
+import { usePWA } from '@/lib/pwa';
 
 export default function InstallPrompt() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+    const { isStandalone, isInstallable, isIOS, promptInstall } = usePWA();
     const [showPrompt, setShowPrompt] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
     const [isWindows, setIsWindows] = useState(false);
-    const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
-        // Check if already installed (standalone mode)
-        const standalone = window.matchMedia('(display-mode: standalone)').matches
-            || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-        setIsStandalone(standalone);
+        if (isStandalone) return;
 
-        // Detect OS
         const ua = navigator.userAgent.toLowerCase();
-        const iOS = /iPad|iPhone|iPod/.test(ua);
         const windows = ua.includes('windows');
-
-        setIsIOS(iOS);
         setIsWindows(windows);
 
         // Check if user dismissed the prompt before
@@ -46,63 +23,45 @@ export default function InstallPrompt() {
         const dismissedAt = dismissed ? parseInt(dismissed, 10) : 0;
         const daysSinceDismissed = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
 
-        // Show prompt again after 7 days
-        if (dismissed && daysSinceDismissed < 7) {
-            return;
+        if (dismissed && daysSinceDismissed < 7) return;
+
+        // Determine delay based on platform
+        let delay: number;
+        let eventName: string;
+        let platform: string;
+
+        if (windows) {
+            delay = 15000;
+            eventName = 'desktop_install_prompt_shown';
+            platform = 'windows';
+        } else if (isIOS) {
+            delay = 60000;
+            eventName = 'pwa_install_prompt_shown';
+            platform = 'ios';
+        } else {
+            delay = 30000;
+            eventName = 'pwa_install_prompt_shown';
+            platform = 'android';
         }
 
-        // Handle beforeinstallprompt event (PWA for Android/Desktop PWA)
-        const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
+        const timer = setTimeout(() => {
+            setShowPrompt(true);
+            trackEvent(eventName, { platform });
+        }, delay);
 
-            // If not windows (because windows handles its own exe prompt), show PWA prompt
-            if (!windows) {
-                setTimeout(() => {
-                    setShowPrompt(true);
-                    trackEvent('pwa_install_prompt_shown', { platform: 'android' });
-                }, 30000);
-            }
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-        // For iOS, show custom instructions after delay
-        if (iOS && !standalone) {
-            setTimeout(() => {
-                setShowPrompt(true);
-                trackEvent('pwa_install_prompt_shown', { platform: 'ios' });
-            }, 60000);
-        }
-
-        // For Windows, show .exe download prompt after delay
-        if (windows && !standalone) {
-            setTimeout(() => {
-                setShowPrompt(true);
-                trackEvent('desktop_install_prompt_shown', { platform: 'windows' });
-            }, 15000); // Faster prompt for desktop (15s)
-        }
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        };
-    }, []);
+        return () => clearTimeout(timer);
+    }, [isStandalone, isIOS]);
 
     const handleInstall = async () => {
         if (isWindows) {
             trackEvent('desktop_install_clicked', { platform: 'windows' });
-            // Direct download link
             window.location.href = 'https://github.com/otavio0machado/flashcards_generator/releases/download/v1.0.4/Flashcards.Generator_1.0.4_x64-setup.exe';
-            handleDismiss(); // Close prompt after click
+            handleDismiss();
             return;
         }
 
-        if (!deferredPrompt) return;
-
         trackEvent('pwa_install_clicked', { platform: 'android' });
-
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        const outcome = await promptInstall();
 
         if (outcome === 'accepted') {
             trackEvent('pwa_installed', { platform: 'android' });
@@ -110,7 +69,6 @@ export default function InstallPrompt() {
             trackEvent('pwa_install_dismissed', { platform: 'android' });
         }
 
-        setDeferredPrompt(null);
         setShowPrompt(false);
     };
 
@@ -120,7 +78,6 @@ export default function InstallPrompt() {
         trackEvent('pwa_prompt_dismissed', { platform: isIOS ? 'ios' : isWindows ? 'windows' : 'android' });
     };
 
-    // Don't show if already installed
     if (isStandalone) return null;
 
     return (
@@ -144,7 +101,7 @@ export default function InstallPrompt() {
                                     <div>
                                         <h3 className="font-bold text-sm">Instalar Flashcards</h3>
                                         <p className="text-[10px] font-medium text-foreground/50">
-                                            {isWindows ? 'Versão Desktop Oficial' : 'Acesse mais rápido'}
+                                            {isWindows ? 'Versao Desktop Oficial' : 'Acesse mais rapido'}
                                         </p>
                                     </div>
                                 </div>
@@ -162,16 +119,16 @@ export default function InstallPrompt() {
                                 {isIOS ? (
                                     <div className="space-y-3">
                                         <p className="text-sm text-foreground/70 font-medium">
-                                            Adicione à tela inicial para acesso rápido:
+                                            Adicione a tela inicial para acesso rapido:
                                         </p>
                                         <ol className="text-xs text-foreground/60 space-y-2">
                                             <li className="flex items-center gap-2">
                                                 <span className="bg-gray-100 w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold">1</span>
-                                                Toque no ícone de <strong>compartilhar</strong> (□↑)
+                                                Toque no icone de <strong>compartilhar</strong>
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <span className="bg-gray-100 w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold">2</span>
-                                                Role e toque em <strong>&quot;Adicionar à Tela de Início&quot;</strong>
+                                                Role e toque em <strong>&quot;Adicionar a Tela de Inicio&quot;</strong>
                                             </li>
                                             <li className="flex items-center gap-2">
                                                 <span className="bg-gray-100 w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold">3</span>
@@ -197,7 +154,7 @@ export default function InstallPrompt() {
                                                 onClick={handleDismiss}
                                                 className="flex-1 bg-gray-100 text-foreground/60 py-2.5 rounded-sm text-xs font-bold hover:bg-gray-200 transition-all"
                                             >
-                                                Agora não
+                                                Agora nao
                                             </button>
                                             <button
                                                 onClick={handleInstall}
@@ -214,9 +171,9 @@ export default function InstallPrompt() {
                             {/* Benefits */}
                             <div className="bg-gray-50 border-t border-border px-4 py-3">
                                 <div className="flex items-center justify-between text-[10px] font-medium text-foreground/40">
-                                    <span>✓ Acesso offline</span>
-                                    <span>✓ Carregamento rápido</span>
-                                    <span>✓ Sem anúncios</span>
+                                    <span>Acesso offline</span>
+                                    <span>Carregamento rapido</span>
+                                    <span>Sem anuncios</span>
                                 </div>
                             </div>
                         </div>

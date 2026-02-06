@@ -325,3 +325,28 @@ h6 {
 .comparison-table tr:last-child td {
   @apply border-b-0;
 }
+
+/* ========================================
+   PWA Standalone Mode
+   Applied BEFORE JavaScript hydrates.
+   Prevents Navbar flash when opening as app.
+   ======================================== */
+
+@media (display-mode: standalone) {
+    [data-navbar] {
+        display: none !important;
+    }
+
+    body {
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        padding-bottom: 0 !important;
+    }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    @media (display-mode: standalone) {
+        [data-bottomnav] {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+    }
+}

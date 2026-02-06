@@ -13,11 +13,13 @@ import ThemeToggle from '@/components/ThemeToggle';
 import Logo from '@/components/Logo';
 import { trackEvent } from '@/lib/analytics';
 import { useTauri } from '@/lib/tauri';
+import { usePWA } from '@/lib/pwa';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { isTauri, isDesktop } = useTauri();
+  const { isStandalone } = usePWA();
   const [user, setUser] = useState<User | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -119,13 +121,13 @@ export default function Navbar() {
     return 'Usuario';
   })();
   
-  // Hide Navbar in Tauri desktop (we have sidebar instead)
-  if (isTauri && isDesktop) {
+  // Hide Navbar in Tauri desktop (sidebar) and PWA standalone (bottom nav)
+  if ((isTauri && isDesktop) || isStandalone) {
     return null;
   }
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
+    <nav data-navbar className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">

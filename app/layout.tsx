@@ -10,6 +10,7 @@ import AnalyticsPageView from "@/components/AnalyticsPageView";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { TauriProvider } from "@/lib/tauri";
+import { PWAProvider } from "@/lib/pwa";
 import TauriConditionalComponents from "@/components/TauriConditionalComponents";
 import TauriMainWrapper from "@/components/TauriMainWrapper";
 
@@ -100,7 +101,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning data-theme="light">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16 pb-20 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise-bg min-h-screen pt-16 pb-0`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function() {
@@ -117,15 +118,17 @@ export default function RootLayout({
         </Script>
         <AnalyticsProvider>
           <TauriProvider>
-            <Navbar />
-            <DesktopSidebar />
-            <Suspense fallback={null}>
-              <AnalyticsPageView />
-            </Suspense>
-            <TauriMainWrapper>{children}</TauriMainWrapper>
-            <BottomNav />
-            <TauriConditionalComponents />
-            <Toaster />
+            <PWAProvider>
+              <Navbar />
+              <DesktopSidebar />
+              <Suspense fallback={null}>
+                <AnalyticsPageView />
+              </Suspense>
+              <TauriMainWrapper>{children}</TauriMainWrapper>
+              <BottomNav />
+              <TauriConditionalComponents />
+              <Toaster />
+            </PWAProvider>
           </TauriProvider>
         </AnalyticsProvider>
       </body>
