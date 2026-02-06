@@ -184,8 +184,8 @@ export default function DownloadPage() {
             {/* Download Cards */}
             <section className="pb-24 px-4">
                 <div className="max-w-4xl mx-auto">
-                    {/* PWA Install Card */}
-                    {!isStandalone && !isDesktopApp && (
+                    {/* PWA Install Card - only on mobile devices */}
+                    {!isStandalone && !isDesktopApp && (detectedOS === 'android' || detectedOS === 'ios') && (
                         <motion.div
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
