@@ -41,7 +41,12 @@ export default function ConfirmationModal({
         <LazyMotion features={domAnimation}>
             <AnimatePresence>
                 {isOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                    <div
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="confirmation-modal-title"
+                    >
                         {/* Backdrop */}
                         <m.div
                             initial={{ opacity: 0 }}
@@ -49,6 +54,7 @@ export default function ConfirmationModal({
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                             onClick={onClose}
+                            aria-hidden="true"
                         />
 
                         {/* Modal Content */}
@@ -67,13 +73,14 @@ export default function ConfirmationModal({
                                         transition={{ type: 'spring', delay: 0.1 }}
                                         className={`p-2 rounded-sm shrink-0 ${iconStyles[variant]}`}
                                     >
-                                        <AlertCircle className="h-6 w-6" />
+                                        <AlertCircle className="h-6 w-6" aria-hidden="true" />
                                     </m.div>
                                     <div className="flex-1 min-w-0">
                                         <m.h3
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: 0.1 }}
+                                            id="confirmation-modal-title"
                                             className="text-xl font-bold text-foreground mb-1 leading-tight"
                                         >
                                             {title}
@@ -90,8 +97,9 @@ export default function ConfirmationModal({
                                     <button
                                         onClick={onClose}
                                         className="text-foreground/20 hover:text-foreground transition-colors p-1"
+                                        aria-label="Fechar"
                                     >
-                                        <X className="h-5 w-5" />
+                                        <X className="h-5 w-5" aria-hidden="true" />
                                     </button>
                                 </div>
 

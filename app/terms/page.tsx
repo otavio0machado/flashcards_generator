@@ -4,14 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { ArrowLeft, ArrowRight, FileText, Scale, AlertTriangle, CreditCard, CheckCircle2 } from 'lucide-react';
-
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
-}
+import SectionLabel from '@/components/SectionLabel';
 
 export default function TermsPage() {
     const sections = [

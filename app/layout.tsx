@@ -122,6 +122,12 @@ export default function RootLayout({
   });
 })();`}
         </Script>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-sm focus:font-bold focus:text-sm"
+        >
+          Pular para o conteúdo
+        </a>
         <AnalyticsProvider>
           <TauriProvider>
             <PWAProvider>
@@ -130,7 +136,9 @@ export default function RootLayout({
               <Suspense fallback={null}>
                 <AnalyticsPageView />
               </Suspense>
-              <TauriMainWrapper>{children}</TauriMainWrapper>
+              <main id="main-content">
+                <TauriMainWrapper>{children}</TauriMainWrapper>
+              </main>
               <BottomNav />
               <TauriConditionalComponents />
               <Toaster />

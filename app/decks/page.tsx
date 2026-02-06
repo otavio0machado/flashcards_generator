@@ -1,34 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
-import { Library, Folder, Calendar, ArrowRight, Loader2, Plus, Download, Trash2 } from 'lucide-react';
+import { saveDecksToCache, getDecksFromCache } from '@/lib/offline-cache';
+import { Library, Folder, Calendar, ArrowRight, Plus, Download, Trash2, Search, SortDesc } from 'lucide-react';
+import { DeckCardSkeleton } from '@/components/Skeleton';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import StudyHeatmap from '@/components/StudyHeatmap';
 import { addUtcDays, getDateKey, startOfUtcDay, StudyActivityRecord } from '@/lib/study-activity';
+import SectionLabel from '@/components/SectionLabel';
 
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
+interface UserDeck {
+    id: string;
+    title: string;
+    description?: string | null;
+    tags?: string[];
+    created_at: string;
+    cards: { count: number }[];
 }
 
 export default function DecksPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [decks, setDecks] = useState<any[]>([]);
+    const [decks, setDecks] = useState<UserDeck[]>([]);
     const [loading, setLoading] = useState(true);
     const [activityData, setActivityData] = useState<StudyActivityRecord[]>([]);
     const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [deckToExport, setDeckToExport] = useState<any | null>(null);
+    const [deckToExport, setDeckToExport] = useState<UserDeck | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [search, setSearch] = useState('');
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'cards'>('newest');
+    const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
         trackEvent('decks_view', { source: 'decks_page' });
@@ -36,36 +41,53 @@ export default function DecksPage() {
 
     useEffect(() => {
         const fetchDecks = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
 
-            const startDate = addUtcDays(startOfUtcDay(new Date()), -120);
-            const startKey = getDateKey(startDate);
+                const startDate = addUtcDays(startOfUtcDay(new Date()), -120);
+                const startKey = getDateKey(startDate);
 
-            const [decksResult, activityResult] = await Promise.all([
-                supabase
-                    .from('decks')
-                    .select('*, cards(count)')
-                    .eq('user_id', session.user.id)
-                    .order('created_at', { ascending: false }),
-                supabase
-                    .from('study_activity')
-                    .select('day, count')
-                    .eq('user_id', session.user.id)
-                    .gte('day', startKey)
-            ]);
+                const [decksResult, activityResult] = await Promise.all([
+                    supabase
+                        .from('decks')
+                        .select('*, cards(count)')
+                        .eq('user_id', session.user.id)
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('study_activity')
+                        .select('day, count')
+                        .eq('user_id', session.user.id)
+                        .gte('day', startKey)
+                ]);
 
-            if (decksResult.error) {
-                console.error(decksResult.error);
-            } else {
+                if (decksResult.error) {
+                    throw decksResult.error;
+                }
+
                 setDecks(decksResult.data || []);
+                // Cache decks for offline use (only on successful fetch)
+                saveDecksToCache(decksResult.data || []);
+
+                if (activityResult.error) {
+                    console.error(activityResult.error);
+                } else {
+                    setActivityData(activityResult.data || []);
+                }
+            } catch (err) {
+                console.error('[decks] Fetch failed, trying offline cache:', err);
+                try {
+                    const cached = await getDecksFromCache();
+                    if (cached.length > 0) {
+                        setDecks(cached as UserDeck[]);
+                        setIsOffline(true);
+                        setToast({ message: 'Modo offline \u2014 mostrando dados salvos', type: 'info' });
+                    }
+                } catch (cacheErr) {
+                    console.error('[decks] Cache read also failed:', cacheErr);
+                }
             }
 
-            if (activityResult.error) {
-                console.error(activityResult.error);
-            } else {
-                setActivityData(activityResult.data || []);
-            }
             setLoading(false);
         };
 
@@ -89,6 +111,23 @@ export default function DecksPage() {
         }
         setDeckToDelete(null);
     };
+
+    const filteredDecks = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        let result = decks.filter((deck) => {
+            if (!query) return true;
+            return deck.title?.toLowerCase().includes(query)
+                || (deck.description || '').toLowerCase().includes(query)
+                || (deck.tags || []).some((t: string) => t.toLowerCase().includes(query));
+        });
+        if (sortBy === 'oldest') {
+            result = [...result].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        } else if (sortBy === 'cards') {
+            result = [...result].sort((a, b) => (b.cards?.[0]?.count || 0) - (a.cards?.[0]?.count || 0));
+        }
+        // 'newest' is the default order from the DB query
+        return result;
+    }, [decks, search, sortBy]);
 
     const ctaHref = decks.length > 0 ? '#decks-list' : '/app';
 
@@ -137,11 +176,47 @@ export default function DecksPage() {
                     <StudyHeatmap activityData={activityData} ctaHref={ctaHref} />
                 </m.div>
 
+                {decks.length > 0 && (
+                    <m.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="bg-white border border-border rounded-sm p-4 mb-10 shadow-sm"
+                    >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-3 flex-1">
+                                <Search className="h-4 w-4 text-foreground/40" />
+                                <input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Buscar por título, descrição ou tag..."
+                                    aria-label="Buscar baralhos"
+                                    className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 rounded-sm"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <SortDesc className="h-4 w-4 text-foreground/30" />
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'cards')}
+                                    className="appearance-none bg-gray-50 border border-border px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-widest text-foreground/60 focus:ring-1 focus:ring-brand outline-none"
+                                >
+                                    <option value="newest">Mais recentes</option>
+                                    <option value="oldest">Mais antigos</option>
+                                    <option value="cards">Mais cards</option>
+                                </select>
+                            </div>
+                        </div>
+                    </m.div>
+                )}
+
                 {loading ? (
-                    <div className="h-64 flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <DeckCardSkeleton key={i} />
+                        ))}
                     </div>
-                ) : decks.length === 0 ? (
+                ) : filteredDecks.length === 0 && decks.length === 0 ? (
                     <m.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -159,9 +234,29 @@ export default function DecksPage() {
                             <ArrowRight className="h-4 w-4 cta-arrow-shift" />
                         </Link>
                     </m.div>
+                ) : filteredDecks.length === 0 ? (
+                    <m.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="border-2 border-dashed border-border rounded-sm py-16 flex flex-col items-center justify-center text-center px-4 bg-white/50"
+                    >
+                        <div className="bg-gray-100 p-4 rounded-full mb-4">
+                            <Search className="h-8 w-8 text-foreground/20" />
+                        </div>
+                        <h3 className="text-lg font-bold mb-2">Nenhum baralho encontrado</h3>
+                        <p className="text-foreground/40 font-medium text-sm max-w-xs">
+                            Tente outro termo de busca ou limpe o filtro.
+                        </p>
+                        <button
+                            onClick={() => { setSearch(''); setSortBy('newest'); }}
+                            className="mt-4 text-brand font-bold text-sm hover:underline"
+                        >
+                            Limpar filtros
+                        </button>
+                    </m.div>
                 ) : (
                     <div id="decks-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {decks.map((deck, index) => (
+                        {filteredDecks.map((deck, index) => (
                             <m.div
                                 key={deck.id}
                                 custom={index}

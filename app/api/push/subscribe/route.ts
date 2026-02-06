@@ -17,9 +17,9 @@ if (vapidPublicKey && vapidPrivateKey) {
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!session) {
+        if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
             const { error } = await supabase
                 .from('push_subscriptions')
                 .upsert({
-                    user_id: session.user.id,
+                    user_id: user.id,
                     subscription: JSON.stringify(subscription),
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
             const { error } = await supabase
                 .from('push_subscriptions')
                 .delete()
-                .eq('user_id', session.user.id);
+                .eq('user_id', user.id);
 
             if (error) {
                 console.error('Error removing subscription:', error);

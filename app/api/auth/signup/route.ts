@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -54,17 +55,35 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Senha não atende aos requisitos mínimos.' }, { status: 400 });
         }
 
-        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        // Use standard signUp (not admin.createUser) so Supabase sends a confirmation email
+        const origin = new URL(req.url).origin;
+        const supabaseServer = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        );
+
+        const { data, error } = await supabaseServer.auth.signUp({
             email,
             password,
-            email_confirm: true,
-            user_metadata: {
-                full_name: name,
+            options: {
+                data: { full_name: name },
+                emailRedirectTo: `${origin}/auth/callback`,
             },
         });
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+
+        // If the user already exists (unconfirmed or confirmed), signUp returns
+        // a user with identities: []. Detect this to avoid leaking user existence.
+        if (data?.user?.identities?.length === 0) {
+            // Return success anyway to prevent email enumeration
+            return NextResponse.json({
+                user: { id: 'redacted' },
+                onboarding: { deck_saved: false },
+                emailVerificationRequired: true,
+            });
         }
 
         if (data?.user?.id) {
@@ -109,7 +128,11 @@ export async function POST(req: Request) {
             }
         }
 
-        return NextResponse.json({ user: data.user, onboarding: { deck_saved: true } });
+        return NextResponse.json({
+            user: data.user,
+            onboarding: { deck_saved: true },
+            emailVerificationRequired: true,
+        });
     } catch (error) {
         console.error('Erro ao criar usuario (signup):', error);
         return NextResponse.json({ error: 'Erro interno ao criar conta.' }, { status: 500 });

@@ -1,29 +1,27 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, use } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock, Tag, ArrowRight } from 'lucide-react';
+import { saveDeckCardsToCache, getDeckCardsFromCache } from '@/lib/offline-cache';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Globe, Lock, Tag, ArrowRight, Pencil, Check, X } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
-
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
-}
+import { computeSRS } from '@/lib/srs';
+import SectionLabel from '@/components/SectionLabel';
 
 interface Card {
     id: string;
     front: string;
     back: string;
     next_review?: string;
+    ease_factor?: number;
+    interval?: number;
+    repetitions?: number;
     image_url?: string | null;
     question_image_url?: string | null;
     answer_image_url?: string | null;
@@ -63,23 +61,53 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
     const [deckDescription, setDeckDescription] = useState('');
     const [deckTagsInput, setDeckTagsInput] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [editingCardId, setEditingCardId] = useState<string | null>(null);
+    const [editFront, setEditFront] = useState('');
+    const [editBack, setEditBack] = useState('');
+    const [cardSaving, setCardSaving] = useState(false);
     const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
     const categoryLabels = useMemo(() => buildCategoryLabelMap(categories), [categories]);
 
     useEffect(() => {
         const fetchDeck = async (id: string) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase
-                .from('decks')
-                .select('*, cards(*), category:categories(id, name, parent_id, slug)')
-                .eq('id', id)
-                .single();
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const { data, error } = await supabase
+                    .from('decks')
+                    .select('*, cards(*), category:categories(id, name, parent_id, slug)')
+                    .eq('id', id)
+                    .single();
 
-            if (error) {
-                console.error(error);
-            } else {
+                if (error) {
+                    throw error;
+                }
+
                 setDeck(data);
                 setIsOwner(session?.user?.id === data.user_id);
+
+                // Cache the cards for offline use (only on successful fetch)
+                if (data.cards && data.cards.length > 0) {
+                    saveDeckCardsToCache(id, data.cards);
+                }
+            } catch (err) {
+                console.error('[deck-detail] Fetch failed, trying offline cache:', err);
+                try {
+                    const cachedCards = await getDeckCardsFromCache(id);
+                    if (cachedCards.length > 0) {
+                        // Build a minimal deck object from cached cards
+                        setDeck({
+                            id,
+                            user_id: '',
+                            title: 'Baralho (offline)',
+                            created_at: '',
+                            is_public: false,
+                            cards: cachedCards as Card[],
+                        });
+                        setToast({ message: 'Modo offline \u2014 mostrando dados salvos', type: 'info' });
+                    }
+                } catch (cacheErr) {
+                    console.error('[deck-detail] Cache read also failed:', cacheErr);
+                }
             }
             setLoading(false);
         };
@@ -117,18 +145,35 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
         const fetchDueCards = async (id: string) => {
             setStudyLoading(true);
             const nowIso = new Date().toISOString();
-            const { data, error } = await supabase
+
+            // Fetch cards that are due for review (next_review <= now)
+            // Also include cards with null next_review (never reviewed / new cards)
+            const { data: dueData, error: dueError } = await supabase
                 .from('cards')
-                .select('id, front, back, next_review, image_url')
+                .select('id, front, back, next_review, ease_factor, interval, repetitions, image_url')
                 .eq('deck_id', id)
                 .lte('next_review', nowIso)
                 .order('next_review', { ascending: true });
 
-            if (error) {
-                console.error(error);
+            const { data: newData, error: newError } = await supabase
+                .from('cards')
+                .select('id, front, back, next_review, ease_factor, interval, repetitions, image_url')
+                .eq('deck_id', id)
+                .is('next_review', null);
+
+            if (dueError || newError) {
+                console.error(dueError || newError);
                 setStudyCards([]);
             } else {
-                setStudyCards(data || []);
+                // Combine due cards and new cards, deduplicating by id
+                const combined = [...(dueData || []), ...(newData || [])];
+                const seen = new Set<string>();
+                const unique = combined.filter((card) => {
+                    if (seen.has(card.id)) return false;
+                    seen.add(card.id);
+                    return true;
+                });
+                setStudyCards(unique);
             }
             setStudyLoading(false);
         };
@@ -196,6 +241,49 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
         setMetadataSaving(false);
     };
 
+    const handleStartEditCard = (card: Card) => {
+        setEditingCardId(card.id);
+        setEditFront(card.front);
+        setEditBack(card.back);
+    };
+
+    const handleCancelEditCard = () => {
+        setEditingCardId(null);
+        setEditFront('');
+        setEditBack('');
+    };
+
+    const handleSaveCard = async () => {
+        if (!editingCardId || cardSaving || !deck) return;
+        const trimmedFront = editFront.trim();
+        const trimmedBack = editBack.trim();
+        if (!trimmedFront || !trimmedBack) {
+            setToast({ message: 'Frente e verso são obrigatórios', type: 'error' });
+            return;
+        }
+
+        setCardSaving(true);
+        const { error } = await supabase
+            .from('cards')
+            .update({ front: trimmedFront, back: trimmedBack })
+            .eq('id', editingCardId);
+
+        if (error) {
+            console.error(error);
+            setToast({ message: 'Erro ao salvar card', type: 'error' });
+        } else {
+            setDeck({
+                ...deck,
+                cards: deck.cards.map((c) =>
+                    c.id === editingCardId ? { ...c, front: trimmedFront, back: trimmedBack } : c
+                ),
+            });
+            setToast({ message: 'Card atualizado', type: 'success' });
+            setEditingCardId(null);
+        }
+        setCardSaving(false);
+    };
+
     const handleTogglePublish = async () => {
         if (!deck || publishLoading) return;
         setPublishLoading(true);
@@ -224,7 +312,44 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
         setPublishLoading(false);
     };
 
+    const handleReviewCard = useCallback(async (cardId: string, quality: number): Promise<{ intervalDays: number; nextReview: Date }> => {
+        // Find the card's current SRS state from studyCards
+        const card = studyCards.find((c) => c.id === cardId);
+        const srsInput = {
+            easeFactor: card?.ease_factor ?? 2.5,
+            interval: card?.interval ?? 0,
+            repetitions: card?.repetitions ?? 0,
+        };
 
+        // Compute expected result client-side (for immediate UI feedback)
+        const computed = computeSRS(srsInput, quality);
+
+        // Persist via Supabase RPC (server-side SM-2 is the source of truth)
+        const { data, error } = await supabase.rpc('update_card_progress', {
+            p_card_id: cardId,
+            p_quality: quality,
+        });
+
+        if (error) {
+            console.error('SRS update error:', JSON.stringify(error, null, 2));
+            // Return client-side computation as fallback
+            return { intervalDays: computed.interval, nextReview: computed.nextReview };
+        }
+
+        // Dispatch study activity event so the navbar streak updates
+        window.dispatchEvent(new Event('study-activity-updated'));
+
+        // Use server response if available, otherwise use client computation
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) {
+            return {
+                intervalDays: row.interval ?? computed.interval,
+                nextReview: new Date(row.next_review ?? computed.nextReview),
+            };
+        }
+
+        return { intervalDays: computed.interval, nextReview: computed.nextReview };
+    }, [studyCards]);
 
     if (loading) {
         return (
@@ -427,42 +552,94 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
             {mode === 'overview' ? (
                 <div className="grid grid-cols-1 gap-6">
-                    {deck.cards.map((card, index) => (
-                        <div key={card.id} className="bg-white border border-border rounded-sm overflow-hidden shadow-sm hover:border-brand/40 transition-all group">
-                            <div className="grid grid-cols-1 md:grid-cols-2">
-                                <div className="p-8 border-b md:border-b-0 md:border-r border-border relative">
-                                    <span className="absolute top-4 left-4 text-[9px] font-black text-brand/20 uppercase tracking-widest">Frente #{index + 1}</span>
-                                    {(card.question_image_url || card.image_url) && (
-                                        <div className="mt-4">
-                                            <img
-                                                src={card.question_image_url || card.image_url || ''}
-                                                alt={`Imagem do card ${index + 1}`}
-                                                className="w-full h-48 object-cover rounded-sm border border-border"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
-                                        {card.front}
+                    {deck.cards.map((card, index) => {
+                        const isEditing = editingCardId === card.id;
+                        return (
+                            <div key={card.id} className="bg-white border border-border rounded-sm overflow-hidden shadow-sm hover:border-brand/40 transition-all group">
+                                {isOwner && (
+                                    <div className="flex justify-end gap-2 px-4 pt-3">
+                                        {isEditing ? (
+                                            <>
+                                                <button
+                                                    onClick={handleSaveCard}
+                                                    disabled={cardSaving}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-brand hover:text-brand/80 flex items-center gap-1 disabled:opacity-50"
+                                                >
+                                                    {cardSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                                    Salvar
+                                                </button>
+                                                <button
+                                                    onClick={handleCancelEditCard}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-foreground/40 hover:text-foreground/60 flex items-center gap-1"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                    Cancelar
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleStartEditCard(card)}
+                                                className="text-[10px] font-bold uppercase tracking-widest text-foreground/30 hover:text-brand flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Pencil className="h-3 w-3" />
+                                                Editar
+                                            </button>
+                                        )}
                                     </div>
-                                </div>
-                                <div className="p-8 bg-gray-50/50 relative">
-                                    <span className="absolute top-4 left-4 text-[9px] font-black text-foreground/10 uppercase tracking-widest">Verso / Resposta</span>
-                                    {card.answer_image_url && (
-                                        <div className="mt-4">
-                                            <img
-                                                src={card.answer_image_url}
-                                                alt={`Imagem da resposta ${index + 1}`}
-                                                className="w-full h-48 object-cover rounded-sm border border-border"
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2">
+                                    <div className="p-8 border-b md:border-b-0 md:border-r border-border relative">
+                                        <span className="absolute top-4 left-4 text-[9px] font-black text-brand/20 uppercase tracking-widest">Frente #{index + 1}</span>
+                                        {(card.question_image_url || card.image_url) && (
+                                            <div className="mt-4">
+                                                <img
+                                                    src={card.question_image_url || card.image_url || ''}
+                                                    alt={`Imagem do card ${index + 1}`}
+                                                    className="w-full h-48 object-cover rounded-sm border border-border"
+                                                />
+                                            </div>
+                                        )}
+                                        {isEditing ? (
+                                            <textarea
+                                                value={editFront}
+                                                onChange={(e) => setEditFront(e.target.value)}
+                                                className="mt-4 w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-lg font-bold text-foreground focus:ring-1 focus:ring-brand outline-none resize-none"
+                                                rows={3}
                                             />
-                                        </div>
-                                    )}
-                                    <div className="mt-4 text-lg font-medium text-foreground/60 leading-relaxed">
-                                        {card.back}
+                                        ) : (
+                                            <div className="mt-4 text-lg font-bold text-foreground leading-relaxed">
+                                                {card.front}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-8 bg-gray-50/50 relative">
+                                        <span className="absolute top-4 left-4 text-[9px] font-black text-foreground/10 uppercase tracking-widest">Verso / Resposta</span>
+                                        {card.answer_image_url && (
+                                            <div className="mt-4">
+                                                <img
+                                                    src={card.answer_image_url}
+                                                    alt={`Imagem da resposta ${index + 1}`}
+                                                    className="w-full h-48 object-cover rounded-sm border border-border"
+                                                />
+                                            </div>
+                                        )}
+                                        {isEditing ? (
+                                            <textarea
+                                                value={editBack}
+                                                onChange={(e) => setEditBack(e.target.value)}
+                                                className="mt-4 w-full bg-gray-50 border border-border rounded-sm px-3 py-2 text-lg font-medium text-foreground/80 focus:ring-1 focus:ring-brand outline-none resize-none"
+                                                rows={3}
+                                            />
+                                        ) : (
+                                            <div className="mt-4 text-lg font-medium text-foreground/60 leading-relaxed">
+                                                {card.back}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 studyLoading ? (
@@ -470,7 +647,11 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                         <Loader2 className="h-8 w-8 animate-spin text-brand" />
                     </div>
                 ) : (
-                    <FlashcardPlayer cards={studyCards} disableProgress={!isOwner} />
+                    <FlashcardPlayer
+                        cards={studyCards}
+                        disableProgress={!isOwner}
+                        onReviewCard={isOwner ? handleReviewCard : undefined}
+                    />
                 )
             )}
 

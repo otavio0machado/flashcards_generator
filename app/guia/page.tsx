@@ -14,14 +14,7 @@ import {
     Import,
     Check
 } from 'lucide-react';
-
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
-}
+import SectionLabel from '@/components/SectionLabel';
 
 export default function GuiaPage() {
     const handleSectionView = (section: string) => {

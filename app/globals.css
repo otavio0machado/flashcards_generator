@@ -251,6 +251,83 @@ h6 {
   color: #8A93A0;
 }
 
+/* Dark mode: accent/status light backgrounds */
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.dark .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.1);
+}
+
+.dark .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.1);
+}
+
+.dark .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.1);
+}
+
+/* Dark mode: accent borders */
+.dark .border-red-100,
+.dark .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.dark .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.dark .border-green-200 {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.dark .border-teal-200 {
+  border-color: rgba(20, 184, 166, 0.2);
+}
+
+/* Dark mode: accent hover backgrounds */
+.dark .hover\:bg-red-50:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.dark .hover\:bg-red-100:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Dark mode: shadows (more subtle on dark backgrounds) */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dark .shadow-2xl {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
 /* Landing Page Animations */
 @keyframes scrollBounce {
   0%, 100% {

@@ -37,8 +37,12 @@ export default function Toast({ message, type, duration = 5000, onClose }: Toast
     };
 
     return (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-4 py-3 rounded-sm border shadow-lg transition-all duration-300 ${styles[type]} ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95'}`}>
-            <div className="shrink-0">{icons[type]}</div>
+        <div
+            role="alert"
+            aria-live="assertive"
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-4 py-3 rounded-sm border shadow-lg transition-all duration-300 ${styles[type]} ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95'}`}
+        >
+            <div className="shrink-0" aria-hidden="true">{icons[type]}</div>
             <p className="text-sm font-bold tracking-tight uppercase tracking-widest text-[10px] sm:text-[11px]">
                 {message}
             </p>
@@ -48,8 +52,9 @@ export default function Toast({ message, type, duration = 5000, onClose }: Toast
                     setTimeout(onClose, 300);
                 }}
                 className="ml-2 hover:opacity-70 transition-opacity"
+                aria-label="Fechar notificação"
             >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3" aria-hidden="true" />
             </button>
         </div>
     );

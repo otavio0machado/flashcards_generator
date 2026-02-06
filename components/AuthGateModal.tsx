@@ -30,7 +30,12 @@ export default function AuthGateModal({
         <LazyMotion features={domAnimation}>
             <AnimatePresence>
                 {isOpen && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="auth-gate-title"
+                    >
                         <m.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -40,6 +45,7 @@ export default function AuthGateModal({
                                 onDismiss?.();
                                 onClose();
                             }}
+                            aria-hidden="true"
                         />
                         <m.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -69,6 +75,7 @@ export default function AuthGateModal({
                             </m.div>
 
                             <m.h2
+                                id="auth-gate-title"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.15 }}

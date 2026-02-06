@@ -32,15 +32,7 @@ import {
     Lock,
     Activity
 } from 'lucide-react';
-
-// Helper: Section Label component
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3 text-center">
-            {text}
-        </p>
-    );
-}
+import SectionLabel from '@/components/SectionLabel';
 
 // Helper: Inline CTA component
 function InlineCta({ location }: { location: string }) {
@@ -264,7 +256,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <SectionLabel text="COMO FUNCIONA" />
+                            <SectionLabel text="COMO FUNCIONA" className="text-center" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Como funciona (em 10 segundos)</h2>
                             <p className="text-base text-foreground/60 font-medium">Cole, gere e exporte.</p>
                         </m.div>
@@ -308,7 +300,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <SectionLabel text="VEJA NA PRÁTICA" />
+                            <SectionLabel text="VEJA NA PRÁTICA" className="text-center" />
                         </m.div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -378,7 +370,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <SectionLabel text="RECURSOS" />
+                            <SectionLabel text="RECURSOS" className="text-center" />
                         </m.div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -442,7 +434,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <SectionLabel text="PARA QUEM" />
+                            <SectionLabel text="PARA QUEM" className="text-center" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-8">Para quem é</h2>
                         </m.div>
 
@@ -483,7 +475,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <SectionLabel text="NOSSOS NÚMEROS" />
+                            <SectionLabel text="NOSSOS NÚMEROS" className="text-center" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Tecnologia que entrega</h2>
                         </m.div>
 
@@ -520,7 +512,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-16"
                         >
-                            <SectionLabel text="PREÇOS" />
+                            <SectionLabel text="PREÇOS" className="text-center" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Planos claros e sem pegadinha</h2>
                             <p className="text-base text-foreground/60 font-medium">Teste completo com preview e faça upgrade quando fizer sentido.</p>
                         </m.div>
@@ -712,7 +704,7 @@ export default function HomeContent() {
                             viewport={{ once: true }}
                             className="text-center mb-10"
                         >
-                            <SectionLabel text="PERGUNTAS FREQUENTES" />
+                            <SectionLabel text="PERGUNTAS FREQUENTES" className="text-center" />
                             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Dúvidas? A gente responde.</h2>
                             <p className="text-foreground/60 font-medium">Respostas diretas para quem quer testar rápido.</p>
                         </m.div>

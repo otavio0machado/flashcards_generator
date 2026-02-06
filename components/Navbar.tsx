@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { User as UserIcon, LogOut, Menu, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import StreakBadge from '@/components/StreakBadge';
 import { addUtcDays, getDateKey, getStudySummary, startOfUtcDay } from '@/lib/study-activity';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -127,13 +127,14 @@ export default function Navbar() {
   }
 
   return (
+    <LazyMotion features={domAnimation}>
     <nav data-navbar className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? 'bg-white/80 backdrop-blur-md border-b border-border py-2' : 'bg-transparent py-4'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center group">
-              <motion.div
+              <m.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="transition-transform"
@@ -142,7 +143,7 @@ export default function Navbar() {
                   className="h-12 w-[170px] sm:h-14 sm:w-[200px]"
                   priority
                 />
-              </motion.div>
+              </m.div>
             </Link>
           </div>
 
@@ -196,7 +197,7 @@ export default function Navbar() {
                 <Link href="/auth/login" className="text-sm font-bold text-foreground/60 hover:text-foreground transition-colors">
                   Entrar
                 </Link>
-                <motion.div
+                <m.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -207,7 +208,7 @@ export default function Navbar() {
                   >
                     Criar Conta
                   </Link>
-                </motion.div>
+                </m.div>
               </div>
             )}
           </div>
@@ -300,5 +301,6 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+    </LazyMotion>
   );
 }

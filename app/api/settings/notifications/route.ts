@@ -4,16 +4,16 @@ import { createClient } from '@/lib/supabase-server';
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!session) {
+        if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { reminderHour, studyRemindersEnabled, streakNotifications, achievementNotifications } = await request.json();
 
         const updates: Record<string, unknown> = {
-            user_id: session.user.id,
+            user_id: user.id,
             updated_at: new Date().toISOString(),
         };
 
@@ -49,16 +49,16 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     try {
         const supabase = await createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!session) {
+        if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { data, error } = await supabase
             .from('notification_preferences')
             .select('*')
-            .eq('user_id', session.user.id)
+            .eq('user_id', user.id)
             .single();
 
         if (error && error.code !== 'PGRST116') {

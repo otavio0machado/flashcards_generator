@@ -1,24 +1,19 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, use } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
 import { deckService } from '@/services/deckService';
-import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag, Star, BadgeCheck, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Loader2, FileDown, ExternalLink, Calendar, Layers, Copy, Tag, Star, BadgeCheck, ArrowRight, Flag } from 'lucide-react';
 import FlashcardPlayer from '@/components/FlashcardPlayer';
 import ExportModal from '@/components/ExportModal';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, Category } from '@/lib/category-utils';
-
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
-}
+import SectionLabel from '@/components/SectionLabel';
+import StarRating from '@/components/StarRating';
+import ReportDeckModal from '@/components/ReportDeckModal';
 
 interface Card {
     id: string;
@@ -51,29 +46,59 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
     const [cloning, setCloning] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [userRating, setUserRating] = useState<number>(0);
+    const [ratingSubmitting, setRatingSubmitting] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
 
     const categoryLabels = useMemo(() => buildCategoryLabelMap(categories), [categories]);
 
-    useEffect(() => {
-        const fetchDeck = async (id: string) => {
-            const { data, error } = await supabase
-                .from('decks')
-                .select('*, cards(*), category:categories(id, name, parent_id, slug)')
-                .eq('id', id)
-                .eq('is_public', true)
-                .single();
+    const fetchDeck = useCallback(async (id: string) => {
+        const { data, error } = await supabase
+            .from('decks')
+            .select('*, cards(*), category:categories(id, name, parent_id, slug)')
+            .eq('id', id)
+            .eq('is_public', true)
+            .single();
 
-            if (error) {
-                console.error(error);
-                setDeck(null);
-            } else {
-                setDeck(data);
+        if (error) {
+            console.error(error);
+            setDeck(null);
+        } else {
+            setDeck(data);
+        }
+        setLoading(false);
+    }, []);
+
+    useEffect(() => {
+        if (resolvedParams.id) {
+            fetchDeck(resolvedParams.id);
+        }
+    }, [resolvedParams.id, fetchDeck]);
+
+    // Check auth state and fetch existing user rating
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUserId(session.user.id);
+
+                // Fetch existing rating by this user for this deck
+                const { data } = await supabase
+                    .from('deck_ratings')
+                    .select('rating')
+                    .eq('deck_id', resolvedParams.id)
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (data) {
+                    setUserRating(data.rating);
+                }
             }
-            setLoading(false);
         };
 
         if (resolvedParams.id) {
-            fetchDeck(resolvedParams.id);
+            checkAuth();
         }
     }, [resolvedParams.id]);
 
@@ -111,6 +136,37 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
             setToast({ message: 'Erro ao clonar deck', type: 'error' });
         } finally {
             setCloning(false);
+        }
+    };
+
+    const handleRate = async (rating: number) => {
+        if (!deck || !userId || ratingSubmitting) return;
+
+        setRatingSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('deck_ratings')
+                .upsert(
+                    { deck_id: deck.id, user_id: userId, rating },
+                    { onConflict: 'deck_id,user_id' }
+                );
+
+            if (error) {
+                console.error(error);
+                setToast({ message: 'Erro ao enviar avaliacao', type: 'error' });
+                return;
+            }
+
+            setUserRating(rating);
+            setToast({ message: 'Avaliacao enviada!', type: 'success' });
+
+            // Refetch deck to update average rating
+            await fetchDeck(deck.id);
+        } catch (error) {
+            console.error(error);
+            setToast({ message: 'Erro ao enviar avaliacao', type: 'error' });
+        } finally {
+            setRatingSubmitting(false);
         }
     };
 
@@ -255,6 +311,68 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                                     </>
                                 )}
                             </button>
+                            <button
+                                onClick={() => setIsReportOpen(true)}
+                                className="w-full sm:w-auto border border-border px-4 py-3 rounded-sm font-bold text-sm text-foreground/40 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center gap-2"
+                                aria-label="Denunciar deck"
+                            >
+                                <Flag className="h-4 w-4" />
+                                <span className="sm:hidden">Denunciar</span>
+                            </button>
+                        </div>
+                    </div>
+                </m.div>
+
+                {/* Rating Section */}
+                <m.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="mb-12 rounded-sm border border-border bg-white/80 backdrop-blur-sm shadow-sm p-6 md:p-8"
+                >
+                    <div className="flex flex-col gap-6">
+                        {/* Current average rating display */}
+                        <div>
+                            <SectionLabel text="Avaliacao" />
+                            <div className="flex items-center gap-3">
+                                <StarRating value={Math.round(Number(deck.rating || 0))} readonly size="md" />
+                                <span className="text-sm font-bold text-foreground/60">
+                                    {Number(deck.rating || 0).toFixed(1)}
+                                </span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
+                                    ({deck.rating_count || 0} {(deck.rating_count || 0) === 1 ? 'avaliacao' : 'avaliacoes'})
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* User rating section */}
+                        <div className="border-t border-border/60 pt-5">
+                            {userId ? (
+                                <div>
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-foreground/40 mb-3">
+                                        Avalie este deck
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <StarRating
+                                            value={userRating}
+                                            onChange={handleRate}
+                                            size="md"
+                                        />
+                                        {ratingSubmitting && (
+                                            <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                                        )}
+                                        {userRating > 0 && !ratingSubmitting && (
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
+                                                Sua nota: {userRating}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm font-bold text-foreground/40">
+                                    Faca login para avaliar
+                                </p>
+                            )}
                         </div>
                     </div>
                 </m.div>
@@ -297,6 +415,13 @@ export default function MarketplaceDeckPage({ params }: { params: Promise<{ id: 
                     isOpen={isExportModalOpen}
                     onClose={() => setIsExportModalOpen(false)}
                     deck={deck}
+                />
+
+                <ReportDeckModal
+                    isOpen={isReportOpen}
+                    onClose={() => setIsReportOpen(false)}
+                    deckId={deck.id}
+                    onSuccess={() => setToast({ message: 'Denúncia enviada. Obrigado!', type: 'success' })}
                 />
 
                 {toast && (

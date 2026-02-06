@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import GeneratorClient from './generator-client';
 import CheckoutSuccessTracker from '@/components/CheckoutSuccessTracker';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
 
 export const metadata: Metadata = {
     title: "Gerador de Flashcards IA - Área de Criação",
@@ -25,6 +26,8 @@ export default function AppPage() {
             </header>
 
             <GeneratorClient />
+
+            <OnboardingOverlay />
         </div>
     );
 }

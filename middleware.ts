@@ -74,8 +74,8 @@ export async function middleware(req: NextRequest) {
 
     const isAuthenticated = !error && user;
 
-    // Se o usuário está tentando acessar o /decks e não está logado
-    if (req.nextUrl.pathname.startsWith('/decks') && !isAuthenticated) {
+    // Se o usuário está tentando acessar rotas protegidas e não está logado
+    if ((req.nextUrl.pathname.startsWith('/decks') || req.nextUrl.pathname.startsWith('/settings')) && !isAuthenticated) {
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
@@ -88,6 +88,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/app/:path*', '/auth/:path*', '/decks/:path*'],
+    matcher: ['/app/:path*', '/auth/:path*', '/decks/:path*', '/settings/:path*', '/settings'],
 };
 

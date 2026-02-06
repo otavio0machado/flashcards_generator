@@ -6,17 +6,11 @@ import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
 import { deckService } from '@/services/deckService';
-import { Search, Loader2, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
+import { Search, Layers, ArrowRight, Copy, Tag, Star, BadgeCheck, ChevronDown } from 'lucide-react';
+import { MarketplaceCardSkeleton } from '@/components/Skeleton';
 import Toast, { ToastType } from '@/components/Toast';
 import { buildCategoryLabelMap, buildCategoryOptions, Category } from '@/lib/category-utils';
-
-function SectionLabel({ text }: { text: string }) {
-    return (
-        <p className="text-[11px] font-black uppercase tracking-widest text-brand mb-3">
-            {text}
-        </p>
-    );
-}
+import SectionLabel from '@/components/SectionLabel';
 
 interface PublicDeck {
     id: string;
@@ -42,6 +36,7 @@ export default function MarketplacePage() {
     const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
     const [cloningId, setCloningId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+    const [visibleCount, setVisibleCount] = useState(12);
 
     useEffect(() => {
         trackEvent('marketplace_view', { source: 'marketplace_page' });
@@ -113,6 +108,14 @@ export default function MarketplacePage() {
             return matchesQuery && matchesTag && matchesCategory;
         });
     }, [decks, search, activeTag, activeCategoryId, categoryLabels]);
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setVisibleCount(12);
+    }, [search, activeTag, activeCategoryId]);
+
+    const paginatedDecks = useMemo(() => filteredDecks.slice(0, visibleCount), [filteredDecks, visibleCount]);
+    const hasMore = visibleCount < filteredDecks.length;
 
     const formatPrice = (price?: number) => {
         const value = typeof price === 'number' ? price : Number(price || 0);
@@ -192,7 +195,8 @@ export default function MarketplacePage() {
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Buscar por titulo, tag ou categoria"
-                                className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none"
+                                aria-label="Buscar decks no marketplace"
+                                className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-foreground/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 rounded-sm"
                             />
                         </div>
                         <div className="relative w-full sm:w-64">
@@ -240,8 +244,10 @@ export default function MarketplacePage() {
                 </m.div>
 
                 {loading ? (
-                    <div className="h-64 flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <MarketplaceCardSkeleton key={i} />
+                        ))}
                     </div>
                 ) : filteredDecks.length === 0 ? (
                     <m.div
@@ -262,8 +268,9 @@ export default function MarketplacePage() {
                         </Link>
                     </m.div>
                 ) : (
+                    <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredDecks.map((deck, index) => (
+                        {paginatedDecks.map((deck, index) => (
                             <m.div
                                 key={deck.id}
                                 custom={index}
@@ -347,6 +354,22 @@ export default function MarketplacePage() {
                             </m.div>
                         ))}
                     </div>
+                    {hasMore && (
+                        <div className="flex justify-center mt-10">
+                            <button
+                                onClick={() => setVisibleCount((prev) => prev + 12)}
+                                className="bg-white border border-border px-8 py-3 rounded-sm font-bold text-sm text-foreground/70 hover:border-brand/40 hover:text-brand transition-all"
+                            >
+                                Carregar mais ({filteredDecks.length - visibleCount} restantes)
+                            </button>
+                        </div>
+                    )}
+                    {!hasMore && filteredDecks.length > 12 && (
+                        <p className="text-center mt-8 text-xs font-medium text-foreground/30">
+                            Mostrando todos os {filteredDecks.length} decks
+                        </p>
+                    )}
+                    </>
                 )}
 
                 {toast && (
