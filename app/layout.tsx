@@ -113,7 +113,13 @@ export default function RootLayout({
     var root = document.documentElement;
     root.classList.toggle('dark', theme === 'dark');
     root.setAttribute('data-theme', theme);
-  } catch (e) { /* localStorage pode não estar disponível em alguns contextos */ }
+  } catch (e) {}
+  /* Capture beforeinstallprompt early, before React hydrates */
+  window.__pwa_deferred_prompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window.__pwa_deferred_prompt = e;
+  });
 })();`}
         </Script>
         <AnalyticsProvider>

@@ -15,6 +15,9 @@ declare global {
     interface WindowEventMap {
         beforeinstallprompt: BeforeInstallPromptEvent;
     }
+    interface Window {
+        __pwa_deferred_prompt: BeforeInstallPromptEvent | null;
+    }
 }
 
 interface PWAContextType {
@@ -51,9 +54,15 @@ export function PWAProvider({ children }: { children: ReactNode }) {
         const ua = navigator.userAgent;
         setIsIOS(/iPad|iPhone|iPod/.test(ua) && !('MSStream' in window));
 
-        // Capture beforeinstallprompt
+        // Pick up beforeinstallprompt captured early by inline script
+        if (window.__pwa_deferred_prompt) {
+            setDeferredPrompt(window.__pwa_deferred_prompt);
+        }
+
+        // Also listen for future events (in case it hasn't fired yet)
         const handleBeforeInstall = (e: BeforeInstallPromptEvent) => {
             e.preventDefault();
+            window.__pwa_deferred_prompt = e;
             setDeferredPrompt(e);
         };
         window.addEventListener('beforeinstallprompt', handleBeforeInstall);
